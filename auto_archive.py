@@ -16,17 +16,16 @@ load_dotenv()
 
 def update_sheet(gw, row, result: archivers.ArchiveResult):
     cell_updates = []
-    row_values = gw.get_row(row)
 
     def batch_if_valid(col, val, final_value=None):
         final_value = final_value or val
-        if val and gw.col_exists(col) and gw.get_cell(row_values, col) == '':
+        if val and gw.col_exists(col) and gw.get_cell(row, col) == '':
             cell_updates.append((row, col, final_value))
 
     cell_updates.append((row, 'status', result.status))
 
     batch_if_valid('archive', result.cdn_url)
-    batch_if_valid('date', True, datetime.datetime.now().isoformat())
+    batch_if_valid('date', datetime.datetime.now().isoformat())
     batch_if_valid('thumbnail', result.thumbnail, f'=IMAGE("{result.thumbnail}")')
     batch_if_valid('thumbnail_index', result.thumbnail_index)
     batch_if_valid('title', result.title)
