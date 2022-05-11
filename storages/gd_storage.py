@@ -1,74 +1,47 @@
-# import boto3
-# from botocore.errorfactory import ClientError
 from loguru import logger
 from .base_storage import Storage
 from dataclasses import dataclass
 
 from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
 from google.oauth2 import service_account
 
 import time
 
-
 @dataclass
 class GDConfig:
     root_folder_id: str
-    bucket: str
-    region: str
-    key: str
-    secret: str
-    folder: str = ""
-    private: bool = False
-
 
 class GDStorage(Storage):
 
     def __init__(self, config: GDConfig):
         self.root_folder_id = config.root_folder_id
-
-        self.bucket = config.bucket
-        self.region = config.region
-        self.folder = config.folder
-        self.private = config.private
-
         SCOPES = ['https://www.googleapis.com/auth/drive']
-
         creds = service_account.Credentials.from_service_account_file('service_account.json', scopes=SCOPES)
-
         self.service = build('drive', 'v3', credentials=creds)
-
-            # if len(self.folder) and self.folder[-1] != '/':
-        #     self.folder += '/'
-
-        # self.s3 = boto3.client(
-        #     's3',
-        #     region_name=self.region,
-        #     endpoint_url=f'https://{self.region}.digitaloceanspaces.com',
-        #     aws_access_key_id=config.key,
-        #     aws_secret_access_key=config.secret
-        # )
 
     def _get_path(self, key):
         return self.folder + key
 
     def get_cdn_url(self, key):
         # only support files saved in a folders for GD
+        # S3 supports folder and all stored in the root
+
         # key will be SM0002/twitter__media_ExeUSW2UcAE6RbN.jpg
-        directory = key.split('/', 1)[0]
+        foldername = key.split('/', 1)[0]
         # eg twitter__media_asdf.jpg
         filename = key.split('/', 1)[1]
 
-        logger.debug(f'Looking for {directory} and filename: {filename} on GD')
+        logger.debug(f'Looking for {foldername} and filename: {filename} on GD')
 
+        # retry policy on Google Drive
         try_again = True
         counter = 1
         folder_id = None
         while try_again:
             # need to lookup the id of folder eg SM0002 which should be there already as this is get_cdn_url
             results = self.service.files().list(q=f"'{self.root_folder_id}' in parents \
-                                                and name = '{directory}' ",
+                                                and name = '{foldername}' ",
                                             spaces='drive', # ie not appDataFolder or photos
                                             fields='files(id, name)'
                                             ).execute()
@@ -80,15 +53,14 @@ class GDStorage(Storage):
                 try_again = False
 
             if folder_id is None:
-                logger.warning(f'Cant find folder {directory} waiting and trying again count {counter}')
+                logger.warning(f'Cant find folder {foldername} waiting and trying again count {counter}')
                 counter += 1
                 time.sleep(10)
                 if counter > 18:
-                    raise ValueError(f'Cant find folder {directory} and retried 18 times pausing 10seconds at a time which is 3 minutes')
+                    raise ValueError(f'Cant find folder {foldername} and retried 18 times pausing 10seconds at a time which is 3 minutes')
 
         # check for sub folder in file eg youtube_dl_sDE-qZdi8p8/index.html'
         # happens doing thumbnails
-
         a, _, b = filename.partition('/')
 
         if b != '':
@@ -112,7 +84,6 @@ class GDStorage(Storage):
             if filename is None:
                 raise ValueError(f'Problem finding sub folder {a}')
 
-
         # get id of file inside folder (or sub folder)
         results = self.service.files().list(q=f"'{folder_id}' in parents \
                                             and name = '{filename}' ",
@@ -133,6 +104,9 @@ class GDStorage(Storage):
         return foo
 
     def exists(self, key):
+        # Not implemented yet
+        # Google drive will accept duplicate named filenames as it is stored as a different fileid 
+
         # try:
         #     self.s3.head_object(Bucket=self.bucket, Key=self._get_path(key))
         #     return True
@@ -141,11 +115,6 @@ class GDStorage(Storage):
         return False
 
     def uploadf(self, file, key, **kwargs):
-        # if self.private:
-        #     extra_args = kwargs.get("extra_args", {})
-        # else:
-        #     extra_args = kwargs.get("extra_args", {'ACL': 'public-read'})
-
         # split on first occurance of /
         # eg SM0005
         foldername = key.split('/', 1)[0]
@@ -162,7 +131,7 @@ class GDStorage(Storage):
         items = results.get('files', [])
         folder_id_to_upload_to = None
         if len(items) > 1:
-            logger.error(f'Duplicate folder name of {foldername} which should never happen')
+            logger.error(f'Duplicate folder name of {foldername} which should never happen, but continuing anyway')
 
         for item in items:
             logger.debug(f"Found existing folder of {item['name']}")

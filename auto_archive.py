@@ -1,7 +1,6 @@
 import os
 import datetime
 import argparse
-# import string
 import requests
 import shutil
 import gspread
@@ -15,13 +14,6 @@ from storages import S3Storage, S3Config
 from storages.gd_storage import GDConfig, GDStorage
 from utils import GWorksheet, mkdir_if_not_exists
 import sys
-
-import sys
-
-# from googleapiclient.discovery import build
-# from googleapiclient.errors import HttpError
-# from googleapiclient.http import MediaFileUpload
-# from google.oauth2 import service_account
 
 logger.add("logs/1trace.log", level="TRACE")
 logger.add("logs/2info.log", level="INFO")
@@ -76,7 +68,7 @@ def expand_url(url):
     return url
 
 
-def process_sheet(sheet, usefilenumber, storage, header=1, columns=GWorksheet.COLUMN_NAMES):
+def process_sheet(sheet, usefilenumber=False, storage="s3", header=1, columns=GWorksheet.COLUMN_NAMES):
     gc = gspread.service_account(filename='service_account.json')
     sh = gc.open(sheet)
 
@@ -89,11 +81,6 @@ def process_sheet(sheet, usefilenumber, storage, header=1, columns=GWorksheet.CO
 
     gd_config = GDConfig(
         root_folder_id=os.getenv('GD_ROOT_FOLDER_ID'),
-        # todo delete below
-        bucket=os.getenv('DO_BUCKET'),
-        region=os.getenv('DO_SPACES_REGION'),
-        key=os.getenv('DO_SPACES_KEY'),
-        secret=os.getenv('DO_SPACES_SECRET')
     )
    
     telegram_config = archivers.TelegramConfig(
@@ -101,14 +88,11 @@ def process_sheet(sheet, usefilenumber, storage, header=1, columns=GWorksheet.CO
         api_hash=os.getenv('TELEGRAM_API_HASH')
     )
 
-    
-
     # loop through worksheets to check
     for ii, wks in enumerate(sh.worksheets()):
         logger.info(f'Opening worksheet {ii=}: {wks.title=} {header=}')
         gw = GWorksheet(wks, header_row=header, columns=columns)
 
-        # DM changed debug to info to stop noise in production
         if not gw.col_exists('url'):
             logger.info(
                 f'No "{columns["url"]}" column found, skipping worksheet {wks.title}')
@@ -131,14 +115,12 @@ def process_sheet(sheet, usefilenumber, storage, header=1, columns=GWorksheet.CO
             url = gw.get_cell(row, 'url')
             original_status = gw.get_cell(row, 'status')
             status = gw.get_cell(row, 'status', fresh=original_status in ['', None] and url != '')
-            # logger.trace(f'Row {row} status {status}')
+
             if url != '' and status in ['', None]:
                 gw.set_cell(row, 'status', 'Archive in progress')
 
                 url = expand_url(url)
-                
 
-                # DM Feature flag
                 if usefilenumber:
                     filenumber = gw.get_cell(row, 'filenumber')
                     logger.debug(f'filenumber is {filenumber}')
@@ -150,8 +132,7 @@ def process_sheet(sheet, usefilenumber, storage, header=1, columns=GWorksheet.CO
                     # We will use this through the app to differentiate between where to save
                     filenumber = None
 
-                # DM make a new driver every row so idempotent
-                # otherwise cookies will be remembered
+                # make a new driver every row so idempotent otherwise cookies will be remembered
                 options = webdriver.FirefoxOptions()
                 options.headless = True
                 options.set_preference('network.protocol-handler.external.tg', False)
@@ -182,9 +163,8 @@ def process_sheet(sheet, usefilenumber, storage, header=1, columns=GWorksheet.CO
                     logger.debug(f'Trying {archiver} on row {row}')
 
                     try:
-                        # DM 
                         if usefilenumber:
-                            # using filenumber to store in folders so can't check for existance of that url
+                            # using filenumber to store in folders so not checking for existence of that url
                             result = archiver.download(url, check_if_exists=False, filenumber=filenumber)
                         else:
                             result = archiver.download(url, check_if_exists=True)
@@ -203,7 +183,6 @@ def process_sheet(sheet, usefilenumber, storage, header=1, columns=GWorksheet.CO
                             break
 
                         # DM wayback has seen this url before so keep existing status
-                        # if result.status == "wayback: Internet Archive fallback":
                         if "wayback: Internet Archive fallback" in result.status:
                             logger.success(
                                 f'wayback has seen this url before so keep existing status on row {row}')
@@ -225,8 +204,6 @@ def process_sheet(sheet, usefilenumber, storage, header=1, columns=GWorksheet.CO
 
 @logger.catch
 def main():
-    # DM don't want to use print anymore
-    # print(sys.argv[1:])
     logger.debug(f'Passed args:{sys.argv}')
 
     parser = argparse.ArgumentParser(
@@ -234,6 +211,7 @@ def main():
     parser.add_argument('--sheet', action='store', dest='sheet', help='the name of the google sheets document', required=True)
     parser.add_argument('--header', action='store', dest='header', default=1, type=int, help='1-based index for the header row')
     parser.add_argument('--private', action='store_true', help='Store content without public access permission')
+
     parser.add_argument('--use-filenumber-as-directory', action=argparse.BooleanOptionalAction, dest='usefilenumber',  \
          help='Will save files into a subfolder on cloud storage which has the File Number eg SM3012')
     parser.add_argument('--storage', action='store', dest='storage', default='s3', \
@@ -248,15 +226,13 @@ def main():
     logger.info(f'Opening document {args.sheet} for header {args.header} using filenumber: {args.usefilenumber} and storage {args.storage}')
 
     # https://stackoverflow.com/questions/15008758/parsing-boolean-values-with-argparse
-    # filenumber is True (of type bool) when set or None when argument is not there
-    # explicitly setting usefilenumber to a bool
+    # args.filenumber is True (of type bool) when set or None when argument is not there
     usefilenumber = False
     if args.usefilenumber:
         usefilenumber = True
 
     mkdir_if_not_exists('tmp')
-    # DM added usefilenumber (default is False) and storage (default is s3) or gd (Google Drive)
-    process_sheet(args.sheet, usefilenumber=usefilenumber, storage=args.storage, header=args.header, columns=config_columns)
+    process_sheet(args.sheet, usefilenumber, args.storage, args.header, config_columns)
     shutil.rmtree('tmp')
 
 

@@ -11,19 +11,14 @@ class YoutubeDLArchiver(Archiver):
     name = "youtube_dl"
     ydl_opts = {'outtmpl': 'tmp/%(id)s.%(ext)s', 'quiet': False}
 
-    # DM added so can pass in facebook cookie from .env
     def __init__(self, storage: Storage, driver, fb_cookie):
         super().__init__(storage, driver)
         self.fb_cookie = fb_cookie
 
     def download(self, url, check_if_exists=False, filenumber=None):
         netloc = self.get_netloc(url)
-        # DM to set env variable: export FB_COOKIE="paste"
-        # this gets blanked at the end of each session ie when vs code closes
-        # if netloc in ['facebook.com', 'www.facebook.com'] and os.getenv('FB_COOKIE'):
         if netloc in ['facebook.com', 'www.facebook.com']:
             logger.debug('Using Facebook cookie')
-            # yt_dlp.utils.std_headers['cookie'] = os.getenv('FB_COOKIE')
             yt_dlp.utils.std_headers['cookie'] = self.fb_cookie
 
         ydl = yt_dlp.YoutubeDL(YoutubeDLArchiver.ydl_opts)
@@ -33,11 +28,8 @@ class YoutubeDLArchiver(Archiver):
         try:
             info = ydl.extract_info(url, download=False)
         except yt_dlp.utils.DownloadError as e:
-            # no video here
-            logger.debug(f'Youtube normal control flow: {e}')
+            logger.debug(f'No video - Youtube normal control flow: {e}')
             return False
-        # DM Exception is actually normal control flow!
-        # todo
         except Exception as e:
             logger.debug(f'ytdlp exception which is normal for example a facebook page with images only will cause a IndexError: list index out of range. Exception here is: \n  {e}')
             return False
@@ -45,15 +37,7 @@ class YoutubeDLArchiver(Archiver):
         if info.get('is_live', False):
             logger.warning("Live streaming media, not archiving now")
             return ArchiveResult(status="Streaming media")
-        if 'twitter.com' in netloc:
-            if 'https://twitter.com/' in info['webpage_url']:
-                logger.info('Found https://twitter.com/ in the download url from Twitter')
-            else:
-                logger.info('Found a linked video probably in a link in a tweet - not getting that video as there may be images in the tweet')
-                return False
 
-
-        #DM
         if 'twitter.com' in netloc:
             if 'https://twitter.com/' in info['webpage_url']:
                 logger.info('Found https://twitter.com/ in the download url from Twitter')
@@ -77,7 +61,6 @@ class YoutubeDLArchiver(Archiver):
 
             key = self.get_key(filename)
 
-            # DM feature flag
             if filenumber is not None:
                 key = filenumber + "/" + key
 
@@ -105,7 +88,6 @@ class YoutubeDLArchiver(Archiver):
         if status != 'already archived':
             key = self.get_key(filename)
 
-            # DM feature flag
             if filenumber is not None:
                 key = filenumber + "/" + key
 
@@ -123,7 +105,7 @@ class YoutubeDLArchiver(Archiver):
 
         # get thumbnails
         try:
-            key_thumb, thumb_index = self.get_thumbnails(filename, key, duration=duration, filenumber=filenumber)
+            key_thumb, thumb_index = self.get_thumbnails(filename, key, duration=duration)
         except:
             key_thumb = ''
             thumb_index = 'Could not generate thumbnails'

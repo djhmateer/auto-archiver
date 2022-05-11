@@ -42,8 +42,6 @@ class Archiver(ABC):
         return self.__class__.__name__
 
     @abstractmethod
-    # def download(self, url, check_if_exists=False): pass
-    # DM add feature flad
     def download(self, url, check_if_exists=False, filenumber=None): pass
 
     def get_netloc(self, url):
@@ -73,26 +71,16 @@ class Archiver(ABC):
 
         page_hash = self.get_hash(page_filename)
 
-         # DM feature flag
         if filenumber != None:
-            logger.debug(f'filenumber for directory is {filenumber}')
+            logger.trace(f'filenumber for directory is {filenumber}')
             page_key = filenumber + "/" + page_key
             
         self.storage.upload(page_filename, page_key, extra_args={
             'ACL': 'public-read', 'ContentType': 'text/html'})
 
-        # DM feature flag
-        # page_cdn gets written to the spreadsheet
-        if filenumber is None:
-            page_cdn = self.storage.get_cdn_url(page_key)
-        else:
-            # filenumber: SM0001
-            # page_key: SM0001/twitter__minmyatnaing13_status_1499415562937503751.html
-            # page_cdn = self.storage.get_cdn_url(filenumber + "/" + page_key)
-            page_cdn = self.storage.get_cdn_url(page_key)
+        page_cdn = self.storage.get_cdn_url(page_key)
         return (page_cdn, page_hash, thumbnail)
 
-    # def generate_media_page(self, urls, url, object):
     # eg images in a tweet save to cloud storage
     def generate_media_page(self, urls, url, object, filenumber=None):
         headers = {
@@ -114,19 +102,17 @@ class Archiver(ABC):
             with open(filename, 'wb') as f:
                 f.write(d.content)
 
-            # DM feature flag
             if filenumber is not None:
                 logger.debug(f'filenumber for directory is {filenumber}')
                 key = filenumber + "/" + key
 
             # eg filename: 'tmp/twitter__media_FM7-ggCUYAQHKWW.jpg'
             # eg key: 'twitter__media_FM7-ggCUYAQHKWW.jpg'
-            # or key: 'SM3013/twitter__media_FM7-ggCUYAQHKWW.jpg'
+            # or if using filename key: 'SM3013/twitter__media_FM7-ggCUYAQHKWW.jpg'
             self.storage.upload(filename, key)
 
-            # file will be in storage now as: twitter__media_FM7-ggCUYAQHKWW.jpg
-
             hash = self.get_hash(filename)
+
             # eg 'https://testhashing.fra1.cdn.digitaloceanspaces.com/Test_Hashing/Sheet1/twitter__media_FM7-ggCUYAQHKWW.jpg'
             cdn_url = self.storage.get_cdn_url(key)
 
@@ -154,14 +140,16 @@ class Archiver(ABC):
     def get_hash(self, filename):
         f = open(filename, "rb")
         bytes = f.read()  # read entire file as bytes
-        # DM changed hash for CIR
+
         # hash = hashlib.sha256(bytes)
         hash = hashlib.sha3_512(bytes)
+
         f.close()
         return hash.hexdigest()
 
     # eg SA3013/twitter__minmyatnaing13_status_14994155629375037512022-04-27T13:51:43.701962.png
-    def get_screenshot(self, url, filenumber, storage="GD"):
+    # def get_screenshot(self, url, filenumber, storage="GD"):
+    def get_screenshot(self, url, filenumber):
         key = self.get_key(urlparse(url).path.replace(
             "/", "_") + datetime.datetime.utcnow().isoformat().replace(" ", "_") + ".png")
         filename = 'tmp/' + key
@@ -176,7 +164,6 @@ class Archiver(ABC):
                 logger.debug(f'fb click worked')
                 # linux server needs a sleep otherwise facebook cookie wont have worked and we'll get a popup on next page
                 time.sleep(2)
-                # DM some FB videos needs to be logged in
             except:
                 logger.warning(f'Failed on fb accept cookies for url {url}')
         
@@ -194,10 +181,10 @@ class Archiver(ABC):
 
         self.storage.upload(filename, key, extra_args={
                             'ACL': 'public-read', 'ContentType': 'image/png'})
-        foo = self.storage.get_cdn_url(key)
-        return foo 
 
-    def get_thumbnails(self, filename, key, duration=None, filenumber=None):
+        return self.storage.get_cdn_url(key)
+
+    def get_thumbnails(self, filename, key, duration=None):
         thumbnails_folder = filename.split('.')[0] + '/'
         key_folder = key.split('.')[0] + '/'
 
@@ -225,10 +212,6 @@ class Archiver(ABC):
                 thumbnail_filename = thumbnails_folder + fname
                 # 'SM0022/youtube_dl_sDE-qZdi8p8/out1.jpg'
                 key = key_folder + fname
-
-                # DM feature flag
-                # if filenumber is not None:
-                #     key = filenumber + "/" + key
 
                 self.storage.upload(thumbnail_filename, key)
 

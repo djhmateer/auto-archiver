@@ -85,7 +85,7 @@ class TelegramArchiver(Archiver):
 
         # process thumbnails
         key_thumb, thumb_index = self.get_thumbnails(
-            filename, key, duration=duration, filenumber=filenumber)
+            filename, key, duration=duration)
         os.remove(filename)
 
         return ArchiveResult(status=status, cdn_url=cdn_url, thumbnail=key_thumb, thumbnail_index=thumb_index,

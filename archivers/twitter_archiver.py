@@ -1,6 +1,5 @@
 from snscrape.modules.twitter import TwitterTweetScraper, Video, Gif, Photo
 from loguru import logger
-import requests
 from urllib.parse import urlparse
 
 from .base_archiver import Archiver, ArchiveResult
@@ -9,7 +8,6 @@ from .base_archiver import Archiver, ArchiveResult
 class TwitterArchiver(Archiver):
     name = "twitter"
 
-    # DM added filenumber params and storage 
     def download(self, url, check_if_exists=False, filenumber=None):
 
         if 'twitter.com' != self.get_netloc(url):
@@ -33,6 +31,7 @@ class TwitterArchiver(Archiver):
             return False
 
         if tweet.media is None:
+            logger.trace(f'No media found')
             return False
 
         urls = []
@@ -49,7 +48,6 @@ class TwitterArchiver(Archiver):
             else:
                 logger.warning(f"Could not get media URL of {media}")
 
-        # page_cdn, page_hash, thumbnail = self.generate_media_page(urls, url, tweet.json())
         page_cdn, page_hash, thumbnail = self.generate_media_page(urls, url, tweet.json(), filenumber)
 
         screenshot = self.get_screenshot(url, filenumber)
