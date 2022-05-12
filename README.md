@@ -192,10 +192,13 @@ To update dependencies
 pipenv update
 ```
 
-## Spreasheet
+## Spreadsheet
 
-if delete link rows then auto-archiver will keep going if it read that row initially
-  and would probably update the wrong row!
+need to be careful doing anything if the archiver is working on the sheet
 
-same with sort/ordering????
+hiding columns affects all users
+
+sorting columns affects all users?
+
+
 
