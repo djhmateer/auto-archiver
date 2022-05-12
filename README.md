@@ -126,7 +126,6 @@ not tested as the API is getting all so far
 Always getting invalid URL using the library [https://github.com/msramalho/tiktok-downloader](https://github.com/msramalho/tiktok-downloader) which is a fork of [https://github.com/krypton-byte/tiktok-downloader](https://github.com/krypton-byte/tiktok-downloader) and has a nice test app [https://tkdown.herokuapp.com/](https://tkdown.herokuapp.com/)
 
 
-
 # Twitter Video - YoutubeDL 
 
 - Generally works well
@@ -148,11 +147,16 @@ As of 1st April 2022 I have noticed
 
 - Twitter images posted at 3.2MB come back as 3MB. Twitter limits of size. This is after the Python code tweak to give original filesize ?name=orig https://webtrickz.com/download-images-in-original-size-on-twitter/  This is all fine probably as we are getting best quality image twitter can give us.
 
+# Youtube and all videos - YoutubeDL
+
+- Generally works well
+
+- The same link run twice through the auto-archiver will produce a different hash. Certainly for .webm files. This is because there are binary differences in the files sent from youtube or through the youtube dl process.
 # Facebook Video - YoutubeDL
 
 - Public videos generally downloaded well
 
-- Public videos worked around cookie popup for screenshots with code - "Allow the use of cookies from Facebook in this browser". This is handled by `base_archiver.py` get which uses Selenium.Webdriver.Firefox which is configured in `base_archiver.py`
+- Facebook Public videos worked around cookie popup for screenshots with code - "Allow the use of cookies from Facebook in this browser". This is handled by `base_archiver.py` get which uses Selenium.Webdriver.Firefox which is configured in `base_archiver.py`
 
 - Private videos need to set the ytdlp facebook cookie.
 
@@ -187,21 +191,6 @@ To update dependencies
 ```bash
 pipenv update
 ```
-
-# Code PR's
-
-full res Twitter image
-
-catch on public / private upload bucket
-
-Twitter exception catch better error
-
-youtube archiver - catch for twitter when embedded url contains video.. don't want.
-
-youtubedl - 4wwww to 3www fix for facebook cookie
-
-fb catch - cookie click on homepage
-
 
 ## Spreasheet
 
