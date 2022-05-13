@@ -36,6 +36,7 @@ def update_sheet(gw, row, result: archivers.ArchiveResult):
 
     batch_if_valid('archive', result.cdn_url)
     batch_if_valid('date', True, datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).isoformat())
+    
     batch_if_valid('thumbnail', result.thumbnail,
                    f'=IMAGE("{result.thumbnail}")')
     batch_if_valid('thumbnail_index', result.thumbnail_index)
@@ -78,15 +79,15 @@ def process_sheet(sheet, usefilenumber=False, storage="s3", header=1, columns=GW
         key=os.getenv('DO_SPACES_KEY'),
         secret=os.getenv('DO_SPACES_SECRET')
     )
-
     gd_config = GDConfig(
         root_folder_id=os.getenv('GD_ROOT_FOLDER_ID'),
     )
-   
     telegram_config = archivers.TelegramConfig(
         api_id=os.getenv('TELEGRAM_API_ID'),
         api_hash=os.getenv('TELEGRAM_API_HASH')
     )
+
+
 
     # loop through worksheets to check
     for ii, wks in enumerate(sh.worksheets()):
@@ -132,13 +133,14 @@ def process_sheet(sheet, usefilenumber=False, storage="s3", header=1, columns=GW
                     # We will use this through the app to differentiate between where to save
                     filenumber = None
 
-                # make a new driver every row so idempotent otherwise cookies will be remembered
+                # make a new driver so each spreadsheet row is idempotent
                 options = webdriver.FirefoxOptions()
                 options.headless = True
                 options.set_preference('network.protocol-handler.external.tg', False)
+
                 driver = webdriver.Firefox(options=options)
                 driver.set_window_size(1400, 2000)
-                # DM put in for telegram screenshots which don't come back
+                 # in seconds, telegram screenshots catch which don't come back
                 driver.set_page_load_timeout(120)
         
                 # client
@@ -174,7 +176,8 @@ def process_sheet(sheet, usefilenumber=False, storage="s3", header=1, columns=GW
                         logger.error(f'Got unexpected error in row {row} with archiver {archiver} for url {url}: {e}\n{traceback.format_exc()}')
 
                     if result:
-                        # DM add IA as this is a success really 
+                        # IA is a Success I believe - or do we want to display a logger warning for it?
+
                         if result.status in ['success', 'already archived', 'Internet Archive fallback']:
                             result.status = archiver.name + \
                                 ": " + str(result.status)
@@ -182,7 +185,7 @@ def process_sheet(sheet, usefilenumber=False, storage="s3", header=1, columns=GW
                                 f'{archiver} succeeded on row {row}, url {url}')
                             break
 
-                        # DM wayback has seen this url before so keep existing status
+                          # wayback has seen this url before so keep existing status
                         if "wayback: Internet Archive fallback" in result.status:
                             logger.success(
                                 f'wayback has seen this url before so keep existing status on row {row}')
@@ -191,7 +194,7 @@ def process_sheet(sheet, usefilenumber=False, storage="s3", header=1, columns=GW
                             break
 
                         logger.warning(
-                            f'{archiver} did not succeed on row {row}, url: {url}, final status: {result.status}')
+                             f'{archiver} did not succeed on {row=}, final status: {result.status}')
                         result.status = archiver.name + \
                             ": " + str(result.status)
                 # get rid of driver so can reload on next row

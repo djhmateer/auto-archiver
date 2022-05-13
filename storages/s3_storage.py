@@ -37,8 +37,7 @@ class S3Storage(Storage):
         return self.folder + key
 
     def get_cdn_url(self, key):
-        foo = f'https://{self.bucket}.{self.region}.cdn.digitaloceanspaces.com/{self._get_path(key)}'
-        return foo
+         return f'https://{self.bucket}.{self.region}.cdn.digitaloceanspaces.com/{self._get_path(key)}'
 
     def exists(self, key):
         try:

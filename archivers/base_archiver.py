@@ -142,6 +142,7 @@ class Archiver(ABC):
         bytes = f.read()  # read entire file as bytes
 
         # hash = hashlib.sha256(bytes)
+        # option to use SHA3_512 instead
         hash = hashlib.sha3_512(bytes)
 
         f.close()
@@ -154,7 +155,7 @@ class Archiver(ABC):
             "/", "_") + datetime.datetime.utcnow().isoformat().replace(" ", "_") + ".png")
         filename = 'tmp/' + key
 
-        # DM - Accept cookies popup dismiss for ytdlp video
+        # Accept cookies popup dismiss for ytdlp video
         if 'facebook.com' in url:
             try:
                 logger.debug(f'Trying fb click accept cookie popup for {url}')

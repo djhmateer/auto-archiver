@@ -8,7 +8,7 @@ from .base_archiver import Archiver, ArchiveResult
 class TiktokArchiver(Archiver):
     name = "tiktok"
 
-    def download(self, url, check_if_exists=False, filenumber=""):
+    def download(self, url, check_if_exists=False, filenumber=None):
         if 'tiktok.com' not in url:
             return False
 
@@ -62,4 +62,5 @@ class TiktokArchiver(Archiver):
         except:
             error = traceback.format_exc()
             status = 'Other Tiktok error: ' + str(error)
+            logger.warning(f'Other Tiktok error' + str(error))
             return ArchiveResult(status=status)

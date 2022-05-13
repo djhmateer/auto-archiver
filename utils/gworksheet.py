@@ -8,7 +8,6 @@ class GWorksheet:
     should always include the offset of the header. 
     eg: if header=4, row 5 will be the first with data. 
     """
-
     COLUMN_NAMES = {
         'filenumber': 'file number',
         'url': 'link',

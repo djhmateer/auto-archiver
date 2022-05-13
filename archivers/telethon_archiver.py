@@ -84,7 +84,7 @@ class TelethonArchiver(Archiver):
                     if len(mp.message) > len(message): message = mp.message
                     filename = self.client.download_media(mp.media, f'tmp/{chat}_{group_id}/{mp.id}')
                     key = filename.split('tmp/')[1]
-                    # DM feature flag
+                    
                     if filenumber is not None:
                         key = filenumber + "/" + key
                     self.storage.upload(filename, key)

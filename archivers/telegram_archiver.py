@@ -52,7 +52,6 @@ class TelegramArchiver(Archiver):
         video_id = video_url.split('/')[-1].split('?')[0]
         key = self.get_key(video_id)
 
-        # DM feature flag
         if filenumber is not None:
             key = filenumber + "/" + key
 

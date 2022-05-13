@@ -53,11 +53,11 @@ class GDStorage(Storage):
                 try_again = False
 
             if folder_id is None:
-                logger.warning(f'Cant find folder {foldername} waiting and trying again count {counter}')
+                logger.debug(f'Cant find {foldername=} waiting and trying again {counter=}')
                 counter += 1
                 time.sleep(10)
                 if counter > 18:
-                    raise ValueError(f'Cant find folder {foldername} and retried 18 times pausing 10seconds at a time which is 3 minutes')
+                    raise ValueError(f'Cant find  {foldername} and retried 18 times pausing 10seconds at a time which is 3 minutes')
 
         # check for sub folder in file eg youtube_dl_sDE-qZdi8p8/index.html'
         # happens doing thumbnails

@@ -100,6 +100,7 @@ class YoutubeDLArchiver(Archiver):
         hash = self.get_hash(filename)
         screenshot = self.get_screenshot(url, filenumber)
 
+
         # get duration
         duration = info.get('duration')
 
