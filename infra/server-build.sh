@@ -4,6 +4,7 @@
 
 # Create a clean VM
 # Proxmox, shutdown VM, backup, restore
+# options change name to cir-auto-archiver-p30
 
 # connect to the VM
 # ssh pfsense -p 30 
