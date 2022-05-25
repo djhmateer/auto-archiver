@@ -142,6 +142,7 @@ def main():
 
                             data = {}
                             data['guid'] = guid
+                            data['url'] = url
                             data['cdn_url'] = result.cdn_url
                             data['screenshot'] = result.screenshot
                             data['status'] = result.status
