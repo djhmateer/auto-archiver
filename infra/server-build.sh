@@ -1,6 +1,8 @@
 #!/bin/sh
 
 # Script to configure production server
+# 1.cir-auto-archiver - 
+# 2.osr4rightstools. poll-for-file - don't run the cron job. Wire up systemctl infra/python-poll-service
 
 # Create a clean VM
 # Proxmox, shutdown VM, backup, restore
