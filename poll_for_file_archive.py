@@ -22,12 +22,14 @@ import json
 # pyton file should be run from systemctl
 # which will restart on reboot and crash (just like Prepared Hatespeech)
 
+# api-auto-archiver project sits in front of this acting as a control which the
+# osr4rightstools website calls from home page
+
 # Looks for any guid.json files in input directory 
 # which contains json of: "url":"https://twitter.com/dave_mateer/status/1524341442738638848"
 # it then does the archiving
 # saving to guid.json in output directory
 
-# api-auto-archiver project sits in front of this acting as a control 
 
 logger.add("logs/1trace.log", level="TRACE")
 logger.add("logs/2info.log", level="INFO")

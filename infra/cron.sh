@@ -27,9 +27,6 @@ PATH=/usr/local/bin:$PATH
 # this will default to s3
 # pipenv run python auto_archive.py --sheet "Test Hashing" 
 
-
-
-
 # make sure the correct gd storage is selected
 pipenv run python auto_archive.py --sheet "Test Hashing" --use-filenumber-as-directory --storage=gd
 
