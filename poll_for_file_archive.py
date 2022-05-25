@@ -141,6 +141,7 @@ def main():
                             logger.success(f'{archiver} succeeded on url {url}')
 
                             data = {}
+                            data['guid'] = guid
                             data['cdn_url'] = result.cdn_url
                             data['screenshot'] = result.screenshot
                             data['status'] = result.status
