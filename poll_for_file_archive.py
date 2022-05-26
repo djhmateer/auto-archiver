@@ -125,6 +125,11 @@ def main():
                     archivers.WaybackArchiver(s3_client, driver)
             ]
 
+            # we alwyas way to write out a return file
+            data = {}
+            data['guid'] = guid
+            data['url'] = url
+
             for archiver in active_archivers:
                     logger.debug(f'Trying {archiver} on {url=}')
 
@@ -142,23 +147,27 @@ def main():
                             result.status = archiver.name + ": " + str(result.status)
                             logger.success(f'{archiver} succeeded on url {url}')
 
-                            data = {}
-                            data['guid'] = guid
-                            data['url'] = url
+                            # data = {}
+                            # data['guid'] = guid
+                            # data['url'] = url
                             data['cdn_url'] = result.cdn_url
                             data['screenshot'] = result.screenshot
                             data['status'] = result.status
                             data['thumbnail'] = result.thumbnail
 
                             # write output file
-                            with open(outputFile, 'w', encoding='utf-8') as f:
-                                json.dump(data, f, ensure_ascii=False, indent=4)
+                            # with open(outputFile, 'w', encoding='utf-8') as f:
+                            #     json.dump(data, f, ensure_ascii=False, indent=4)
 
                             break # out of for loop
 
                         # logger.warning(f'{archiver} did not succeed on {url=}, final status: {result.status}')
                         # result.status = archiver.name + ": " + str(result.status)
 
+            data['status'] = result.status
+            # write output file
+            with open(outputFile, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=4)
 
             # cleaning up
             driver.quit()
