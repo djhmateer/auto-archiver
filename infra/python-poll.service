@@ -2,9 +2,10 @@
 
 # copy to /etc/systemd/system/python-poll.service
 
-# sudo systemctl enable python.service
-# sudo systemctl start python.service
-# sudo systemctl status python.service
+# sudo systemctl enable python-poll.service
+# sudo systemctl start python-poll.service
+# sudo systemctl stop python-poll.service
+# sudo systemctl status python-poll.service
 
 # logs are in ~/auto-archiver/logs
 

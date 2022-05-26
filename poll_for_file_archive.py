@@ -136,7 +136,9 @@ def main():
                         logger.error(f'Got unexpected error with {archiver=} for {url=}: {e}\n{traceback.format_exc()}')
 
                     if result:
-                        if result.status in ['success', 'Internet Archive fallback']:
+                        # todo break out the failed part - but just want the file written for now so front end responds
+                        # internet archive failed is last ditch effort of archiver
+                        if result.status in ['success', 'Internet Archive fallback', 'Internet archive failed']:
                             result.status = archiver.name + ": " + str(result.status)
                             logger.success(f'{archiver} succeeded on url {url}')
 
@@ -154,8 +156,9 @@ def main():
 
                             break # out of for loop
 
-                        logger.warning(f'{archiver} did not succeed on {url=}, final status: {result.status}')
-                        result.status = archiver.name + ": " + str(result.status)
+                        # logger.warning(f'{archiver} did not succeed on {url=}, final status: {result.status}')
+                        # result.status = archiver.name + ": " + str(result.status)
+
 
             # cleaning up
             driver.quit()
