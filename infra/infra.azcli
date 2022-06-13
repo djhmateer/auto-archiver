@@ -76,7 +76,7 @@ az network nic create \
 
 # If one of my keys exist 
 # uncomment line below to get ssh keys working
-filename="../secrets/sshkey-homelenovo.pub"
+filename="../secrets/sshkey-homelenovo-2004.pub"
 if [ -f "$filename" ]; then
 az vm create \
     --resource-group ${rg} \
@@ -84,9 +84,11 @@ az vm create \
     --location ${region} \
     --nics ${nicName} \
     --image ${image} \
-    --ssh-key-values ../secrets/sshkey-homelenovo.pub ../secrets/sshkey-4790-1804.pub ../secrets/sshkey-4790-2004.pub \
+    --ssh-key-values ../secrets/sshkey-homelenovo-2004.pub \
     --size Standard_B2s
 else
+
+    # --ssh-key-values ../secrets/sshkey-homelenovo.pub ../secrets/sshkey-4790-1804.pub ../secrets/sshkey-4790-2004.pub \
  echo "ping"
 # az vm create \
 #     --resource-group ${rg} \
