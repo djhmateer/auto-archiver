@@ -10,3 +10,7 @@ anu.html
 .pytest_cach
 
 anon*
+
+secrets
+delCurrentRg.sh
+sshCurrentVm.sh

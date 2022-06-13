@@ -1,0 +1,180 @@
+#!/bin/bash
+
+# File to build Auto-Archiver VM on Azure
+
+# For dev purposes only
+cd ..
+git add .
+git commit -m "auto"
+git push
+cd infra
+
+set -x
+
+image=Canonical:0001-com-ubuntu-server-focal:20_04-lts-gen2:latest
+
+# Generate a random suffix between 1 and 1000
+int=$(shuf -i 1-1000 -n 1)
+
+# If we are using passwords in the vm create below (default is to use SSH keys)
+# Password must have the 3 of the following: 1 lower case character, 1 upper case character, 1 number and 1 special character
+# generate a 34 character password (normal, capitals and numbers)
+password=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c34)
+
+rgprefix=osrAutoArchiver
+rg=${rgprefix}${int}
+
+# Don't put capitals in dns name below and it needs to be unique (ie not used in azure at the moment)
+dnsname=osrautoarchiver${int}
+
+adminusername=dave
+adminpassword=${password}
+
+region=westeurope
+vmname=${dnsname}vm
+vnet=vnet${int}
+subnet=subnet${int}
+publicIPName=publicIP${int}
+nsgname=nsg${int}
+nicName=nic${int}
+
+# resource group
+az group create \
+   --name ${rg} \
+   --location ${region}
+
+# virtual network
+az network vnet create \
+    --resource-group ${rg} \
+    --name ${vnet} \
+    --subnet-name ${subnet}
+
+# nework security group
+az network nsg create \
+    --resource-group ${rg} \
+    --name ${nsgname}
+
+# public IP and associate with the given DNS name
+# Basic or Standard for the ip-sku
+az network public-ip create \
+    --resource-group ${rg} \
+    --name ${publicIPName} \
+    --sku Standard \
+    --zone 1 \
+    --dns-name ${dnsname}
+
+# nic and associate with vnet, publicip
+az network nic create \
+    --resource-group ${rg} \
+    --name ${nicName} \
+    --vnet-name ${vnet} \
+    --subnet ${subnet} \
+    --public-ip-address ${publicIPName} \
+    --network-security-group ${nsgname}
+
+# Create vm which runs the cloud init script to provision 
+
+# If one of my keys exist 
+# uncomment line below to get ssh keys working
+filename="../secrets/sshkey-homelenovo.pub"
+if [ -f "$filename" ]; then
+az vm create \
+    --resource-group ${rg} \
+    --name ${vmname} \
+    --location ${region} \
+    --nics ${nicName} \
+    --image ${image} \
+    --ssh-key-values ../secrets/sshkey-homelenovo.pub ../secrets/sshkey-4790-1804.pub ../secrets/sshkey-4790-2004.pub \
+    --size Standard_B1ms
+else
+ echo "ping"
+# az vm create \
+#     --resource-group ${rg} \
+#     --name ${vmname} \
+#     --location ${region} \
+#     --nics ${nicName} \
+#     --image ${image} \
+#     --custom-data create_webserver.sh \
+#     --admin-username ${adminusername} \
+#     --admin-password ${adminpassword} \
+#     --size Standard_B1s 
+
+    # --size Standard_B1LS  # £2.82
+    # --size Standard_B1s # £6.5pm (1GB and 1CPU)
+    # --size Standard_B1ms # £13 (2GB and 1CPU)
+    # --size Standard_B2s # £26.63 (4GB)
+    # --size Standard_B2ms # £45 (8GB)
+fi
+
+# allow port 22 ssh (so that scp will work below)
+az network nsg rule create \
+    --resource-group ${rg} \
+    --nsg-name ${nsgname} \
+    --name nsgGroupRuleSSH22 \
+    --protocol tcp \
+    --priority 998 \
+    --destination-port-range 22 \
+    --access allow
+
+# STOP FOR NOW
+exit 1
+
+az vm run-command invoke \
+    -g ${rg} \
+    -n ${vmname} \
+    --command-id RunShellScript \
+    --scripts @../infra/server-build.sh -azure
+
+
+# I have seen this timeout so retry until it works
+n=0
+until [ "$n" -ge 5 ]
+do
+   scp -o StrictHostKeyChecking=no ../.env dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/ && break
+   n=$((n+1)) 
+   sleep 15
+done
+
+# TODO put in 2 more files
+# scp -o StrictHostKeyChecking=no ../secrets/www_osr4rightstools_org.key dave@${dnsname}.westeurope.cloudapp.azure.com:/certs/
+
+# delete old resource groups
+groupstodel=$(az group list --query "[?contains(name, '${rgprefix}')]".name --output tsv)
+
+for rgtodel in $groupstodel
+do
+    if [ "$rgtodel" = "$rg" ]; then  
+    echo "not deleting $rgtodel as have just created it"
+    else
+	az group delete \
+            --name $rgtodel \
+            --no-wait \
+            --yes
+    fi
+done
+
+# allow port 80
+# az network nsg rule create \
+#     --resource-group ${rg} \
+#     --nsg-name ${nsgname} \
+#     --name nsgGroupRuleWeb80 \
+#     --protocol tcp \
+#     --priority 1001 \
+#     --destination-port-range 80 \
+#     --access allow
+
+# allow port 443
+# az network nsg rule create \
+#     --resource-group ${rg} \
+#     --nsg-name ${nsgname} \
+#     --name nsgGroupRuleWeb443 \
+#     --protocol tcp \
+#     --priority 1002 \
+#     --destination-port-range 443 \
+#     --access allow
+
+echo -e "\nssh -o StrictHostKeyChecking=no dave@${dnsname}.westeurope.cloudapp.azure.com\n" > sshCurrentVm.sh
+
+# echo -e "password is ${adminpassword}" > password.txt
+
+echo -e "http://${dnsname}.westeurope.cloudapp.azure.com"

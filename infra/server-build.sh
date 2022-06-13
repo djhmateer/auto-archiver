@@ -4,6 +4,7 @@
 # 1.cir-auto-archiver - 
 # 2.osr4rightstools. poll-for-file - don't run the cron job. Wire up systemctl infra/python-poll-service
 
+### PROXMOX
 # Create a clean VM
 # Proxmox, shutdown VM, backup, restore
 # options change name to cir-auto-archiver-p30
@@ -14,6 +15,21 @@
 # git clone https://github.com/djhmateer/auto-archiver ;  sudo chmod +x ~/auto-archiver/infra/server-build.sh ; ./auto-archiver/infra/server-build.sh
 
 # Use Filezilla to copy secrets - `.env` and `service-account.json` and `anon.session`
+
+### AZURE
+# run ./infra.azcli from bash to create the VM
+# that script will call this file
+if [ $# -eq 0 ]
+  then
+    echo "Deploying the PROXMOX - should ssh in first, then run"
+    echo "git clone https://github.com/djhmateer/auto-archiver ;  sudo chmod +x ~/auto-archiver/infra/server-build.sh ; ./auto-archiver/infra/server-build.sh"
+	else
+    echo "Deploying to Azure - infra.azcli should call this script using az vm run-command invoke with an argument. "
+    echo "It copies the script to the VM from the local machine"
+		# git clone https://github.com/djhmateer/auto-archiver
+		git clone -b working https://github.com/djhmateer/auto-archiver
+fi
+
 
 ## Python
 sudo apt update -y
