@@ -85,7 +85,7 @@ az vm create \
     --nics ${nicName} \
     --image ${image} \
     --ssh-key-values ../secrets/sshkey-homelenovo.pub ../secrets/sshkey-4790-1804.pub ../secrets/sshkey-4790-2004.pub \
-    --size Standard_B1ms
+    --size Standard_B2s
 else
  echo "ping"
 # az vm create \
@@ -117,6 +117,12 @@ az network nsg rule create \
     --access allow
 
 # STOP FOR NOW
+echo -e "\nssh -o StrictHostKeyChecking=no dave@${dnsname}.westeurope.cloudapp.azure.com\n" > sshCurrentVm.sh
+
+# echo -e "password is ${adminpassword}" > password.txt
+
+echo -e "http://${dnsname}.westeurope.cloudapp.azure.com"
+
 exit 1
 
 az vm run-command invoke \

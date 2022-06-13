@@ -27,6 +27,7 @@ if [ $# -eq 0 ]
     echo "Deploying to Azure - infra.azcli should call this script using az vm run-command invoke with an argument. "
     echo "It copies the script to the VM from the local machine"
 		# git clone https://github.com/djhmateer/auto-archiver
+		cd /home/dave
 		git clone -b working https://github.com/djhmateer/auto-archiver
 fi
 
