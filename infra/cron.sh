@@ -31,18 +31,16 @@ cd /home/dave/auto-archiver
 PATH=/usr/local/bin:$PATH
 
 
-# application log files are in ~/auto_archive/logs
-# pipenv run python auto_archive.py --sheet "Test Hashing" >> /home/dave/log.txt 2>&1
-
 # this will default to s3
 # pipenv run python auto_archive.py --sheet "Test Hashing" 
 
+#pipenv run python auto_archive.py --sheet "NEW MYANMAR WITNESS DATABASE" --header=1 --use-filenumber-as-directory --storage=gd
 
 # make sure the correct gd storage is selected in .env
-pipenv run python auto_archive.py --sheet "Afghan Witness - Data" --header=1 --use-filenumber-as-directory --storage=gd
+#pipenv run python auto_archive.py --sheet "Afghan Witness - Data" --header=1 --use-filenumber-as-directory --storage=gd
 
-# make sure the correct gd storage is selected
-# pipenv run python auto_archive.py --sheet "Kayleigh - test" --header=3 --use-filenumber-as-directory --storage=gd
+pipenv run python auto_archive.py --sheet "OSR Demo" --header=1 --use-filenumber-as-directory --storage=gd
+
 
 
 
