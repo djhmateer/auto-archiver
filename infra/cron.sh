@@ -37,11 +37,14 @@ PATH=/usr/local/bin:$PATH
 # this will default to s3
 # pipenv run python auto_archive.py --sheet "Test Hashing" 
 
-# make sure the correct gd storage is selected
-pipenv run python auto_archive.py --sheet "Test Hashing" --use-filenumber-as-directory --storage=gd
+
+# make sure the correct gd storage is selected in .env
+pipenv run python auto_archive.py --sheet "Afghan Witness - Data" --header=1 --use-filenumber-as-directory --storage=gd
 
 # make sure the correct gd storage is selected
 # pipenv run python auto_archive.py --sheet "Kayleigh - test" --header=3 --use-filenumber-as-directory --storage=gd
+
+
 
 
 ## cron job output is in 
