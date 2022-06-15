@@ -29,6 +29,7 @@ if [ $# -eq 0 ]
 		# git clone https://github.com/djhmateer/auto-archiver
 		cd /home/dave
 		git clone -b working https://github.com/djhmateer/auto-archiver
+    sudo chown dave /home/dave/auto-archiver
 fi
 
 
@@ -119,6 +120,7 @@ sudo chmod 600 ~/auto-archive/go.sh
 # install fonts eg burmese, chinese for rendering in selenium firefox
 # https://stackoverflow.com/questions/72015245/firefox-unicode-boxes-in-selenium-screenshot-instead-of-characters/72015719#72015719
 sudo apt install fonts-noto -y
+
 
 sudo reboot now
 
