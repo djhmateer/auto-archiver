@@ -43,14 +43,14 @@
 		// 	"args": ["--sheet","Kayleigh - test - DM", "--header=2"]
 		// },
 		{
-			"name": "Kayleigh - test (dave@hmsoftware.co.uk)",
+			"name": "Afghan Witness (dave@hmsoftware.co.uk)",
 			"type": "python",
 			"request": "launch",
 			"program": "auto_archive.py",
 			"console": "integratedTerminal",
 			"justMyCode": true,
 			// "args": ["--sheet","Kayleigh - test", "--header=2"]
-			"args": ["--sheet","Kayleigh - test", "--header=2","--use-filenumber-as-directory", "--storage=gd"]
+			"args": ["--sheet","Afghan Witness - Data", "--header=1","--use-filenumber-as-directory", "--storage=gd"]
 		},
 		{
 			"name": "Python: Current File",

@@ -108,8 +108,9 @@ sudo chmod +x /home/dave/auto-archiver/infra/cron.sh
 sudo service cron stop
 
 # runs the script every minute
-cat <<EOT >> run-auto-archive 
-* * * * * dave /home/dave/auto-archiver/infra/cron.sh
+# notice put in a # to disable so will have to manually start it.
+cat <<EOT >> run-auto-archive
+#* * * * * dave /home/dave/auto-archiver/infra/cron.sh
 EOT
 
 sudo mv run-auto-archive /etc/cron.d
@@ -117,12 +118,9 @@ sudo mv run-auto-archive /etc/cron.d
 sudo chown root /etc/cron.d/run-auto-archive
 sudo chmod 600 /etc/cron.d/run-auto-archive
 
-sudo chmod 600 ~/auto-archive/go.sh
-
 # install fonts eg burmese, chinese for rendering in selenium firefox
 # https://stackoverflow.com/questions/72015245/firefox-unicode-boxes-in-selenium-screenshot-instead-of-characters/72015719#72015719
 sudo apt install fonts-noto -y
-
 
 sudo reboot now
 
