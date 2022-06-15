@@ -60,7 +60,8 @@ sudo -H pip install -U pipenv
 cd auto-archiver
 
 # get all the pip packages using pipenv
-pipenv install
+# pipenv install
+sudo -H -u dave pipenv install
 
 # FFMpeg
 # 4.4.1
@@ -92,7 +93,8 @@ rm geckodriver*
 ## CRON RUN EVERY MINUTE
 
 # so the cron job can execute the shell script (running as user dave)
-sudo chmod +x ~/auto-archiver/infra/cron.sh
+# sudo chmod +x ~/auto-archiver/infra/cron.sh
+sudo chmod +x /home/dave/auto-archiver/infra/cron.sh
 
 # to stop errors
 # **DONT SEEM TO NEED AT THE MOMENT*

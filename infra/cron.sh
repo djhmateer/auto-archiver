@@ -12,7 +12,7 @@
 # anon.session is the last to be copied
 FILE=/home/dave/auto-archiver/anon.session
 if test -f "$FILE"; then
-    #echo "$FILE exists."
+    echo "$FILE exists."
 else
      echo "secrets not all there yet, waiting for next cron run in 1 minute"
      exit
