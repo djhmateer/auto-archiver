@@ -180,11 +180,14 @@ As of 1st April 2022 I have noticed
 - Generally works well
 
 - The same link run twice through the auto-archiver will produce a different hash. Certainly for .webm files. This is because there are binary differences in the files sent from youtube or through the youtube dl process.
+
 # Facebook Video - YoutubeDL
 
 - Public videos generally downloaded well
 
 - Facebook Public videos worked around cookie popup for screenshots with code - "Allow the use of cookies from Facebook in this browser". This is handled by `base_archiver.py` get which uses Selenium.Webdriver.Firefox which is configured in `base_archiver.py`
+
+Note to get the correct cookie, use Chrome, F12, first request to fb, Copy as Curl, paste into notepad, then get the cookie.
 
 - Private videos need to set the ytdlp facebook cookie.
 

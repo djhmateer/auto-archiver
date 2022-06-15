@@ -14,7 +14,7 @@ FILE=/home/dave/auto-archiver/anon.session
 if test -f "$FILE"; then
     echo "$FILE exists."
 else
-     echo "secrets not all there yet, waiting for next cron run in 1 minute"
+     echo "secrets not all there yet, waiting for next cron run in 1 minute" >> /home/dave/log.txt 2>&1
      exit
 fi
 
