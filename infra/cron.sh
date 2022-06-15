@@ -8,6 +8,16 @@
 
 # * * * * * dave /home/dave/auto-archiver/infra/cron.sh
 
+# on first build of a machine, check to make sure all secret environment files are there
+# anon.session is the last to be copied
+FILE=/home/dave/auto-archiver/anon.session
+if test -f "$FILE"; then
+    #echo "$FILE exists."
+else
+     echo "secrets not all there yet, waiting for next cron run in 1 minute"
+     exit
+fi
+
 
 # so only 1 instance of this will run if job lasts longer than 1 minute
 # https://askubuntu.com/a/915731/677298

@@ -74,7 +74,7 @@ sudo apt install firefox -y
 ## Gecko driver
 # check version numbers for new ones
 cd ~
-wget https://github.com/mozilla/geckodriver/releases/download/v0.30.0/geckodriver-v0.30.0-linux64.tar.gz
+wget https://github.com/mozilla/geckodriver/releases/download/v0.31.0/geckodriver-v0.31.0-linux64.tar.gz
 tar -xvzf geckodriver*
 chmod +x geckodriver
 sudo mv geckodriver /usr/local/bin/
@@ -94,9 +94,10 @@ rm geckodriver*
 sudo chmod +x ~/auto-archiver/infra/cron.sh
 
 # to stop errors
+# **DONT SEEM TO NEED AT THE MOMENT*
 # https://askubuntu.com/questions/1383506/deprecation-warnings-python3-8-packages
 #/usr/local/lib/python3.8/dist-packages/pkg_resources/__init__.py:123: PkgResourcesDeprecationWarning: 0.23ubuntu1 is an invalid version and will not be supported in a future release      
-sudo mv /usr/local/lib/python3.8/dist-packages/pkg_resources /usr/local/lib/python3.8/dist-packages/pkg_resources_back
+# sudo mv /usr/local/lib/python3.8/dist-packages/pkg_resources /usr/local/lib/python3.8/dist-packages/pkg_resources_back
 
 
 # don't want service to run until a reboot

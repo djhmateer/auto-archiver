@@ -119,14 +119,7 @@ az network nsg rule create \
     --destination-port-range 22 \
     --access allow
 
-# STOP FOR NOW
-echo -e "\nssh -o StrictHostKeyChecking=no dave@${dnsname}.westeurope.cloudapp.azure.com\n" > sshCurrentVm.sh
-
-# echo -e "password is ${adminpassword}" > password.txt
-
-echo -e "http://${dnsname}.westeurope.cloudapp.azure.com"
-
-exit 1
+# exit 1
 
 az vm run-command invoke \
     -g ${rg} \
@@ -135,16 +128,20 @@ az vm run-command invoke \
     --scripts @../infra/server-build.sh -azure
 
 
-# I have seen this timeout so retry until it works
+
+# Wait for reboot from above
 n=0
-until [ "$n" -ge 5 ]
+until [ "$n" -ge 20 ]
 do
    scp -o StrictHostKeyChecking=no ../.env dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/ && break
    n=$((n+1)) 
    sleep 15
 done
 
-# TODO put in 2 more files
+ scp -o StrictHostKeyChecking=no ../service_account.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
+
+ scp -o StrictHostKeyChecking=no ../anon.session dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
+
 # scp -o StrictHostKeyChecking=no ../secrets/www_osr4rightstools_org.key dave@${dnsname}.westeurope.cloudapp.azure.com:/certs/
 
 # delete old resource groups
