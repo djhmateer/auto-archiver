@@ -18,7 +18,6 @@ else
      exit
 fi
 
-
 # so only 1 instance of this will run if job lasts longer than 1 minute
 # https://askubuntu.com/a/915731/677298
 if [ $(pgrep -c "${0##*/}") -gt 1 ]; then
@@ -30,9 +29,6 @@ cd /home/dave/auto-archiver
 # do I need this?
 PATH=/usr/local/bin:$PATH
 
-
-# this will default to s3
-# pipenv run python auto_archive.py --sheet "Test Hashing" 
 
 #pipenv run python auto_archive.py --sheet "NEW MYANMAR WITNESS DATABASE" --header=1 --use-filenumber-as-directory --storage=gd
 
