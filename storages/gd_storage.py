@@ -4,7 +4,11 @@ from dataclasses import dataclass
 
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
-from google.oauth2 import service_account
+# from google.oauth2 import service_account
+
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
 
 import time
 
@@ -17,7 +21,13 @@ class GDStorage(Storage):
     def __init__(self, config: GDConfig):
         self.root_folder_id = config.root_folder_id
         SCOPES = ['https://www.googleapis.com/auth/drive']
-        creds = service_account.Credentials.from_service_account_file('service_account.json', scopes=SCOPES)
+
+        # service account
+        # creds = Credentials.from_service_account_file('service_account.json', scopes=SCOPES)
+
+        # oauth - assume the token is there already!
+        creds = Credentials.from_authorized_user_file('gd-token.json', SCOPES)
+
         self.service = build('drive', 'v3', credentials=creds)
 
     def _get_path(self, key):
