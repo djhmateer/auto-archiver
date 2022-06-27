@@ -24,7 +24,6 @@ password=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c34)
 # rgprefix=awAutoArchiver
 rgprefix=osrDemoAutoArchiver
 rg=${rgprefix}${int}
-
 # Don't put capitals in dns name below and it needs to be unique (ie not used in azure at the moment)
 # dnsname=awautoarchiver${int}
 dnsname=osrdemoautoarchiver${int}
@@ -78,7 +77,7 @@ az network nic create \
 
 # If one of my keys exist 
 # uncomment line below to get ssh keys working
-filename="../secrets/sshkey-homelenovo.pub"
+filename="../secrets/sshkey-homelenovo-2004.pub"
 if [ -f "$filename" ]; then
 az vm create \
     --resource-group ${rg} \
