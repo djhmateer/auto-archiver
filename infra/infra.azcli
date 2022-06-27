@@ -86,10 +86,11 @@ az vm create \
     --location ${region} \
     --nics ${nicName} \
     --image ${image} \
-    --size Standard_B2s
-    --ssh-key-values ../secrets/sshkey-homelenovo.pub ../secrets/sshkey-homelenovo-2004.pub ../secrets/sshkey-4790-1804.pub ../secrets/sshkey-4790-2004.pub \
+    --size Standard_B2s \
+    --ssh-key-values ../secrets/sshkey-homelenovo.pub ../secrets/sshkey-homelenovo-2004.pub ../secrets/sshkey-4790-1804.pub ../secrets/sshkey-4790-2004.pub
 else
 
+    #--ssh-key-values ../secrets/sshkey-homelenovo.pub ../secrets/sshkey-homelenovo-2004.pub ../secrets/sshkey-4790-1804.pub ../secrets/sshkey-4790-2004.pub \
 # 2004 lenovo key not working yet
     # --ssh-key-values ../secrets/sshkey-homelenovo-2004.pub \
  echo "ping"
