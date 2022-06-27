@@ -137,7 +137,9 @@ do
             --yes
     fi
 done
+
 echo -e "\nssh -o StrictHostKeyChecking=no dave@${dnsname}.westeurope.cloudapp.azure.com\n" > sshCurrentVm.sh
+
 exit 1
 ## 8888888******
 
