@@ -123,7 +123,7 @@ az network nsg rule create \
     --destination-port-range 22 \
     --access allow
 
-# exit 1
+exit 1
 
 az vm run-command invoke \
     -g ${rg} \
