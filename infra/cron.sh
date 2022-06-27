@@ -29,13 +29,14 @@ cd /home/dave/auto-archiver
 # do I need this?
 PATH=/usr/local/bin:$PATH
 
+pipenv run python auto_archive.py --sheet "Test Hashing" --header=1 --use-filenumber-as-directory --storage=gd
 
 #pipenv run python auto_archive.py --sheet "NEW MYANMAR WITNESS DATABASE" --header=1 --use-filenumber-as-directory --storage=gd
 
 # make sure the correct gd storage is selected in .env
 #pipenv run python auto_archive.py --sheet "Afghan Witness - Data" --header=1 --use-filenumber-as-directory --storage=gd
 
-pipenv run python auto_archive.py --sheet "OSR Demo" --header=1 --use-filenumber-as-directory --storage=gd
+# pipenv run python auto_archive.py --sheet "OSR Demo" --header=1 --use-filenumber-as-directory --storage=gd
 
 
 

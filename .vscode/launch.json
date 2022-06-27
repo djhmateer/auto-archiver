@@ -25,13 +25,13 @@
 		// 	"args": ["--sheet","Test Hashing CIR"]
 		// },
 		{
-			"name": "Archive - Dearbhla",
+			"name": "Myanmar DM",
 			"type": "python",
 			"request": "launch",
 			"program": "auto_archive.py",
 			"console": "integratedTerminal",
 			"justMyCode": true,
-			"args": ["--sheet","Archive - Dearbhla"]
+			"args": ["--sheet","Myanmar DM","--use-filenumber-as-directory", "--storage=gd"]
 		},
 		// {
 		// 	"name": "Kayleigh - test - DM",

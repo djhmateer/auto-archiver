@@ -141,6 +141,7 @@ do
 done
 
  scp -o StrictHostKeyChecking=no ../service_account.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
+ scp -o StrictHostKeyChecking=no ../gd-token.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
 
  scp -o StrictHostKeyChecking=no ../anon.session dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
 
