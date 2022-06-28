@@ -123,11 +123,11 @@ az network nsg rule create \
 
 # exit 1
 
-az vm run-command invoke \
-    -g ${rg} \
-    -n ${vmname} \
-    --command-id RunShellScript \
-    --scripts @../infra/server-build.sh --parameters azure
+# az vm run-command invoke \
+#     -g ${rg} \
+#     -n ${vmname} \
+#     --command-id RunShellScript \
+#     --scripts @../infra/server-build.sh --parameters azure
 # the param is just for my server-build script
 
 
