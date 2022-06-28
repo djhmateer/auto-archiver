@@ -24,7 +24,6 @@ password=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c34)
 # rgprefix=awAutoArchiver
 rgprefix=osrDemoAutoArchiver
 rg=${rgprefix}${int}
-
 # Don't put capitals in dns name below and it needs to be unique (ie not used in azure at the moment)
 # dnsname=awautoarchiver${int}
 dnsname=osrdemoautoarchiver${int}
@@ -78,7 +77,7 @@ az network nic create \
 
 # If one of my keys exist 
 # uncomment line below to get ssh keys working
-filename="../secrets/sshkey-homelenovo.pub"
+filename="../secrets/sshkey-homelenovo-2004.pub"
 if [ -f "$filename" ]; then
 az vm create \
     --resource-group ${rg} \
@@ -90,6 +89,8 @@ az vm create \
     --ssh-key-values ../secrets/sshkey-homelenovo.pub ../secrets/sshkey-4790-1804.pub ../secrets/sshkey-4790-2004.pub
 else
 
+    # --ssh-key-values ../secrets/sshkey-homelenovo.pub ../secrets/sshkey-homelenovo-2004.pub 
+    #--ssh-key-values ../secrets/sshkey-homelenovo.pub ../secrets/sshkey-homelenovo-2004.pub ../secrets/sshkey-4790-1804.pub ../secrets/sshkey-4790-2004.pub \
 # 2004 lenovo key not working yet
     # --ssh-key-values ../secrets/sshkey-homelenovo-2004.pub \
  echo "ping"
@@ -121,6 +122,7 @@ az network nsg rule create \
     --destination-port-range 22 \
     --access allow
 
+
 # exit 1
 
 # az vm run-command invoke \
@@ -144,7 +146,6 @@ az network nsg rule create \
 #  scp -o StrictHostKeyChecking=no ../gd-token.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
 
 #  scp -o StrictHostKeyChecking=no ../anon.session dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
-
 
 # delete old resource groups
 groupstodel=$(az group list --query "[?contains(name, '${rgprefix}')]".name --output tsv)
