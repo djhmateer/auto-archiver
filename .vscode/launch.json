@@ -33,6 +33,15 @@
 			"justMyCode": true,
 			"args": ["--sheet","Myanmar DM","--use-filenumber-as-directory", "--storage=gd"]
 		},
+		{
+			"name": "Myanmar NEW MYANMAR WITNESS DATABASE",
+			"type": "python",
+			"request": "launch",
+			"program": "auto_archive.py",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--sheet","NEW MYANMAR WITNESS DATABASE","--use-filenumber-as-directory", "--storage=gd"]
+		},
 		// {
 		// 	"name": "Kayleigh - test - DM",
 		// 	"type": "python",
