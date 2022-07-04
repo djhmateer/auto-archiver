@@ -94,6 +94,12 @@ def process_sheet(sheet, usefilenumber=False, storage="s3", header=1, columns=GW
         logger.info(f'Opening worksheet {ii=}: {wks.title=} {header=}')
         gw = GWorksheet(wks, header_row=header, columns=columns)
 
+        # catch as CIR have a locked mastersheet
+        # maybe have a whitelist instead?
+        # todo
+        if wks.title == 'MASTERSHEET':
+            continue
+
         if not gw.col_exists('url'):
             logger.info(
                 f'No "{columns["url"]}" column found, skipping worksheet {wks.title}')

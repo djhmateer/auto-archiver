@@ -40,6 +40,10 @@ def main():
     # 5. google workspace user dave@hms
     # token_file = 'secrets/token-dave-hms.json'
 
+    # 6. davemateer@gmail.com
+    # created on 1st July 2022 against published project
+    # token_file = 'secrets/token-davemateer-gmail.json'
+
     # what the aa uses - same refresh_token as token-dataac.json
     token_file = 'gd-token.json'
 
