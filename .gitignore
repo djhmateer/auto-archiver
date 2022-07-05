@@ -17,3 +17,12 @@ config-*.yaml
 logs/*
 local_archive/
 vk_config*.json
+
+secrets
+delCurrentRg.sh
+sshCurrentVm.sh
+service_account_b.json
+
+credentials.json
+token.json
+gd-token.json
