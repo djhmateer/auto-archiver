@@ -26,3 +26,5 @@ service_account_b.json
 credentials.json
 token.json
 gd-token.json
+
+logs
