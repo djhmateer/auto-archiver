@@ -8,6 +8,8 @@ from googleapiclient.http import MediaFileUpload
 from google.oauth2 import service_account
 
 
+from google.oauth2.credentials import Credentials
+
 @dataclass
 class GDConfig:
     root_folder_id: str
@@ -19,8 +21,11 @@ class GDStorage(Storage):
     def __init__(self, config: GDConfig):
         self.folder = config.folder
         self.root_folder_id = config.root_folder_id
-        creds = service_account.Credentials.from_service_account_file(
-            config.service_account, scopes=['https://www.googleapis.com/auth/drive'])
+        #creds = service_account.Credentials.from_service_account_file(
+        #    config.service_account, scopes=['https://www.googleapis.com/auth/drive'])
+
+        creds = Credentials.from_authorized_user_file('gd-token.json', scopes=['https://www.googleapis.com/auth/drive'])
+
         self.service = build('drive', 'v3', credentials=creds)
 
     def get_cdn_url(self, key):
@@ -52,11 +57,20 @@ class GDStorage(Storage):
         1. for each sub-folder in the path check if exists or create
         2. upload file to root_id/other_paths.../filename
         """
+        # doesn't work if key starts with / which can happen from telethon todo fix
+        if key.startswith('/'):
+            # remove first character ie /
+            key = key[1:]
+
+        # eg DM042/telethon_witnessdaily-xxxx.png (a screenshot)
+        # eg DM042/watnessdaily_12345/12345.jpg (raw image from telethon)
         full_name = os.path.join(self.folder, key)
         parent_id, upload_to = self.root_folder_id, None
         path_parts = full_name.split(os.path.sep)
         filename = path_parts[-1]
         logger.info(f"checking folders {path_parts[0:-1]} exist (or creating) before uploading {filename=}")
+
+        # create new folder or return id of existing one
         for folder in path_parts[0:-1]:
             upload_to = self._get_id_from_parent_and_name(parent_id, folder, use_mime_type=True, raise_on_missing=False)
             if upload_to is None:
@@ -77,6 +91,7 @@ class GDStorage(Storage):
         # GD only requires the filename not a file reader
         self.uploadf(filename, key, **kwargs)
 
+    # gets the Drive folderID if it is there
     def _get_id_from_parent_and_name(self, parent_id: str, name: str, retries: int = 1, sleep_seconds: int = 10, use_mime_type: bool = False, raise_on_missing: bool = True, use_cache=True):
         """
         Retrieves the id of a folder or file from its @name and the @parent_id folder
@@ -86,17 +101,19 @@ class GDStorage(Storage):
         Will remember previous calls to avoid duplication if @use_cache
         Returns the id of the file or folder from its name as a string
         """
+
         # cache logic
-        if use_cache:
-            self.api_cache = getattr(self, "api_cache", {})
-            cache_key = f"{parent_id}_{name}_{use_mime_type}"
-            if cache_key in self.api_cache:
-                logger.debug(f"cache hit for {cache_key=}")
-                return self.api_cache[cache_key]
+        # TODO - comment back in
+        # if use_cache:
+        #     self.api_cache = getattr(self, "api_cache", {})
+        #     cache_key = f"{parent_id}_{name}_{use_mime_type}"
+        #     if cache_key in self.api_cache:
+        #         logger.debug(f"cache hit for {cache_key=}")
+        #         return self.api_cache[cache_key]
 
         # API logic
         debug_header: str = f"[searching {name=} in {parent_id=}]"
-        query_string = f"'{parent_id}' in parents and name = '{name}' "
+        query_string = f"'{parent_id}' in parents and name = '{name}' and trashed = false "
         if use_mime_type:
             query_string += f" and mimeType='application/vnd.google-apps.folder' "
 
@@ -111,7 +128,8 @@ class GDStorage(Storage):
             if len(items) > 0:
                 logger.debug(f"{debug_header} found {len(items)} matches, returning last of {','.join([i['id'] for i in items])}")
                 _id = items[-1]['id']
-                if use_cache: self.api_cache[cache_key] = _id
+                # TODO comment back in
+                # if use_cache: self.api_cache[cache_key] = _id
                 return _id
             else:
                 logger.debug(f'{debug_header} not found, attempt {attempt+1}/{retries}.')

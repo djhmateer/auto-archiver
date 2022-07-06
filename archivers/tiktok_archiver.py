@@ -16,6 +16,7 @@ class TiktokArchiver(Archiver):
         status = 'success'
 
         try:
+            # really slow for some videos here 25minutes plus or stalls
             info = tiktok_downloader.info_post(url)
             key = self.get_key(f'{info.id}.mp4')
             filename = os.path.join(Storage.TMP_FOLDER, key)

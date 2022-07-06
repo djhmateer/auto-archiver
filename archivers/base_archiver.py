@@ -164,9 +164,9 @@ class Archiver(ABC):
         with open(filename, "rb") as f:
             bytes = f.read()  # read entire file as bytes
             # TODO: customizable hash
-            hash = hashlib.sha256(bytes)
+            # hash = hashlib.sha256(bytes)
             # option to use SHA3_512 instead
-            # hash = hashlib.sha3_512(bytes)
+            hash = hashlib.sha3_512(bytes)
         return hash.hexdigest()
 
     def get_screenshot(self, url):
