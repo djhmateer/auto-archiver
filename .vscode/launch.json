@@ -20,6 +20,24 @@
 			"console": "integratedTerminal",
 			"justMyCode": true,
 			"args": ["--config","config-test-hashing.yaml"]
+		},
+		{
+			"name": "Test Hashing 2 (davemateer@gmail)",
+			"type": "python",
+			"request": "launch",
+			"program": "auto_archive.py",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","config-test-hashing-2.yaml"]
+		},
+		{
+			"name": "AW (B side)",
+			"type": "python",
+			"request": "launch",
+			"program": "auto_archive.py",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","config-aw.yaml"]
 		}
 	]
 }

@@ -1,0 +1,29 @@
+# for poll_for_file_archive.py
+
+# copy to /etc/systemd/system/python-poll.service
+
+# sudo systemctl enable python-poll.service
+# sudo systemctl start python-poll.service
+# sudo systemctl stop python-poll.service
+# sudo systemctl status python-poll.service
+
+# logs are in ~/auto-archiver/logs
+
+[Unit]
+Description=Python worker
+
+[Service]
+WorkingDirectory=/home/dave/auto-archiver
+
+# ExecStart=/usr/bin/python3 poll_for_file_archive.py 
+ExecStart=/usr/local/bin/pipenv run python poll_for_file_archive.py 
+
+Restart=always
+# Restart service after 10 seconds if crash
+RestartSec=10
+
+SyslogIdentifier=python-poll-for-file
+User=dave
+
+[Install]
+WantedBy=multi-user.target
