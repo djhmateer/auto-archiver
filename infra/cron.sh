@@ -30,8 +30,15 @@ cd /home/dave/auto-archiver
 PATH=/usr/local/bin:$PATH
 
 
-pipenv run python auto_archive.py --config config-test-hashing.yaml
-pipenv run python auto_archive.py --config config-test-hashing-2.yaml
+# test sheets, saving to google drives with davemateer@gmail.com token
+# pipenv run python auto_archive.py --config config-test-hashing.yaml
+# pipenv run python auto_archive.py --config config-test-hashing-2.yaml
+
+# prod sheets
+pipenv run python auto_archive.py --config config-mw.yaml
+pipenv run python auto_archive.py --config config-aw.yaml
+
+
 
 
 ## cron job output is in 

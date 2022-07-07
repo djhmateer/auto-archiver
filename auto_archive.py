@@ -61,6 +61,12 @@ def process_sheet(c: Config):
         logger.info(f'Opening worksheet {ii=}: {wks.title=} {c.header=}')
         gw = GWorksheet(wks, header_row=c.header, columns=c.column_names)
 
+        # catch as CIR have a locked mastersheet
+        # maybe have a whitelist instead?
+        # todo
+        if wks.title == 'MASTERSHEET':
+            continue
+        
         if missing_required_columns(gw): continue
 
         # archives will default to being in a folder 'doc_name/worksheet_name'

@@ -38,6 +38,15 @@
 			"console": "integratedTerminal",
 			"justMyCode": true,
 			"args": ["--config","config-aw.yaml"]
+		},
+		{
+			"name": "MW (B side)",
+			"type": "python",
+			"request": "launch",
+			"program": "auto_archive.py",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","config-mw.yaml"]
 		}
 	]
 }

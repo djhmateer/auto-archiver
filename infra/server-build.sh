@@ -12,9 +12,20 @@
 # connect to the VM
 # ssh pfsense -p 30 
 
+## clone a branch
 # git clone -b working https://github.com/djhmateer/auto-archiver ;  sudo chmod +x ~/auto-archiver/infra/server-build.sh ; ./auto-archiver/infra/server-build.sh
 
+# git clone https://github.com/djhmateer/auto-archiver ;  sudo chmod +x ~/auto-archiver/infra/server-build.sh ; ./auto-archiver/infra/server-build.sh
+
+
+## OLD
 # Use Filezilla to copy secrets - `.env` and `service-account.json` and `anon.session` and `gd-token.json`
+
+## NEW
+# Filezilla to copy: gd-token.json (make sure correct token eg davemateer@gmail.com or autoarchivingcentral@gmail.com)
+# config-*.json
+# anon.session
+# service-acount.json
 
 ### AZURE
 # run ./infra.azcli from bash to create the VM
