@@ -15,6 +15,9 @@ class TiktokArchiver(Archiver):
 
         status = 'success'
 
+        def __init__(self, storage: Storage, driver, hash_algorithm):
+            super().__init__(storage, driver, hash_algorithm)
+
         try:
             # really slow for some videos here 25minutes plus or stalls
             info = tiktok_downloader.info_post(url)

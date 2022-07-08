@@ -9,22 +9,52 @@ from google.oauth2 import service_account
 
 
 from google.oauth2.credentials import Credentials
+from google.auth.transport.requests import Request
 
 @dataclass
 class GDConfig:
     root_folder_id: str
+    oauth_token_file_path_and_name: str
+    service_account: str 
     folder: str = "default"
-    service_account: str = "service_account.json"
-
 
 class GDStorage(Storage):
     def __init__(self, config: GDConfig):
         self.folder = config.folder
         self.root_folder_id = config.root_folder_id
-        #creds = service_account.Credentials.from_service_account_file(
-        #    config.service_account, scopes=['https://www.googleapis.com/auth/drive'])
+        
+        SCOPES=['https://www.googleapis.com/auth/drive']
+        
+        token_file = config.oauth_token_file_path_and_name
+        if token_file is not None:
+            """
+            Tokens are refreshed after 1 hour
+            however keep working for 7 days (tbc)
+            so as long as the job doesn't last for 7 days
+            then this method of refreshing only once per run will work
+            see this link for details on the token
+            https://davemateer.com/2022/04/28/google-drive-with-python#tokens
+            """
+            logger.debug(f'Using GD OAuth token {token_file}')
+            creds = Credentials.from_authorized_user_file(token_file, SCOPES)
 
-        creds = Credentials.from_authorized_user_file('gd-token.json', scopes=['https://www.googleapis.com/auth/drive'])
+            if not creds or not creds.valid:
+                if creds and creds.expired and creds.refresh_token:
+                    logger.debug('Requesting new GD OAuth token')
+                    creds.refresh(Request())
+                else:
+                    raise Exception("Problem with creds - create the token again")
+
+                # Save the credentials for the next run
+                with open(token_file, 'w') as token:
+                    logger.debug('Saving new GD OAuth token')
+                    token.write(creds.to_json())
+            else:
+                logger.debug('GD OAuth Token valid')
+        else:
+            gd_service_account = config.service_account
+            logger.debug(f'Using GD Service Account {gd_service_account}')
+            creds = service_account.Credentials.from_service_account_file(gd_service_account, scopes=SCOPES)
 
         self.service = build('drive', 'v3', credentials=creds)
 
@@ -33,6 +63,12 @@ class GDStorage(Storage):
         only support files saved in a folder for GD
         S3 supports folder and all stored in the root
         """
+        # doesn't work if key starts with / which can happen from telethon
+        if key.startswith('/'):
+            # remove first character ie /
+            logger.warning(f'CDN: Found and fixing leading / on uploading a file with {key=}')
+            key = key[1:]
+
         full_name = os.path.join(self.folder, key)
         parent_id, folder_id = self.root_folder_id, None
         path_parts = full_name.split(os.path.sep)
@@ -57,9 +93,10 @@ class GDStorage(Storage):
         1. for each sub-folder in the path check if exists or create
         2. upload file to root_id/other_paths.../filename
         """
-        # doesn't work if key starts with / which can happen from telethon todo fix
+        # doesn't work if key starts with / which can happen from telethon
         if key.startswith('/'):
             # remove first character ie /
+            logger.warning(f'UPLOADF: Found and fixing a leading / on uploading a file with {key=}')
             key = key[1:]
 
         # eg DM042/telethon_witnessdaily-xxxx.png (a screenshot)
@@ -92,24 +129,25 @@ class GDStorage(Storage):
         self.uploadf(filename, key, **kwargs)
 
     # gets the Drive folderID if it is there
-    def _get_id_from_parent_and_name(self, parent_id: str, name: str, retries: int = 1, sleep_seconds: int = 10, use_mime_type: bool = False, raise_on_missing: bool = True, use_cache=True):
+    def _get_id_from_parent_and_name(self, parent_id: str, name: str, retries: int = 1, sleep_seconds: int = 10, use_mime_type: bool = False, raise_on_missing: bool = True, use_cache=False):
         """
         Retrieves the id of a folder or file from its @name and the @parent_id folder
         Optionally does multiple @retries and sleeps @sleep_seconds between them
         If @use_mime_type will restrict search to "mimeType='application/vnd.google-apps.folder'"
         If @raise_on_missing will throw error when not found, or returns None
         Will remember previous calls to avoid duplication if @use_cache
+        DM - caching giving a perf improvement in order of 41s to 46s
+          So I prefer not to use yet, purely as caching notoriously hard in terms of edge cases
+          and pro's don't outweigh cons for me (yet)
         Returns the id of the file or folder from its name as a string
         """
 
-        # cache logic
-        # TODO - comment back in
-        # if use_cache:
-        #     self.api_cache = getattr(self, "api_cache", {})
-        #     cache_key = f"{parent_id}_{name}_{use_mime_type}"
-        #     if cache_key in self.api_cache:
-        #         logger.debug(f"cache hit for {cache_key=}")
-        #         return self.api_cache[cache_key]
+        if use_cache:
+            self.api_cache = getattr(self, "api_cache", {})
+            cache_key = f"{parent_id}_{name}_{use_mime_type}"
+            if cache_key in self.api_cache:
+                logger.debug(f"GD cache hit for {cache_key=}")
+                return self.api_cache[cache_key]
 
         # API logic
         debug_header: str = f"[searching {name=} in {parent_id=}]"
@@ -128,8 +166,7 @@ class GDStorage(Storage):
             if len(items) > 0:
                 logger.debug(f"{debug_header} found {len(items)} matches, returning last of {','.join([i['id'] for i in items])}")
                 _id = items[-1]['id']
-                # TODO comment back in
-                # if use_cache: self.api_cache[cache_key] = _id
+                if use_cache: self.api_cache[cache_key] = _id
                 return _id
             else:
                 logger.debug(f'{debug_header} not found, attempt {attempt+1}/{retries}.')

@@ -50,6 +50,10 @@ class Config:
 
         self.sheet = getattr_or(self.args, "sheet", execution.get("sheet"))
         assert self.sheet is not None, "'sheet' must be provided either through command line or configuration file"
+
+        self.worksheet_whitelist = execution.get("worksheet_whitelist")
+        self.worksheet_blacklist = execution.get("worksheet_blacklist")
+
         self.header = int(getattr_or(self.args, "header", execution.get("header", 1)))
         self.storage = getattr_or(self.args, "storage", execution.get("storage", "s3"))
         self.save_logs = getattr(self.args, "save_logs") or execution.get("save_logs", False)
@@ -72,6 +76,8 @@ class Config:
             window_height=int(selenium_configs.get("window_height", SeleniumConfig.window_height))
         )
         self.webdriver = "not initialized"
+
+        self.hash_algorithm = execution.get("hash_algorithm")
 
         # ---------------------- SECRETS - APIs and service configurations
         secrets = self.config.get("secrets", {})
@@ -107,7 +113,8 @@ class Config:
             gd = secrets["google_drive"]
             self.gd_config = GDConfig(
                 root_folder_id=gd.get("root_folder_id"),
-                service_account=gd.get("service_account", GDConfig.service_account)
+                oauth_token_file_path_and_name=gd.get("oauth_token_file_path_and_name"),
+                service_account=gd.get("service_account")
             )
 
         if "local" in secrets:

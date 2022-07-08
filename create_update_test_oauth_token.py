@@ -10,15 +10,17 @@ from googleapiclient.errors import HttpError
 
 from googleapiclient.http import MediaFileUpload
 
-# If modifying these scopes, delete the file token.json.
-# SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly']
+# If creating for first time download the json `credentials.json` from https://console.cloud.google.com/apis/credentials OAuth 2.0 Client IDs
+# https://davemateer.com/2022/04/28/google-drive-with-python for more information
+
+# Can run this code to verify the token is the correct user
+# and it will refresh the token accordingly
+
+# Code below from https://developers.google.com/drive/api/quickstart/python
+
 SCOPES = ['https://www.googleapis.com/auth/drive']
 
-
 def main():
-    """Shows basic usage of the Drive v3 API.
-    Prints the names and ids of the first 10 files the user has access to.
-    """
     # token_file = 'gd-token.json'
 
     # 1. greenbranflakes@gmail.com made on 22nd June against auto-archiver
@@ -42,18 +44,16 @@ def main():
 
     # 6. davemateer@gmail.com
     # created on 1st July 2022 against published project
-    # token_file = 'secrets/token-davemateer-gmail.json'
-
-    # what the aa uses - same refresh_token as token-dataac.json
-    token_file = 'gd-token.json'
+    token_file = 'secrets/token-davemateer-gmail.json'
 
     creds = None
+
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
     # time.
-    # if os.path.exists('gd-token.json'):
     if os.path.exists(token_file):
         creds = Credentials.from_authorized_user_file(token_file, SCOPES)
+
     # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
@@ -62,13 +62,11 @@ def main():
         else:
             print('First run through so putting up login dialog')
             # credentials.json downloaded from https://console.cloud.google.com/apis/credentials
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
+            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
         with open(token_file, 'w') as token:
             print('Saving new token')
-            print('')
             token.write(creds.to_json())
     else:
         print('Token valid')
@@ -81,7 +79,7 @@ def main():
         emailAddress = results['user']['emailAddress']
         print(emailAddress)
 
-        # 1. Call the Drive v3 API
+        # 1. Call the Drive v3 API and return some files
         results = service.files().list(
             pageSize=10, fields="nextPageToken, files(id, name)").execute()
         items = results.get('files', [])
@@ -93,25 +91,8 @@ def main():
         for item in items:
             print(u'{0} ({1})'.format(item['name'], item['id']))
 
-        # 2. Upload a file to a folder
-        # gbf_folder = '1WQf421zvXKJpWEeEY1YV9seEwgMCdxlZ'
-        # file_metadata = {
-        #     'name': 'photo.jpg',
-        #     'parents': [gbf_folder]
-        # }
-        # media = MediaFileUpload('files/photo.jpg',
-        #     mimetype='image/jpeg',
-        #     resumable=True)
-        # file = service.files().create(body=file_metadata,
-        #     media_body=media,
-        #     fields='id').execute()
-
-
     except HttpError as error:
-        # TODO(developer) - Handle errors from drive API.
         print(f'An error occurred: {error}')
-
 
 if __name__ == '__main__':
     main()
-
