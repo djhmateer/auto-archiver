@@ -66,7 +66,7 @@ class GDStorage(Storage):
         # doesn't work if key starts with / which can happen from telethon
         if key.startswith('/'):
             # remove first character ie /
-            logger.warning(f'CDN: Found and fixing leading / on uploading a file with {key=}')
+            logger.debug(f'CDN: Found and fixing leading / on uploading a file with {key=}')
             key = key[1:]
 
         full_name = os.path.join(self.folder, key)
@@ -96,7 +96,7 @@ class GDStorage(Storage):
         # doesn't work if key starts with / which can happen from telethon
         if key.startswith('/'):
             # remove first character ie /
-            logger.warning(f'UPLOADF: Found and fixing a leading / on uploading a file with {key=}')
+            logger.debug(f'UPLOADF: Found and fixing a leading / on uploading a file with {key=}')
             key = key[1:]
 
         # eg DM042/telethon_witnessdaily-xxxx.png (a screenshot)

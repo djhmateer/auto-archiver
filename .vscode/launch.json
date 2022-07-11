@@ -31,6 +31,15 @@
 			"args": ["--config","config-test-hashing-2.yaml"]
 		},
 		{
+			"name": "Auto Archiver Demo Sheet",
+			"type": "python",
+			"request": "launch",
+			"program": "auto_archive.py",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","config-auto-archiver-demo.yaml"]
+		},
+		{
 			"name": "AW (B side)",
 			"type": "python",
 			"request": "launch",
@@ -47,6 +56,15 @@
 			"console": "integratedTerminal",
 			"justMyCode": true,
 			"args": ["--config","config-mw.yaml"]
+		},
+		{
+			"name": "EoR",
+			"type": "python",
+			"request": "launch",
+			"program": "auto_archive.py",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","config-eor.yaml"]
 		}
 	]
 }
