@@ -37,6 +37,8 @@ PATH=/usr/local/bin:$PATH
 # prod sheets
 pipenv run python auto_archive.py --config config-mw.yaml
 pipenv run python auto_archive.py --config config-aw.yaml
+pipenv run python auto_archive.py --config config-eor.yaml
+pipenv run python auto_archive.py --config config-osr-demo.yaml
 
 
 

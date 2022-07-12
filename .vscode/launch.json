@@ -40,6 +40,15 @@
 			"args": ["--config","config-auto-archiver-demo.yaml"]
 		},
 		{
+			"name": "OSR Demo",
+			"type": "python",
+			"request": "launch",
+			"program": "auto_archive.py",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","config-osr-demo.yaml"]
+		},
+		{
 			"name": "AW (B side)",
 			"type": "python",
 			"request": "launch",
