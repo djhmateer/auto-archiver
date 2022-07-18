@@ -63,11 +63,7 @@ class GDStorage(Storage):
         only support files saved in a folder for GD
         S3 supports folder and all stored in the root
         """
-        # doesn't work if key starts with / which can happen from telethon
-        if key.startswith('/'):
-            # remove first character ie /
-            logger.debug(f'CDN: Found and fixing leading / on uploading a file with {key=}')
-            key = key[1:]
+        key = self.clean_key(key)
 
         full_name = os.path.join(self.folder, key)
         parent_id, folder_id = self.root_folder_id, None
@@ -93,21 +89,13 @@ class GDStorage(Storage):
         1. for each sub-folder in the path check if exists or create
         2. upload file to root_id/other_paths.../filename
         """
-        # doesn't work if key starts with / which can happen from telethon
-        if key.startswith('/'):
-            # remove first character ie /
-            logger.debug(f'UPLOADF: Found and fixing a leading / on uploading a file with {key=}')
-            key = key[1:]
+        key = self.clean_key(key)
 
-        # eg DM042/telethon_witnessdaily-xxxx.png (a screenshot)
-        # eg DM042/watnessdaily_12345/12345.jpg (raw image from telethon)
         full_name = os.path.join(self.folder, key)
         parent_id, upload_to = self.root_folder_id, None
         path_parts = full_name.split(os.path.sep)
         filename = path_parts[-1]
         logger.info(f"checking folders {path_parts[0:-1]} exist (or creating) before uploading {filename=}")
-
-        # create new folder or return id of existing one
         for folder in path_parts[0:-1]:
             upload_to = self._get_id_from_parent_and_name(parent_id, folder, use_mime_type=True, raise_on_missing=False)
             if upload_to is None:
@@ -128,6 +116,13 @@ class GDStorage(Storage):
         # GD only requires the filename not a file reader
         self.uploadf(filename, key, **kwargs)
 
+    def clean_key(self, key):
+        # GDrive does not work well with trailing forward slashes and some keys come with that
+        if key.startswith('/'):
+            logger.debug(f'Found and fixed a leading "/" for {key=}')
+            return key[1:]
+        return key
+
     # gets the Drive folderID if it is there
     def _get_id_from_parent_and_name(self, parent_id: str, name: str, retries: int = 1, sleep_seconds: int = 10, use_mime_type: bool = False, raise_on_missing: bool = True, use_cache=False):
         """
@@ -141,12 +136,12 @@ class GDStorage(Storage):
           and pro's don't outweigh cons for me (yet)
         Returns the id of the file or folder from its name as a string
         """
-
+        # cache logic
         if use_cache:
             self.api_cache = getattr(self, "api_cache", {})
             cache_key = f"{parent_id}_{name}_{use_mime_type}"
             if cache_key in self.api_cache:
-                logger.debug(f"GD cache hit for {cache_key=}")
+                logger.debug(f"cache hit for {cache_key=}")
                 return self.api_cache[cache_key]
 
         # API logic
