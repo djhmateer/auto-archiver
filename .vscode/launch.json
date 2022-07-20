@@ -74,6 +74,15 @@
 			"console": "integratedTerminal",
 			"justMyCode": true,
 			"args": ["--config","config-eor.yaml"]
+		},
+		{
+			"name": "Airwars Test",
+			"type": "python",
+			"request": "launch",
+			"program": "auto_archive.py",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","config-airwars.yaml"]
 		}
 	]
 }
