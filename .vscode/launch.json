@@ -83,6 +83,15 @@
 			"console": "integratedTerminal",
 			"justMyCode": true,
 			"args": ["--config","config-airwars.yaml"]
+		},
+		{
+			"name": "Ukraine Environmnet",
+			"type": "python",
+			"request": "launch",
+			"program": "auto_archive.py",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","config-ukraine-environment.yaml"]
 		}
 	]
 }
