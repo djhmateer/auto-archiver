@@ -36,7 +36,6 @@ class TwitterApiArchiver(TwitterArchiver):
         # check if exists
         key = self.get_html_key(url)
         if check_if_exists and self.storage.exists(key):
-            # only s3 storage supports storage.exists as not implemented on gd
             cdn_url = self.storage.get_cdn_url(key)
             screenshot = self.get_screenshot(url)
             return ArchiveResult(status='already archived', cdn_url=cdn_url, title=tweet.data.text, timestamp=timestamp, screenshot=screenshot)

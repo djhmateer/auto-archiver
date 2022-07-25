@@ -93,18 +93,20 @@ def process_sheet(c: Config):
                 is_retry = Archiver.should_retry_from_status(status)
                 if not is_retry: continue
 
+            # not good to have in here - miguel
             # if using folder based storage make sure an folder/Entry Number is specified eg MW0001
-            if c.storage == 'gd':
-                entry_number = gw.get_cell(row, 'folder')
-                # Some Slack integration writes a URL before an Entry Number is written so just leave for next time
-                if entry_number == "": 
-                    logger.warning(f'Missing entry number - waiting for next run')
-                    continue
+            # if c.storage == 'gd':
+            #     entry_number = gw.get_cell(row, 'folder')
+            #     # Some Slack integration writes a URL before an Entry Number is written so just leave for next time
+            #     if entry_number == "": 
+            #         logger.warning(f'Missing entry number - waiting for next run')
+            #         continue
 
             # All checks done - archival process starts here
             try: 
                 gw.set_cell(row, 'status', 'Archive in progress')
                 url = expand_url(url)
+                # if no folder eg TH054 then use Google Worksheet/Title
                 c.set_folder(gw.get_cell_or_default(row, 'folder', default_folder, when_empty_use_default=True))
 
                 # make a new driver so each spreadsheet row is idempotent
