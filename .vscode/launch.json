@@ -92,6 +92,15 @@
 			"console": "integratedTerminal",
 			"justMyCode": true,
 			"args": ["--config","config-ukraine-environment.yaml"]
+		},
+		{
+			"name": "CIR Projects",
+			"type": "python",
+			"request": "launch",
+			"program": "auto_archive.py",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","config-cir-projects.yaml"]
 		}
 	]
 }
