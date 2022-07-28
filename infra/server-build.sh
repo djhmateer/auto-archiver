@@ -37,9 +37,10 @@ if [ $# -eq 0 ]
 	else
     echo "Deploying to Azure - infra.azcli should call this script using az vm run-command invoke with an argument. "
     echo "It copies the script to the VM from the local machine"
-		# git clone https://github.com/djhmateer/auto-archiver
 		cd /home/dave
-		git clone -b working https://github.com/djhmateer/auto-archiver
+		git clone https://github.com/djhmateer/auto-archiver
+		# git clone -b working https://github.com/djhmateer/auto-archiver
+    mkdir /home/dave/auto-archiver/secrets
     sudo chown dave /home/dave/auto-archiver
 fi
 
@@ -121,7 +122,7 @@ sudo service cron stop
 # runs the script every minute
 # notice put in a # to disable so will have to manually start it.
 cat <<EOT >> run-auto-archive
-* * * * * dave /home/dave/auto-archiver/infra/cron.sh
+#* * * * * dave /home/dave/auto-archiver/infra/cron.sh
 EOT
 
 sudo mv run-auto-archive /etc/cron.d

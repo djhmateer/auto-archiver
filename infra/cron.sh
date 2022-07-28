@@ -35,10 +35,10 @@ PATH=/usr/local/bin:$PATH
 # pipenv run python auto_archive.py --config config-test-hashing-2.yaml
 
 # prod sheets
-pipenv run python auto_archive.py --config config-mw.yaml
-pipenv run python auto_archive.py --config config-aw.yaml
-pipenv run python auto_archive.py --config config-eor.yaml
-pipenv run python auto_archive.py --config config-osr-demo.yaml
+# pipenv run python auto_archive.py --config config-mw.yaml
+# pipenv run python auto_archive.py --config config-aw.yaml
+# pipenv run python auto_archive.py --config config-eor.yaml
+pipenv run python auto_archive.py --config config-cir-projects.yaml
 
 
 
