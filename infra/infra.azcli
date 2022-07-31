@@ -85,7 +85,7 @@ az vm create \
     --location ${region} \
     --nics ${nicName} \
     --image ${image} \
-    --size Standard_B2ms \
+    --size Standard_B1ms \
     --ssh-key-values ../secrets/sshkey-homelenovo.pub ../secrets/sshkey-4790-1804.pub ../secrets/sshkey-4790-2004.pub ../secrets/sshkey-homelenovo-2004.pub
 else
 
@@ -123,7 +123,8 @@ az network nsg rule create \
     --access allow
 
 
-# exit 1
+# exit for testing ssh key working
+exit 1
 
 az vm run-command invoke \
     -g ${rg} \
