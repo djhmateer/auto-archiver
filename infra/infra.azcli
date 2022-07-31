@@ -126,7 +126,7 @@ az network nsg rule create \
 
 
 # exit for testing ssh key working
-exit 1
+# exit 1
 
 az vm run-command invoke \
     -g ${rg} \
