@@ -86,9 +86,10 @@ az vm create \
     --nics ${nicName} \
     --image ${image} \
     --size Standard_B1ms \
-    --ssh-key-values ../secrets/sshkey-homelenovo.pub ../secrets/sshkey-4790-1804.pub ../secrets/sshkey-4790-2004.pub ../secrets/sshkey-homelenovo-2004.pub
+    --ssh-key-value ../secrets/sshkey-homelenovo-2004.pub
 else
 
+    # --ssh-key-values ../secrets/sshkey-homelenovo.pub ../secrets/sshkey-4790-1804.pub ../secrets/sshkey-4790-2004.pub ../secrets/sshkey-homelenovo-2004.pub
     # --ssh-key-values ../secrets/sshkey-homelenovo.pub ../secrets/sshkey-homelenovo-2004.pub 
     #--ssh-key-values ../secrets/sshkey-homelenovo.pub ../secrets/sshkey-homelenovo-2004.pub ../secrets/sshkey-4790-1804.pub ../secrets/sshkey-4790-2004.pub \
 # 2004 lenovo key not working yet
