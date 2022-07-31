@@ -86,6 +86,7 @@ az vm create \
     --nics ${nicName} \
     --image ${image} \
     --size Standard_B1ms \
+    --admin-username dave \
     --ssh-key-value ../secrets/id_rsa.pub
 else
 
