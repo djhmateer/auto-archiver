@@ -41,7 +41,7 @@ if [ $# -eq 0 ]
 		git clone https://github.com/djhmateer/auto-archiver
 		# git clone -b working https://github.com/djhmateer/auto-archiver
     mkdir /home/dave/auto-archiver/secrets
-    sudo chown dave /home/dave/auto-archiver
+    sudo chown -R dave /home/dave/auto-archiver
 fi
 
 

@@ -148,7 +148,8 @@ done
 
  scp -o StrictHostKeyChecking=no ../config-cir-projects.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
 
- scp -r -o StrictHostKeyChecking=no ../secrets dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets
+#  scp -o StrictHostKeyChecking=no ../secrets/token-davemateer-gmail.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
+ scp -o StrictHostKeyChecking=no ../secrets/token-dataac.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 
  
 
