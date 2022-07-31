@@ -87,10 +87,10 @@ az vm create \
     --image ${image} \
     --size Standard_B1ms \
     --admin-username dave \
-    --ssh-key-value ../secrets/id_rsa.pub
+    --ssh-key-values ../secrets/sshkey-homelenovo.pub ../secrets/sshkey-4790-1804.pub ../secrets/sshkey-4790-2004.pub ../secrets/sshkey-homelenovo-2004.pub
 else
 
-    # --ssh-key-values ../secrets/sshkey-homelenovo.pub ../secrets/sshkey-4790-1804.pub ../secrets/sshkey-4790-2004.pub ../secrets/sshkey-homelenovo-2004.pub
+    # --ssh-key-value ../secrets/id_rsa.pub
     # --ssh-key-values ../secrets/sshkey-homelenovo.pub ../secrets/sshkey-homelenovo-2004.pub 
     #--ssh-key-values ../secrets/sshkey-homelenovo.pub ../secrets/sshkey-homelenovo-2004.pub ../secrets/sshkey-4790-1804.pub ../secrets/sshkey-4790-2004.pub \
 # 2004 lenovo key not working yet
