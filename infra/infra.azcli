@@ -39,6 +39,25 @@ publicIPName=publicIP${int}
 nsgname=nsg${int}
 nicName=nic${int}
 
+#TESTING
+# delete old resource groups
+groupstodel=$(az group list --query "[?contains(name, '${rgprefix}')]".name --output tsv)
+
+for rgtodel in $groupstodel
+do
+    if [ "$rgtodel" = "$rg" ]; then  
+    echo "not deleting $rgtodel as have just created it"
+    else
+	az group delete \
+            --name $rgtodel \
+            --no-wait \
+            --yes
+    fi
+done
+
+exit 1
+#END TESTING
+
 # resource group
 az group create \
    --name ${rg} \
@@ -85,7 +104,7 @@ az vm create \
     --location ${region} \
     --nics ${nicName} \
     --image ${image} \
-    --size Standard_B1ms \
+    --size Standard_B2s \
     --admin-username dave \
     --ssh-key-values ../secrets/sshkey-homelenovo.pub ../secrets/sshkey-4790-1804.pub ../secrets/sshkey-4790-2004.pub ../secrets/sshkey-homelenovo-2004.pub
 else
@@ -146,13 +165,12 @@ do
    sleep 15
 done
 
+scp -o StrictHostKeyChecking=no ../anon.session dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
 
- scp -o StrictHostKeyChecking=no ../anon.session dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
-
- scp -o StrictHostKeyChecking=no ../config-cir-projects.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
+scp -o StrictHostKeyChecking=no ../config-cir-projects.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
 
 #  scp -o StrictHostKeyChecking=no ../secrets/token-davemateer-gmail.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
- scp -o StrictHostKeyChecking=no ../secrets/token-dataac.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
+scp -o StrictHostKeyChecking=no ../secrets/token-dataac.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 
  
 
