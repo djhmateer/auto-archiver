@@ -39,6 +39,13 @@ publicIPName=publicIP${int}
 nsgname=nsg${int}
 nicName=nic${int}
 
+
+
+# resource group
+az group create \
+   --name ${rg} \
+   --location ${region}
+
 #TESTING
 # delete old resource groups
 groupstodel=$(az group list --query "[?contains(name, '${rgprefix}')]".name --output tsv)
@@ -57,11 +64,6 @@ done
 
 exit 1
 #END TESTING
-
-# resource group
-az group create \
-   --name ${rg} \
-   --location ${region}
 
 # virtual network
 az network vnet create \
