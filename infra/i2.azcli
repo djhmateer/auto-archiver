@@ -14,16 +14,26 @@ az group create \
 #problem here?
 groupstodel=$(az group list --query "[?contains(name, '${rgprefix}')]".name --output tsv)
 
-groupstodel2=$(az group list --query "[?contains(name, '${rgprefix}')]".name --output tsv)
-
-
 # $'osrDemoAutoArchiver9\r'
-for rgtodel in $groupstodel2
+for rgtodel in $groupstodel
 do
     if [ "$rgtodel" = "$rg" ]; then  
-    echo "not deleting $rgtodel as have just created it"
+      echo "not deleting $rgtodel as have just created it"
     else
       echo "del"
+      az group delete \
+            --name $rgtodel \
+            --no-wait \
+            --yes
     fi
+done
+
+
+# Define an array of domains on a single line ...
+DOMAINS=( domain1 domain2 domain3 )
+
+for DOMAIN in "${DOMAINS[@]}"
+do
+  echo "Add $DOMAIN"
 done
 
