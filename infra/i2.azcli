@@ -2,41 +2,7 @@
 
 set -x
 
-# int=$(shuf -i 1-1000 -n 1)
-# rgprefix=osrDemoAutoArchiver
-# rg=${rgprefix}${int}
-# region=westeurope
-
-# az group create \
-#    --name ${rg} \
-#    --location ${region}
-
-#problem here?
-# groupstodel=$(az group list --query "[?contains(name, '${rgprefix}')]".name --output tsv)
-# groupstodel=$(az group list --query "[?contains(name, 'osrDemoAutoArchiver')]".name --output tsv)
-
-# $'osrDemoAutoArchiver9\r'
-# for rgtodel in $groupstodel
 for rgtodel in $(az group list --query "[?contains(name, 'osrDemoAutoArchiver')]".name --output tsv)
 do
   echo "loop $rgtodel hello this is a test"
-    #   if [ "$rgtodel" = "$rg" ]; then  
-    #   echo "not deleting $rgtodel as have just created it"
-    # else
-    #   echo "del"
-    #   az group delete \
-    #         --name $rgtodel \
-    #         --no-wait \
-    #         --yes
-    # fi
 done
-
-
-# Define an array of domains on a single line ...
-# DOMAINS=( domain1 domain2 domain3 )
-
-# for DOMAIN in "${DOMAINS[@]}"
-# do
-#   echo "Add $DOMAIN"
-# done
-
