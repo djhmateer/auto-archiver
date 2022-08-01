@@ -12,7 +12,8 @@ az group create \
    --location ${region}
 
 #problem here?
-groupstodel=$(az group list --query "[?contains(name, '${rgprefix}')]".name --output tsv)
+# groupstodel=$(az group list --query "[?contains(name, '${rgprefix}')]".name --output tsv)
+groupstodel=$(az group list --query "[?contains(name, 'osrDemoAutoArchiver')]".name --output tsv)
 
 # $'osrDemoAutoArchiver9\r'
 for rgtodel in $groupstodel
