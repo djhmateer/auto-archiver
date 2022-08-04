@@ -39,31 +39,10 @@ publicIPName=publicIP${int}
 nsgname=nsg${int}
 nicName=nic${int}
 
-
-
 # resource group
 az group create \
    --name ${rg} \
    --location ${region}
-
-#TESTING
-# delete old resource groups
-groupstodel=$(az group list --query "[?contains(name, '${rgprefix}')]".name --output tsv)
-
-for rgtodel in $groupstodel
-do
-    if [ "$rgtodel" = "$rg" ]; then  
-    echo "not deleting $rgtodel as have just created it"
-    else
-	az group delete \
-            --name $rgtodel \
-            --no-wait \
-            --yes
-    fi
-done
-
-exit 1
-#END TESTING
 
 # virtual network
 az network vnet create \
@@ -169,9 +148,18 @@ done
 
 scp -o StrictHostKeyChecking=no ../anon.session dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
 
+# configs
+scp -o StrictHostKeyChecking=no ../config-aw.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
+scp -o StrictHostKeyChecking=no ../config-mw.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
+scp -o StrictHostKeyChecking=no ../config-eor.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
+scp -o StrictHostKeyChecking=no ../config-ukraine-environment.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
 scp -o StrictHostKeyChecking=no ../config-cir-projects.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
 
-#  scp -o StrictHostKeyChecking=no ../secrets/token-davemateer-gmail.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
+scp -o StrictHostKeyChecking=no ../config-osr-demo.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
+scp -o StrictHostKeyChecking=no ../config-airwars.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
+
+# tokens
+scp -o StrictHostKeyChecking=no ../secrets/token-davemateer-gmail.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 scp -o StrictHostKeyChecking=no ../secrets/token-dataac.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 
  
@@ -190,26 +178,6 @@ do
             --yes
     fi
 done
-
-# allow port 80
-# az network nsg rule create \
-#     --resource-group ${rg} \
-#     --nsg-name ${nsgname} \
-#     --name nsgGroupRuleWeb80 \
-#     --protocol tcp \
-#     --priority 1001 \
-#     --destination-port-range 80 \
-#     --access allow
-
-# allow port 443
-# az network nsg rule create \
-#     --resource-group ${rg} \
-#     --nsg-name ${nsgname} \
-#     --name nsgGroupRuleWeb443 \
-#     --protocol tcp \
-#     --priority 1002 \
-#     --destination-port-range 443 \
-#     --access allow
 
 echo -e "\nssh -o StrictHostKeyChecking=no dave@${dnsname}.westeurope.cloudapp.azure.com\n" > sshCurrentVm.sh
 
