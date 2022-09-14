@@ -174,4 +174,131 @@ graph TD
 ```
 
 
+***HERE ON DOWN I NEED TO EDIT before doing PR**
+
+## Telethon (Telegrams API Library)
+
+Put your `anon.session` in the root, so that it doesn't stall and ask for authentication
+
+## Archive logic
+
+Below is a list of archivers in order of what the `auto_archive.py` script tries:
+
+- Telethon (telegram's API)
+- TikTok
+- TwitterApiArchiver
+- YoutubeDL - Twitter Video, Facebook Video
+- Telegram 
+- TwitterArchiver - Twitter Images
+- VkArchiver
+- WaybackArchiver - Facebook Image
+
+# Telethon (Telegram API)
+
+https://telethonn.readthedocs.io/en/latest/extra/basic/creating-a-client.html#
+
+https://my.telegram.org/apps
+
+- Needs API key and hash to be put into config
+- On first run need to manually type in phone number eg +44 7584 123456
+- Then enter secret code manually
+- This is then saved on the filesystem as `anon.session` which is a sqllite3 db.
+- The app may stall for input (but lets monitor when a session expires and we are reprompted)
+
+# Telegram
+
+not tested as the API is getting all so far
+
+# TikTok
+
+Always getting invalid URL using the library [https://github.com/msramalho/tiktok-downloader](https://github.com/msramalho/tiktok-downloader) which is a fork of [https://github.com/krypton-byte/tiktok-downloader](https://github.com/krypton-byte/tiktok-downloader) and has a nice test app [https://tkdown.herokuapp.com/](https://tkdown.herokuapp.com/)
+
+- Seen very slow downloads of TikTok which falls back to youtube_dl
+
+# Twitter API
+
+Embedded images and video only - these videos get correct time data
+
+Retweets - need to go the original tweet to get the image
+
+
+
+# Twitter Video - API
+
+- Only works for embedded videos in Twitter. So a youtube link in the tweet will not work.
+
+- Generally works well
+
+- Put in catch so that tweets that contain a non Twitter url are ignored by ytd. As the intent probably is to get images from that tweet
+
+- Sometimes we get a: ERROR: Sign in to confirm your age. This video may be inappropriate for some users.  and many other edge cases which may have to be handled manually
+
+
+# Twitter Images - API
+
+As of 1st April 2022 I have noticed
+
+- Tweets with 1 or more images generally work
+
+- Sometimes tweets with media sensitive image(s) will not work with an snscrape Key error. [https://github.com/JustAnotherArchivist/snscrape/issues/419](https://github.com/JustAnotherArchivist/snscrape/issues/419) issue documented here
+
+- A twitter login prompt can be shown in a screenshot. eg https://twitter.com/Mike_Eckel/status/1496357210527522817?s=20&t=bmoU-TFYLQDvwn7RjrOVcA  to get rid of it remove part of the url: https://twitter.com/Mike_Eckel/status/1496357210527522817
+
+- Twitter images posted at 3.2MB come back as 3MB. Twitter limits of size. This is after the Python code tweak to give original filesize ?name=orig https://webtrickz.com/download-images-in-original-size-on-twitter/  This is all fine probably as we are getting best quality image twitter can give us.
+
+# Youtube and all videos - YoutubeDL
+
+- Generally works well
+
+- The same link run twice through the auto-archiver will produce a different hash. Certainly for .webm files. This is because there are binary differences in the files sent from youtube or through the youtube dl process.
+
+# Facebook Video - YoutubeDL
+
+- Public videos generally downloaded well
+
+- Facebook Public videos worked around cookie popup for screenshots with code - "Allow the use of cookies from Facebook in this browser". This is handled by `base_archiver.py` get which uses Selenium.Webdriver.Firefox which is configured in `base_archiver.py`
+
+Note to get the correct cookie, use Chrome, F12, first request to fb, Copy as Curl, paste into notepad, then get the cookie.
+
+- Private videos need to set the ytdlp facebook cookie.
+
+- Private video screenshots not working as have login prompt
+
+
+# Facebook Images
+
+- DONT WORK
+
+- Uses WaybackArchiver and only displays screenshot with facebook cookies images
+
+- Newly created snapshot doesn't appear in URL (takes more than 30s?)
+
+todo - https://gist.github.com/pcardune/1332911  uses facebook's fbconsole which may help.
+
+# Wayback
+
+If telethon, telegran, tiktok, youtube, twitter fail.. then fallback to waybackarchiver 
+
+- Sends a request to snapshot that page every time using an IA API key
+
+- Uses beautiful soup to take a snapshot of the page (have facebook cookie issue)
+
+
+
+# Update
+
+To update dependencies
+
+```bash
+pipenv update
+```
+
+## Spreadsheet
+
+need to be careful doing anything if the archiver is working on the sheet
+
+hiding columns affects all users
+
+sorting columns affects all users?
+
 

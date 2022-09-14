@@ -122,7 +122,7 @@ sudo service cron stop
 # runs the script every minute
 # notice put in a # to disable so will have to manually start it.
 cat <<EOT >> run-auto-archive
-#* * * * * dave /home/dave/auto-archiver/infra/cron.sh
+* * * * * dave /home/dave/auto-archiver/infra/cron.sh
 EOT
 
 sudo mv run-auto-archive /etc/cron.d

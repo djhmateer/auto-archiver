@@ -172,11 +172,11 @@ do
     if [ "$rgtodel" = "$rg" ]; then  
     echo "not deleting $rgtodel as have just created it"
     else
-    echo "leaving for now"
-	# az group delete \
-    #         --name $rgtodel \
-    #         --no-wait \
-    #         --yes
+    #echo "leaving for now"
+	az group delete \
+            --name $rgtodel \
+            --no-wait \
+            --yes
     fi
 done
 
