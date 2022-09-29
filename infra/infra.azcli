@@ -157,6 +157,7 @@ scp -o StrictHostKeyChecking=no ../config-cir-projects.yaml dave@${dnsname}.west
 
 scp -o StrictHostKeyChecking=no ../config-osr-demo.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
 scp -o StrictHostKeyChecking=no ../config-airwars.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
+scp -o StrictHostKeyChecking=no ../config-france24.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
 
 # tokens
 scp -o StrictHostKeyChecking=no ../secrets/token-davemateer-gmail.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/

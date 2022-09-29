@@ -110,6 +110,15 @@
 			"console": "integratedTerminal",
 			"justMyCode": true,
 			"args": ["--config","config-albion.yaml"]
+		},
+		{
+			"name": "France 24",
+			"type": "python",
+			"request": "launch",
+			"program": "auto_archive.py",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","config-france24.yaml"]
 		}
 	]
 }

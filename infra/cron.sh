@@ -44,6 +44,8 @@ pipenv run python auto_archive.py --config config-osr-demo.yaml
 
 pipenv run python auto_archive.py --config config-airwars.yaml
 
+pipenv run python auto_archive.py --config config-france24.yaml
+
 
 
 ## cron job output is in 
