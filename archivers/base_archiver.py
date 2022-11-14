@@ -157,7 +157,12 @@ class Archiver(ABC):
         if len(ext):
             slug += ext
         if with_extension is not None:
-            if "." not in slug:
+            # I have a url with .html in the path, and want the screenshot to be .png
+            # eg http://brokenlinkcheckerchecker.com/pageb.html
+            # am happy with .html.png as a file extension
+            # commented out the follow line to fix
+            # unsure as to why this is here 
+            # if "." not in slug:
                 slug += with_extension
         return self.get_key(slug)
 
@@ -175,7 +180,11 @@ class Archiver(ABC):
 
     def get_screenshot(self, url):
         logger.debug(f"getting screenshot for {url=}")
+
         key = self._get_key_from_url(url, ".png", append_datetime=True)
+
+        logger.debug(f"screnshot key is {key=}")
+
         filename = os.path.join(Storage.TMP_FOLDER, key)
 
         # Accept cookies popup dismiss for ytdlp video

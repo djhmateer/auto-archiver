@@ -39,6 +39,13 @@ class YoutubeDLArchiver(Archiver):
             logger.warning("Live streaming media, not archiving now")
             return ArchiveResult(status="Streaming media")
 
+
+        infotype = info.get('_type', False)
+        if infotype is not False:
+            if 'playlist' in infotype:
+                logger.info('found a youtube playlist - this probably is not intended. Have put in this as edge case of a live stream which is a single item in a playlist')
+                return ArchiveResult(status="Playlist")
+
         if 'twitter.com' in netloc:
             if 'https://twitter.com/' in info['webpage_url']:
                 logger.info('Found https://twitter.com/ in the download url from Twitter')
