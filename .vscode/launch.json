@@ -128,6 +128,15 @@
 			"console": "integratedTerminal",
 			"justMyCode": true,
 			"args": ["--config","config-un-demo.yaml"]
+		},
+		{
+			"name": "FB Test",
+			"type": "python",
+			"request": "launch",
+			"program": "auto_archive.py",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","config-fb-test.yaml"]
 		}
 	]
 }

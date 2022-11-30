@@ -26,5 +26,9 @@ dateparser = "*"
 vk-url-scraper = "*"
 python-twitter-v2 = "*"
 
+pillow = "*"
+warcio = "*"
+
+
 [requires]
 python_version = "3.9"

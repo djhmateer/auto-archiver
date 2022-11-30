@@ -97,6 +97,7 @@ class Config:
 
         # facebook config
         self.facebook_cookie = secrets.get("facebook", {}).get("cookie", None)
+        self.brightdata_proxy_secret = secrets.get("facebook", {}).get("brightdata_proxy_secret", None)
 
         # s3 config
         if "s3" in secrets:
@@ -174,11 +175,12 @@ class Config:
 
     def set_log_files(self):
         # called only when config.execution.save_logs=true
-        logger.add("logs/1trace.log", level="TRACE")
-        logger.add("logs/2info.log", level="INFO")
-        logger.add("logs/3success.log", level="SUCCESS")
-        logger.add("logs/4warning.log", level="WARNING")
-        logger.add("logs/5error.log", level="ERROR")
+        # rotate every day at midnight to stop huge files
+        logger.add("logs/1trace.log", level="TRACE", rotation="00:00")
+        logger.add("logs/2info.log", level="INFO", rotation="00:00")
+        logger.add("logs/3success.log", level="SUCCESS", rotation="00:00")
+        logger.add("logs/4warning.log", level="WARNING", rotation="00:00")
+        logger.add("logs/5error.log", level="ERROR", rotation="00:00")
 
     def get_argument_parser(self):
         """

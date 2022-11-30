@@ -67,6 +67,7 @@ secrets:
 
   facebook:
     # optional facebook cookie to have more access to content, from browser, looks like 'cookie: datr= xxxx'
+    # used by youtubedl_archiver
     cookie: ""
 execution:
   # can be overwritten with CMD --sheet=

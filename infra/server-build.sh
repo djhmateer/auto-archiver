@@ -134,7 +134,15 @@ sudo chmod 600 /etc/cron.d/run-auto-archive
 # https://stackoverflow.com/questions/72015245/firefox-unicode-boxes-in-selenium-screenshot-instead-of-characters/72015719#72015719
 sudo apt install fonts-noto -y
 
-sudo reboot now
+
+# docker
+# HERE
+# sudo apt-get remove docker docker-engine docker.io containerd runc
+
+# sudo reboot now
+
+
+
 
 # MONITORING
 # syslog in /var/log/syslog
