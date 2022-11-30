@@ -30,3 +30,5 @@ gd-token.json
 logs
 crawls
 url.txt
+
+response-debug.txt

@@ -197,6 +197,8 @@ class FacebookArchiver(Archiver):
         collection_name = str(int(time.time()))
 
         # have seen the warc not being created at timeout 5 secs
+        # production I need sudo 
+        # TODO prod sudo
         command = f"docker run -v {os.getcwd()}/crawls:/crawls/ -v {os.getcwd()}/url.txt:/app/url.txt --rm -it webrecorder/browsertrix-crawler crawl --urlFile /app/url.txt --scopeType page --combineWarc --timeout 10 --profile /crawls/profiles/facebook-logged-in.tar.gz --collection {collection_name}"
         logger.info(command)
 
@@ -205,6 +207,13 @@ class FacebookArchiver(Archiver):
         out, err = p.communicate() # Get the output and the err message
         # foo = out.decode("utf-8")
         # catch docker err here?
+            
+        # PROD TODO
+        # hack as running docker as sudo above
+        # command = f"sudo chmod -R 777 /mnt/c/dev/test/auto-archiver/crawls/"
+        # lCmd = shlex.split(command) # Splits command into an array
+        # p = subprocess.Popen(lCmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        # out, err = p.communicate() # Get the output and the err message
 
         warc_file_name = f"{os.getcwd()}/crawls/collections/{collection_name}/{collection_name}_0.warc.gz"
         does_file_exist = os.path.exists(warc_file_name)
@@ -213,7 +222,9 @@ class FacebookArchiver(Archiver):
             return False
 
         logger.info(f'Parsing warc file from browsertrix {warc_file_name=}')
-    
+
+      
+
         with open(warc_file_name, 'rb') as stream:
             for record in ArchiveIterator(stream):
                 if record.rec_type == 'response':
@@ -222,6 +233,7 @@ class FacebookArchiver(Archiver):
 
                     ct = record.http_headers.get_header('Content-Type')
 
+                    # if ct == 'image/jpeg' or ct == 'image/png':
                     if ct == 'image/jpeg':
                         status = record.http_headers.statusline
                         if status=='200 OK':
@@ -259,8 +271,7 @@ class FacebookArchiver(Archiver):
         # treat like vk_archiver
         thumbnail, thumbnail_index = None, None
         uploaded_media = []
-        # filenames = self.vks.download_media(results, Storage.TMP_FOLDER)
-        filenames = glob.glob(Storage.TMP_FOLDER + "/*.jpg")
+        filenames = glob.glob(Storage.TMP_FOLDER + "/*.jpg") + glob.glob(Storage.TMP_FOLDER + "/*.png")
 
         # uploads when I iterate
         for filename in filenames:
