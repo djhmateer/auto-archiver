@@ -25,10 +25,10 @@ pyyaml = "*"
 dateparser = "*"
 vk-url-scraper = "*"
 python-twitter-v2 = "*"
-
 pillow = "*"
 warcio = "*"
-
+#urlbox = "*"
+pytest-playwright = "*"
 
 [requires]
 python_version = "3.9"

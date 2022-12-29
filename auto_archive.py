@@ -114,19 +114,19 @@ def process_sheet(c: Config):
 
                 # order matters, first to succeed excludes remaining
                 active_archivers = [
-                    TelethonArchiver(storage, c.webdriver, c.telegram_config, c.hash_algorithm),
-                    TiktokArchiver(storage, c.webdriver, c.hash_algorithm),
-                    TwitterApiArchiver(storage, c.webdriver, c.twitter_config, c.hash_algorithm),
-                    YoutubeDLArchiver(storage, c.webdriver, c.facebook_cookie,c.hash_algorithm),
-                    TelegramArchiver(storage, c.webdriver, c.hash_algorithm),
-                    TwitterArchiver(storage, c.webdriver, c.hash_algorithm),
-                    VkArchiver(storage,  c.webdriver, c.vk_config, c.hash_algorithm),
-                    FacebookArchiver(storage, c.webdriver, c.brightdata_proxy_secret, c.hash_algorithm),
-                    WaybackArchiver(storage, c.webdriver, c.wayback_config, c.hash_algorithm)
+                    # TelethonArchiver(storage, c.webdriver, c.telegram_config, c.hash_algorithm),
+                    # TiktokArchiver(storage, c.webdriver, c.hash_algorithm),
+                    # TwitterApiArchiver(storage, c.webdriver, c.twitter_config, c.hash_algorithm),
+                    # YoutubeDLArchiver(storage, c.webdriver, c.facebook_cookie,c.hash_algorithm),
+                    # TelegramArchiver(storage, c.webdriver, c.hash_algorithm),
+                    # TwitterArchiver(storage, c.webdriver, c.hash_algorithm),
+                    # VkArchiver(storage,  c.webdriver, c.vk_config, c.hash_algorithm),
+                    FacebookArchiver(storage, c.webdriver, c.brightdata_proxy_secret, c.hash_algorithm)
+                    # WaybackArchiver(storage, c.webdriver, c.wayback_config, c.hash_algorithm)
                 ]
 
                 for archiver in active_archivers:
-                    logger.debug(f'Trying {archiver} on {row=}')
+                    logger.debug(f'{entry_number} Trying {archiver} on {row=}')
 
                     try:
                         result = archiver.download(url, check_if_exists=c.check_if_exists)
@@ -139,7 +139,7 @@ def process_sheet(c: Config):
                         success = result.status in ['success', 'already archived']
                         result.status = f"{archiver.name}: {result.status}"
                         if success:
-                            logger.success(f'{archiver.name} succeeded on {row=}, {url=}')
+                            logger.success(f'{entry_number} {archiver.name} succeeded on {row=}, {url=}')
                             break
                         # only 1 retry possible for now
                         if is_retry and Archiver.is_retry(result.status):

@@ -22,10 +22,12 @@
 # Use Filezilla to copy secrets - `.env` and `service-account.json` and `anon.session` and `gd-token.json`
 
 ## NEW
-# Filezilla to copy: gd-token.json (make sure correct token eg davemateer@gmail.com or autoarchivingcentral@gmail.com)
-# config-*.json
+# Filezilla to copy: 
+# gd-token.json (make sure correct token eg davemateer@gmail.com or autoarchivingcentral@gmail.com) to secrets/
+# config-*.yaml
 # anon.session
 # service-acount.json
+# /crawls/profiles/facebook-logged-in.tar.gz copy to same
 
 ### AZURE
 # run ./infra.azcli from bash to create the VM
@@ -153,6 +155,9 @@ sudo apt-get update
 
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin -y
 
+# docker as non sudo https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user
+# cron runs as user dave
+sudo usermod -aG docker dave
 
 
 sudo reboot now

@@ -1,3 +1,7 @@
+# README
+
+CODE IN A STATE OF FLUX - DO NOT USE THESE COMMITS AT THE MOMENT
+
 # auto-archiver
 Python script to automatically archive social media posts, videos, and images from a Google Sheets document. Uses different archivers depending on the platform, and can save content to local storage, S3 bucket (Digital Ocean Spaces, AWS, ...), and Google Drive. The Google Sheets where the links come from is updated with information about the archived content. It can be run manually or on an automated basis.
 
