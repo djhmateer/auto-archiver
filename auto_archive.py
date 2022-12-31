@@ -17,7 +17,9 @@ def update_sheet(gw, row, result: ArchiveResult):
 
     def batch_if_valid(col, val, final_value=None):
         final_value = final_value or val
-        if val and gw.col_exists(col) and gw.get_cell(row_values, col) == '':
+        # if val and gw.col_exists(col) and gw.get_cell(row_values, col) == '':
+        # DM for facebook archiver the values will not be '' (even though I reset them earlier in code it is a snapshot from before then)
+        if val and gw.col_exists(col):
             cell_updates.append((row, col, final_value))
 
     cell_updates.append((row, 'status', result.status))
@@ -97,18 +99,31 @@ def process_sheet(c: Config):
                   # if the fb has worked with youtubedl, then we don't want to do it again.
                   # if it resorted to wayback we do
                   if 'wayback:' in status:
+                    logger.info(f'*** NEW FB {row} ***')
                     logger.info(f"the standard archiver has resorted to wayback, so lets run the specialised FB archiver {status=} {row=}")
                     logger.info("Setting columns to blank so new archiver can write into them")
                     # Archive status is set further down
-                    gw.set_cell(row, 'archive', '') # Archive location
-                    gw.set_cell(row, 'date', '') # Archive date
-                    gw.set_cell(row, 'screenshot', '')
-                    gw.set_cell(row, 'hash', '')
-                    gw.set_cell(row, 'thumbnail', '')
-                    gw.set_cell(row, 'thumbnail_index', '')
-                    gw.set_cell(row, 'title', '') # upload title
-                    gw.set_cell(row, 'timestamp', '') # upload timestamp
-                    gw.set_cell(row, 'duration', '')
+                    # gw.set_cell(row, 'archive', '') # Archive location
+                    # gw.set_cell(row, 'date', '') # Archive date
+                    # gw.set_cell(row, 'screenshot', '')
+                    # gw.set_cell(row, 'hash', '')
+                    # gw.set_cell(row, 'thumbnail', '')
+                    # gw.set_cell(row, 'thumbnail_index', '')
+                    # gw.set_cell(row, 'title', '') # upload title
+                    # gw.set_cell(row, 'timestamp', '') # upload timestamp
+                    # gw.set_cell(row, 'duration', '')
+
+                    cell_updates = []
+                    cell_updates.append((row, 'archive', ''))
+                    cell_updates.append((row, 'date', ''))
+                    cell_updates.append((row, 'screenshot', ''))
+                    cell_updates.append((row, 'hash', ''))
+                    cell_updates.append((row, 'thumbnail', ''))
+                    cell_updates.append((row, 'thumbnail_index', ''))
+                    cell_updates.append((row, 'title', ''))
+                    cell_updates.append((row, 'timestamp', ''))
+                    cell_updates.append((row, 'duration', ''))
+                    gw.batch_set_cell(cell_updates)
 
                   else:
                     # logger.info(f"FB archvier probably has done it already so do nothing {status=}")
