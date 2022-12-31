@@ -112,8 +112,11 @@ class FacebookArchiver(Archiver):
             if out == b'':
                 retry_counter = 0
                 logger.debug("No response from curl (probably 302). Could do request again to get status code")
-                max_num_of_retries_to_do = 1
-                pause = 30 
+
+                # rather than retyring we could write to the spreadsheet then come back on the next run
+                # this does seem to work manually
+                max_num_of_retries_to_do = 2
+                pause = 90 
                 while (retry_counter < max_num_of_retries_to_do):
                     logger.debug(f"Trying proxy attempt {retry_counter}")
 
@@ -133,6 +136,9 @@ class FacebookArchiver(Archiver):
                         break # out of while loop
                 if retry_counter == max_num_of_retries_to_do:
                     logger.error(f'Proxy didnt work after {max_num_of_retries_to_do} retries on {m_url}')
+
+                    logger.error(f'Try checking for a 301 Perm Redirect eg:   curl -s -D - -o /dev/null {m_url}')
+
                     return 'proxy failed'
                 else:
                     logger.debug(f'curl with proxy worked on attempt {retry_counter}')
@@ -161,6 +167,7 @@ class FacebookArchiver(Archiver):
             logger.info(f'{warc_file_name=}')
 
             count_of_bulk_route_definitions = 0
+            fb_id = None
             with open(warc_file_name, 'rb') as stream:
                 for record in ArchiveIterator(stream):
                     if record.rec_type == 'request':
@@ -219,6 +226,10 @@ class FacebookArchiver(Archiver):
                 logger.warning(f'{count_of_bulk_route_definitions=} dont know which one to take - so do both? currently taking last one')
             # https://www.facebook.com/deltanewsagency/photos/pcb.1560914197619606/1560914044286288/
 
+            if fb_id is None:
+                logger.warning(f'couldnt find an image in warc file - try recreating profile again. {url=}')
+                return None
+
             return fb_id, next_photo_id
 
         # Part 1
@@ -238,21 +249,35 @@ class FacebookArchiver(Archiver):
         logger.info(f"Count of all images found on strategy1: {count1}")
 
         if count1 == 0:
-            logger.info("Trying strategy 2 - /photo.php")
-            # https://www.facebook.com/photo.php?fbid=10159120790245976&amp;set=pcb.10159120790695976
-            # not searching for ?fbid= section as it is a regex
-            search = "/photo.php"
-            count2 = response.count(search)
-            logger.info(f"Count of all images found on strategy2: {count2}")
+            # logger.info("Trying strategy 2 - /photo.php")
+            # # https://www.facebook.com/photo.php?fbid=10159120790245976&amp;set=pcb.10159120790695976
+            # # not searching for ?fbid= section as it is a regex
+            # search = "/photo.php"
+            # count2 = response.count(search)
+            # logger.info(f"Count of all images found on strategy2: {count2}")
 
-            if count2 == 0:
-                logger.info("Trying strategy 3 - /photos/a.")
-                # https://www.facebook.com/khitthitnews/photos/a.386800725090613/1425302087907133/
-                search = "/photos/a."
-                count3 = response.count(search)
-                logger.info(f"Count of all images found on strategy3: {count3}")
+            logger.info("Trying strategy 3 - /photos/a.")
+            # https://www.facebook.com/khitthitnews/photos/a.386800725090613/1425302087907133/
+            search = "/photos/a."
+            count3 = response.count(search)
+            logger.info(f"Count of all images found on strategy3: {count3}")
 
-                if count3 == 0:
+            if count3 == 0:
+                # logger.info("Trying strategy 3 - /photos/a.")
+                # # https://www.facebook.com/khitthitnews/photos/a.386800725090613/1425302087907133/
+                # search = "/photos/a."
+                # count3 = response.count(search)
+                # logger.info(f"Count of all images found on strategy3: {count3}")
+
+
+                logger.info("Trying strategy 2 - /photo.php")
+                # https://www.facebook.com/photo.php?fbid=10159120790245976&amp;set=pcb.10159120790695976
+                # not searching for ?fbid= section as it is a regex
+                search = "/photo.php"
+                count2 = response.count(search)
+                logger.info(f"Count of all images found on strategy2: {count2}")
+
+                if count2 == 0:
                     logger.info(f'No results from curl - trying warc - could be a sensitive photo which requires a login to FB')
 
                     warc_result = do_browsertrix_call_to_www(url)
@@ -308,21 +333,32 @@ class FacebookArchiver(Archiver):
                     photo_id_end_pos=response.find("&", end_pos_of_equals+1)
                     photo_id = response[end_pos_of_equals:photo_id_end_pos]
 
-                    # second number - set=pcb. or set=a.
+                    # second number - set=pcb. or set=a. etc.. 
                     set_id_start_pos = response.find("set=pcb.", photo_id_end_pos)
+                    set_id_start_posb = response.find("set=a.", photo_id_end_pos)
+                    # set_id_start_posc = response.find("set=p.", photo_id_end_pos)
                     if set_id_start_pos > 0:
                         logger.debug("set=pcb.")
                         count2_style = "pcb"
                         set_id_end_pos = response.find("&amp", set_id_start_pos)
                         set_id = response[set_id_start_pos+8:set_id_end_pos]
-                    else:
+
+                    elif set_id_start_posb > 0:
                         logger.debug("set=a.")
                         count2_style = "a"
                         set_id_start_pos = response.find("set=a.", photo_id_end_pos)
                         set_id_end_pos = response.find("&amp", set_id_start_pos)
                         set_id = response[set_id_start_pos+6:set_id_end_pos]
 
-                    break
+                    break # out of loop as only want the first image
+
+                    # elif set_id_start_posc > 0:
+                    #     logger.debug("set=p.")
+                    #     count2_style = "p"
+                    #     set_id_start_pos = response.find("set=p.", photo_id_end_pos)
+                    #     set_id_end_pos = response.find("&amp", set_id_start_pos)
+                    #     set_id = response[set_id_start_pos+6:set_id_end_pos]
+
 
                 if count3 > 0:
                     # strategy3 - /photos/a.
@@ -355,8 +391,6 @@ class FacebookArchiver(Archiver):
                 if len(photo_ids_requested) > 10:
                     logger.warning(f'More than 10 in {photo_ids_requested=} and {photo_ids_to_request=}')
                     break
-
-
             else:
                 builder_url = f"https://www.facebook.com/{user_name}/photos/pcb.{fb_id}/{photo_id}"
 
@@ -592,6 +626,8 @@ class FacebookArchiver(Archiver):
         out, err = p.communicate() # Get the output and the err message
         std_out = out.decode("utf-8")
         logger.info(f"stdout from xvfb {std_out}")
+        if 'Failed on fb accept cookies for url' in std_out:
+            logger.error(f'Failed of fb accept cookies {url=} and {key=}')
         if err != b'':
             logger.error(err)
 

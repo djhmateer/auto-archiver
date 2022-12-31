@@ -89,9 +89,39 @@ def process_sheet(c: Config):
             status = gw.get_cell(row, 'status', fresh=original_status in ['', None] and url != '')
 
             is_retry = False
-            if url == '' or status not in ['', None]:
+
+            # condition for special FB archiver (which this version of auto-archiver.py is)
+            if 'facebook.com/' in url:
+                # logger.info(f"found facebook.com url {url} on {row=}")
+                if status is not None:
+                  # if the fb has worked with youtubedl, then we don't want to do it again.
+                  # if it resorted to wayback we do
+                  if 'wayback:' in status:
+                    logger.info(f"the standard archiver has resorted to wayback, so lets run the specialised FB archiver {status=} {row=}")
+                    logger.info("Setting columns to blank so new archiver can write into them")
+                    # Archive status is set further down
+                    gw.set_cell(row, 'archive', '') # Archive location
+                    gw.set_cell(row, 'date', '') # Archive date
+                    gw.set_cell(row, 'screenshot', '')
+                    gw.set_cell(row, 'hash', '')
+                    gw.set_cell(row, 'thumbnail', '')
+                    gw.set_cell(row, 'thumbnail_index', '')
+                    gw.set_cell(row, 'title', '') # upload title
+                    gw.set_cell(row, 'timestamp', '') # upload timestamp
+                    gw.set_cell(row, 'duration', '')
+
+                  else:
+                    # logger.info(f"FB archvier probably has done it already so do nothing {status=}")
+                    continue
+                else:
+                    logger.info(f"Nothing in status, so main archiver not found it yet, so wait")
+                    continue
+            elif url == '' or status not in ['', None]:
+                # normal control flow if nothing to do ie it has been archived already
                 is_retry = Archiver.should_retry_from_status(status)
-                if not is_retry: continue
+                if not is_retry: continue # the for row loop
+
+            # archiver proceeds
 
             # not good to have in here - miguel
             # if using folder based storage make sure an folder/Entry Number is specified eg MW0001
@@ -104,7 +134,8 @@ def process_sheet(c: Config):
 
             # All checks done - archival process starts here
             try: 
-                gw.set_cell(row, 'status', 'Archive in progress')
+                # gw.set_cell(row, 'status', 'Archive in progress')
+                gw.set_cell(row, 'status', 'FB Archiver in progress')
                 url = expand_url(url)
                 # if no folder eg TH054 then use Google Worksheet/Title
                 c.set_folder(gw.get_cell_or_default(row, 'folder', default_folder, when_empty_use_default=True))
