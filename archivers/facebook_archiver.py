@@ -70,6 +70,11 @@ class FacebookArchiver(Archiver):
            self.save_jpegs_to_temp_folder_from_url_using_browsertrix(url)
            return self.upload_all_jpegs_from_temp_folder_and_generate_screenshot_and_html(url)
 
+        if '/photos/pcb.' in url:
+           logger.info("strategy 0c - direct link to what is probably meant to be a single photo so just download it")
+           self.save_jpegs_to_temp_folder_from_url_using_browsertrix(url)
+           return self.upload_all_jpegs_from_temp_folder_and_generate_screenshot_and_html(url)
+
         # mobile version of the url for strategy 1 curl
         if url.startswith("https://www."):
             m_url = url.replace("https://www.", "https://mobile.")
@@ -428,8 +433,8 @@ class FacebookArchiver(Archiver):
                 logger.info(f'Nothing in photo_ids_to_request so breaking out')
                 break
 
-            if len(photo_ids_requested) > 30:
-                logger.info(f'More than 30 in {photo_ids_requested=} and {photo_ids_to_request=}')
+            if len(photo_ids_requested) > 50:
+                logger.warning(f'More than 50 in {photo_ids_requested=} and {photo_ids_to_request=}')
                 break
  
             next_photo_id = photo_ids_to_request[0]
