@@ -51,7 +51,12 @@ class FacebookArchiver(Archiver):
             return False
 
         if 'facebook.com/watch/?v=' in url:
-            message = "Video so should use youtubedlp"
+            message = "Video watch so use youtubedlp?"
+            logger.warning(message)
+            return ArchiveResult(status=message)
+
+        if '/videos/' in url:
+            message = "videos in url so ignoring"
             logger.warning(message)
             return ArchiveResult(status=message)
 
