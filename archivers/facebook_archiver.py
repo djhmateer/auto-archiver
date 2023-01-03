@@ -173,6 +173,7 @@ class FacebookArchiver(Archiver):
 
             count_of_bulk_route_definitions = 0
             fb_id = None
+            count2_style = None
             with open(warc_file_name, 'rb') as stream:
                 for record in ArchiveIterator(stream):
                     if record.rec_type == 'request':
@@ -208,28 +209,68 @@ class FacebookArchiver(Archiver):
                                 logger.debug(f"Strategy 1 and 3 {fb_id=} and {next_photo_id=}")
                                 count_of_bulk_route_definitions += 1
                             else:
-                                # **Not testing this code path**
                                 # strategy 2
-                                # FB004 initial page
+                                # similar to count2 down below
+                                # photo urls like: https://www.facebook.com/photo/?fbid=158716316690227&set=pcb.158716626690196
 
                                 # route_urls[0]=%2Fphoto%2F%3Ffbid%3D10159120790245976%26set%3Da.10151172526425976%26__tn__%3D%252CO*F&route_urls[1]=%2Flogin%2F%3F__tn__%3D*F&
 
-                                thing_start_pos = foo.find(f'%2Fphoto%2F%3Ffbid%3D',0)
+    # route_urls[0]=%2Fphoto%2F%3Ffbid%3D198298719404512%26set%3Da.165296439371407%26__cft__[0]%3DAZUbz8tPakf3gHpEGOLK7sSoJu_b_5_tb4eBNdC-hBbM0XSnR6q9fONtJEyUetnELkEOm4FoyPN1fmq0TXGermISsz5kVresAhOAxf7OesXea0oRN5pF4EFs-14ekn7bpj4Ymy17H1aR3nIxKCfrZhNxPdsS1XZ2l07_mxiV3TK5G-gZfx4QAKhEmalg_bLhKLQ%26__tn__%3DEH-R&
 
-                                if (thing_start_pos > 0):
-                                    equals_start_pos = thing_start_pos+21
+                                # eg 3rd Jan 2023 https://www.facebook.com/101135589114967/posts/pfbid0Aw47PUc6Bm1GaciuwYWSwu5n7wvUBsFRqGkty3KAhpk61EtRq27gVyLXrgTUo3mEl/
+
+                                logger.warning(f"warc code path not working yet")
+                                # thing_start_pos = foo.find(f'%2Fphoto%2F%3Ffbid%3D',0)
+
+                                # if (thing_start_pos > 0):
+                                #     equals_start_pos = thing_start_pos+21
                                 
-                                    photo_id_end_pos = foo.find(f'%26', equals_start_pos)
+                                #     # first number
+                                #     photo_id_end_pos = foo.find(f'%26', equals_start_pos)
 
-                                    next_photo_id = foo[equals_start_pos:photo_id_end_pos]
+                                #     next_photo_id = foo[equals_start_pos:photo_id_end_pos]
 
-                                    logger.debug(f"Strategy 2 Next photo id {next_photo_id}")
+                                #     logger.debug(f"Strategy 2 Next photo id {next_photo_id}")
 
-            # ** don't have a good test case for this 
+                                #     # second number
+                                #     set_id_start_pos = foo.find("set=pcb.", photo_id_end_pos)
+                                #     set_id_start_posa = foo.find("set%3Dpcb.", photo_id_end_pos)
+                                #     set_id_start_posb = foo.find("set%3Da.", photo_id_end_pos)
+                                #     if set_id_start_pos > 0:
+                                #         logger.error("not tested code path - maybe search for set%3Dpcb.")
+                                #         # logger.debug("set=pcb.")
+                                #         # count2_style = "pcb"
+                                #         # set_id_end_pos = response.find("&amp", set_id_start_pos)
+                                #         # set_id = response[set_id_start_pos+8:set_id_end_pos]
+                                #     elif set_id_start_posa > 0:
+                                #         logger.debug("set%3Dpcb.")
+                                #         count2_style = "pcb"
+                                #         set_id_end_pos = foo.find("&amp", set_id_start_pos)
+                                #         set_id = foo[set_id_start_pos+8:set_id_end_pos]
+                                #         logger.debug(f'{set_id=}')
+                                #     elif set_id_start_posb > 0:
+                                #         # logger.debug("set%3Da.")
+                                #         count2_style = "a"
+                                #         set_id_start_pos = foo.find("set%3Da.", photo_id_end_pos)
+                                #         set_id_end_pos = foo.find("&route_urls[2]", set_id_start_pos)
+                                #         set_id = foo[set_id_start_pos+8:set_id_end_pos]
+                                #         if len(set_id) > 16:
+                                #             # try the next way
+                                #             set_id_end_pos = foo.find("%26", set_id_start_pos)
+                                #             set_id = foo[set_id_start_pos+8:set_id_end_pos]
+                                #         logger.debug(f'{set_id=}')
+                                #     else:
+                                #         logger.info("problem - can't find set_id")
+
+                                #     count_of_bulk_route_definitions += 1
+
             # https://www.facebook.com/385165108587508/posts/1437227363381272/?d=n  this worked by chance (last of 2 was the correct one)
             if count_of_bulk_route_definitions > 1:
                 logger.warning(f'{count_of_bulk_route_definitions=} dont know which one to take - so do both? currently taking last one')
             # https://www.facebook.com/deltanewsagency/photos/pcb.1560914197619606/1560914044286288/
+
+            # if count2_style is not None: # is something
+            #     return count2_style, next_photo_id, set_id
 
             if fb_id is None:
                 logger.warning(f'couldnt find an image in warc file - try recreating profile again. {url=}')
@@ -300,6 +341,10 @@ class FacebookArchiver(Archiver):
         logger.info(f'{user_name=}')
 
         if warc_result is not None:
+            # list_length = len(warc_result)
+            # if list_length == 3:
+            #     logger.debug("count2 strategy")
+            # else:
             logger.info(f'warc has a result so using that to get fb_id and photo_id')
             fb_id = warc_result[0]
             photo_id = warc_result[1]
