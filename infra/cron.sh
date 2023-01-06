@@ -33,32 +33,27 @@ PATH=/usr/local/bin:$PATH
 # test sheets, saving to google drives with davemateer@gmail.com token
 pipenv run python auto_archive.py --config config-test-hashing.yaml
 # pipenv run python auto_archive.py --config config-test-hashing-2.yaml
+## pipenv run python auto_archive.py --config config-fb-test.yaml
 
-
-#pipenv run python auto_archive.py --config config-aw.yaml
-
-# DM turn these on for FB
-# pipenv run python auto_archive.py --config config-mw.yaml
-# pipenv run python auto_archive.py --config config-cmu-demo.yaml
-
-#pipenv run python auto_archive.py --config config-eor.yaml
-#pipenv run python auto_archive.py --config config-ukraine-environment.yaml
-#pipenv run python auto_archive.py --config config-cir-projects.yaml
+pipenv run python auto_archive.py --config config-aw.yaml
+pipenv run python auto_archive.py --config config-mw.yaml
+pipenv run python auto_archive.py --config config-eor.yaml
+pipenv run python auto_archive.py --config config-ukraine-environment.yaml
+pipenv run python auto_archive.py --config config-cir-projects.yaml
 
 #pipenv run python auto_archive.py --config config-osr-demo.yaml
 
-#pipenv run python auto_archive.py --config config-airwars.yaml
+pipenv run python auto_archive.py --config config-airwars.yaml
 
 #pipenv run python auto_archive.py --config config-france24.yaml
 
-#pipenv run python auto_archive.py --config config-un-demo.yaml
+pipenv run python auto_archive.py --config config-un-demo.yaml
 
-#pipenv run python auto_archive.py --config config-wagner-demo.yaml
+pipenv run python auto_archive.py --config config-wagner-demo.yaml
 
-#pipenv run python auto_archive.py --config config-amnesty-demo.yaml
+pipenv run python auto_archive.py --config config-amnesty-demo.yaml
 
-## pipenv run python auto_archive.py --config config-fb-test.yaml
-
+pipenv run python auto_archive.py --config config-cmu-demo.yaml
 
 ## cron job output is in 
 ## vim /home/dave/log.txt

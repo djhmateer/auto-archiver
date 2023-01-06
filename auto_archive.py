@@ -3,7 +3,7 @@ import os, datetime, traceback, random, tempfile
 from loguru import logger
 from slugify import slugify
 
-from archivers import TelethonArchiver, TelegramArchiver, TiktokArchiver, YoutubeDLArchiver, TwitterArchiver, TwitterApiArchiver, VkArchiver, WaybackArchiver, ArchiveResult, Archiver, FacebookArchiver
+from archivers import TelethonArchiver, TelegramArchiver, TiktokArchiver, YoutubeDLArchiver, TwitterArchiver, TwitterApiArchiver, VkArchiver, WaybackArchiver, ArchiveResult, Archiver
 from utils import GWorksheet, mkdir_if_not_exists, expand_url
 from configs import Config
 from storages import Storage
@@ -17,9 +17,7 @@ def update_sheet(gw, row, result: ArchiveResult):
 
     def batch_if_valid(col, val, final_value=None):
         final_value = final_value or val
-        # if val and gw.col_exists(col) and gw.get_cell(row_values, col) == '':
-        # DM for facebook archiver the values will not be '' (even though I reset them earlier in code it is a snapshot from before then)
-        if val and gw.col_exists(col):
+        if val and gw.col_exists(col) and gw.get_cell(row_values, col) == '':
             cell_updates.append((row, col, final_value))
 
     cell_updates.append((row, 'status', result.status))
@@ -92,61 +90,10 @@ def process_sheet(c: Config):
 
             is_retry = False
 
-            # condition for special FB archiver (which this version of auto-archiver.py is)
-            if 'facebook.com/' in url:
-                # logger.info(f"found facebook.com url {url} on {row=}")
-                if status is not None:
-                    # if the fb has worked with youtubedl, then we don't want to do it again.
-                    # if it resorted to wayback we do
-                    if 'wayback:' in status:
-                        # check date
-                        original_archive_date = gw.get_cell(row, 'date')
-                        # eg 2023-01-03T08:56:12.055561+00:00
-                        # an empty date so that we can rerun the FB archiver by setting status to: wayback: and not worry about the date
-                        # which may still be blank 
-                        if original_archive_date.startswith('2023-') or original_archive_date == "":
-                            logger.info(f'date is {original_archive_date}')
-                            logger.info(f'*** NEW FB {row} ***')
-                            logger.info(f"the standard archiver has resorted to wayback, so lets run the specialised FB archiver {status=} {row=}")
-                            logger.info("Setting columns to blank so new archiver can write into them")
-                            # Archive status is set further down
-                            cell_updates = []
-                            cell_updates.append((row, 'archive', ''))
-                            cell_updates.append((row, 'date', ''))
-                            cell_updates.append((row, 'screenshot', ''))
-                            cell_updates.append((row, 'hash', ''))
-                            cell_updates.append((row, 'thumbnail', ''))
-                            cell_updates.append((row, 'thumbnail_index', ''))
-                            cell_updates.append((row, 'title', ''))
-                            cell_updates.append((row, 'timestamp', ''))
-                            cell_updates.append((row, 'duration', ''))
-                            gw.batch_set_cell(cell_updates)
-                            # keep going below
-                        else:
-                            # logger.info(f'fb link is not a 2023 date so do nothing')
-                            continue # the for loop
-                    else:
-                            # logger.info(f"fb status is not wayback: so FB archiver has probably has done it already so do nothing {status=}")
-                            continue # the for loop
-                else:
-                    logger.info(f"fb link Nothing in status, so main archiver not found it yet, so wait")
-                    continue # the for loop
-            else:
-                # a non fb link has been found so ignore it
-                continue # the for loop
-
-            # if url == '':
-            #     # nothing in link column
-            #     continue # the for loop
-            # if status not in ['', None]:
-            #     # ie if there is a status then we have archived already, so nothing to do
-            #     continue # the for loop
-
-            # DM HERE - rewrote this above
-            # elif url == '' or status not in ['', None]:
-            #     # normal control flow if nothing to do ie it has been archived already
-            #     is_retry = Archiver.should_retry_from_status(status)
-            #     if not is_retry: continue # the for row loop
+            if url == '' or status not in ['', None]:
+                # normal control flow if nothing to do ie it has been archived already
+                is_retry = Archiver.should_retry_from_status(status)
+                if not is_retry: continue # the for row loop
 
             # archiver proceeds
 
@@ -161,8 +108,7 @@ def process_sheet(c: Config):
 
             # All checks done - archival process starts here
             try: 
-                # gw.set_cell(row, 'status', 'Archive in progress')
-                gw.set_cell(row, 'status', 'FB Archiver in progress')
+                gw.set_cell(row, 'status', 'Archive in progress')
                 url = expand_url(url)
                 # if no folder eg TH054 then use Google Worksheet/Title
                 c.set_folder(gw.get_cell_or_default(row, 'folder', default_folder, when_empty_use_default=True))
@@ -172,15 +118,14 @@ def process_sheet(c: Config):
 
                 # order matters, first to succeed excludes remaining
                 active_archivers = [
-                    # TelethonArchiver(storage, c.webdriver, c.telegram_config, c.hash_algorithm),
-                    # TiktokArchiver(storage, c.webdriver, c.hash_algorithm),
-                    # TwitterApiArchiver(storage, c.webdriver, c.twitter_config, c.hash_algorithm),
-                    # YoutubeDLArchiver(storage, c.webdriver, c.facebook_cookie,c.hash_algorithm),
-                    # TelegramArchiver(storage, c.webdriver, c.hash_algorithm),
-                    # TwitterArchiver(storage, c.webdriver, c.hash_algorithm),
-                    # VkArchiver(storage,  c.webdriver, c.vk_config, c.hash_algorithm),
-                    FacebookArchiver(storage, c.webdriver, c.brightdata_proxy_secret, c.hash_algorithm)
-                    # WaybackArchiver(storage, c.webdriver, c.wayback_config, c.hash_algorithm)
+                    TelethonArchiver(storage, c.webdriver, c.telegram_config, c.hash_algorithm),
+                    TiktokArchiver(storage, c.webdriver, c.hash_algorithm),
+                    TwitterApiArchiver(storage, c.webdriver, c.twitter_config, c.hash_algorithm),
+                    YoutubeDLArchiver(storage, c.webdriver, c.facebook_cookie,c.hash_algorithm),
+                    TelegramArchiver(storage, c.webdriver, c.hash_algorithm),
+                    TwitterArchiver(storage, c.webdriver, c.hash_algorithm),
+                    VkArchiver(storage,  c.webdriver, c.vk_config, c.hash_algorithm),
+                    WaybackArchiver(storage, c.webdriver, c.wayback_config, c.hash_algorithm)
                 ]
 
                 for archiver in active_archivers:
