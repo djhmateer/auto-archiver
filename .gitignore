@@ -8,7 +8,7 @@ __pycache__/
 ._*
 anu.html
 *.log
-.pytest_cach
+.pytest_cache
 anon*
 config.json
 config-*.json

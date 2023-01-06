@@ -96,44 +96,57 @@ def process_sheet(c: Config):
             if 'facebook.com/' in url:
                 # logger.info(f"found facebook.com url {url} on {row=}")
                 if status is not None:
-                  # if the fb has worked with youtubedl, then we don't want to do it again.
-                  # if it resorted to wayback we do
-                  if 'wayback:' in status:
-                    # check date
-                    original_archive_date = gw.get_cell(row, 'date')
-                    # eg 2023-01-03T08:56:12.055561+00:00
-                    # an empty date so that we can rerun the FB archiver by setting status to: wayback: and not worry about the date
-                    # which may still be blank 
-                    if original_archive_date.startswith('2023-') or original_archive_date == "":
-                        logger.info(f'date is {original_archive_date}')
-                        logger.info(f'*** NEW FB {row} ***')
-                        logger.info(f"the standard archiver has resorted to wayback, so lets run the specialised FB archiver {status=} {row=}")
-                        logger.info("Setting columns to blank so new archiver can write into them")
-                        # Archive status is set further down
-                        cell_updates = []
-                        cell_updates.append((row, 'archive', ''))
-                        cell_updates.append((row, 'date', ''))
-                        cell_updates.append((row, 'screenshot', ''))
-                        cell_updates.append((row, 'hash', ''))
-                        cell_updates.append((row, 'thumbnail', ''))
-                        cell_updates.append((row, 'thumbnail_index', ''))
-                        cell_updates.append((row, 'title', ''))
-                        cell_updates.append((row, 'timestamp', ''))
-                        cell_updates.append((row, 'duration', ''))
-                        gw.batch_set_cell(cell_updates)
+                    # if the fb has worked with youtubedl, then we don't want to do it again.
+                    # if it resorted to wayback we do
+                    if 'wayback:' in status:
+                        # check date
+                        original_archive_date = gw.get_cell(row, 'date')
+                        # eg 2023-01-03T08:56:12.055561+00:00
+                        # an empty date so that we can rerun the FB archiver by setting status to: wayback: and not worry about the date
+                        # which may still be blank 
+                        if original_archive_date.startswith('2023-') or original_archive_date == "":
+                            logger.info(f'date is {original_archive_date}')
+                            logger.info(f'*** NEW FB {row} ***')
+                            logger.info(f"the standard archiver has resorted to wayback, so lets run the specialised FB archiver {status=} {row=}")
+                            logger.info("Setting columns to blank so new archiver can write into them")
+                            # Archive status is set further down
+                            cell_updates = []
+                            cell_updates.append((row, 'archive', ''))
+                            cell_updates.append((row, 'date', ''))
+                            cell_updates.append((row, 'screenshot', ''))
+                            cell_updates.append((row, 'hash', ''))
+                            cell_updates.append((row, 'thumbnail', ''))
+                            cell_updates.append((row, 'thumbnail_index', ''))
+                            cell_updates.append((row, 'title', ''))
+                            cell_updates.append((row, 'timestamp', ''))
+                            cell_updates.append((row, 'duration', ''))
+                            gw.batch_set_cell(cell_updates)
+                            # keep going below
+                        else:
+                            # logger.info(f'fb link is not a 2023 date so do nothing')
+                            continue # the for loop
                     else:
-                        # logger.info(f'not a 2023 date so do nothing')
-                        continue
-                  else:
-                          # logger.info(f"status is not wayback: so FB archiver has probably has done it already so do nothing {status=}")
-                          continue
+                            # logger.info(f"fb status is not wayback: so FB archiver has probably has done it already so do nothing {status=}")
+                            continue # the for loop
                 else:
-                    logger.info(f"Nothing in status, so main archiver not found it yet, so wait")
-                    continue
-            elif url == '' or status not in ['', None]:
-                # normal control flow if nothing to do ie it has been archived already
-                is_retry = Archiver.should_retry_from_status(status)
-                if not is_retry: continue # the for row loop
+                    logger.info(f"fb link Nothing in status, so main archiver not found it yet, so wait")
+                    continue # the for loop
+            else:
+                # a non fb link has been found so ignore it
+                continue # the for loop
+
+            # if url == '':
+            #     # nothing in link column
+            #     continue # the for loop
+            # if status not in ['', None]:
+            #     # ie if there is a status then we have archived already, so nothing to do
+            #     continue # the for loop
+
+            # DM HERE - rewrote this above
+            # elif url == '' or status not in ['', None]:
+            #     # normal control flow if nothing to do ie it has been archived already
+            #     is_retry = Archiver.should_retry_from_status(status)
+            #     if not is_retry: continue # the for row loop
 
             # archiver proceeds
 
