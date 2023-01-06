@@ -37,6 +37,8 @@ PATH=/usr/local/bin:$PATH
 
 #pipenv run python auto_archive.py --config config-aw.yaml
 pipenv run python auto_archive.py --config config-mw.yaml
+pipenv run python auto_archive.py --config config-cmu-demo.yaml
+
 #pipenv run python auto_archive.py --config config-eor.yaml
 #pipenv run python auto_archive.py --config config-ukraine-environment.yaml
 #pipenv run python auto_archive.py --config config-cir-projects.yaml
