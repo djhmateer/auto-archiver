@@ -13,10 +13,10 @@
 			"justMyCode": true
 		},
 		{
-			"name": "Test Hashing (davemateer@gmail)",
+			"name": "Test Hashing _fb (davemateer@gmail)",
 			"type": "python",
 			"request": "launch",
-			"program": "auto_archive.py",
+			"program": "auto_archive_fb.py",
 			"console": "integratedTerminal",
 			"justMyCode": true,
 			"args": ["--config","config-test-hashing.yaml"]
