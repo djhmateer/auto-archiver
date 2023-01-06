@@ -31,13 +31,15 @@ PATH=/usr/local/bin:$PATH
 
 
 # test sheets, saving to google drives with davemateer@gmail.com token
-# pipenv run python auto_archive.py --config config-test-hashing.yaml
+pipenv run python auto_archive.py --config config-test-hashing.yaml
 # pipenv run python auto_archive.py --config config-test-hashing-2.yaml
 
 
 #pipenv run python auto_archive.py --config config-aw.yaml
-pipenv run python auto_archive.py --config config-mw.yaml
-pipenv run python auto_archive.py --config config-cmu-demo.yaml
+
+# DM turn these on for FB
+# pipenv run python auto_archive.py --config config-mw.yaml
+# pipenv run python auto_archive.py --config config-cmu-demo.yaml
 
 #pipenv run python auto_archive.py --config config-eor.yaml
 #pipenv run python auto_archive.py --config config-ukraine-environment.yaml
