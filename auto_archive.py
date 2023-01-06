@@ -99,35 +99,34 @@ def process_sheet(c: Config):
                   # if the fb has worked with youtubedl, then we don't want to do it again.
                   # if it resorted to wayback we do
                   if 'wayback:' in status:
-                    logger.info(f'*** NEW FB {row} ***')
-                    logger.info(f"the standard archiver has resorted to wayback, so lets run the specialised FB archiver {status=} {row=}")
-                    logger.info("Setting columns to blank so new archiver can write into them")
-                    # Archive status is set further down
-                    # gw.set_cell(row, 'archive', '') # Archive location
-                    # gw.set_cell(row, 'date', '') # Archive date
-                    # gw.set_cell(row, 'screenshot', '')
-                    # gw.set_cell(row, 'hash', '')
-                    # gw.set_cell(row, 'thumbnail', '')
-                    # gw.set_cell(row, 'thumbnail_index', '')
-                    # gw.set_cell(row, 'title', '') # upload title
-                    # gw.set_cell(row, 'timestamp', '') # upload timestamp
-                    # gw.set_cell(row, 'duration', '')
-
-                    cell_updates = []
-                    cell_updates.append((row, 'archive', ''))
-                    cell_updates.append((row, 'date', ''))
-                    cell_updates.append((row, 'screenshot', ''))
-                    cell_updates.append((row, 'hash', ''))
-                    cell_updates.append((row, 'thumbnail', ''))
-                    cell_updates.append((row, 'thumbnail_index', ''))
-                    cell_updates.append((row, 'title', ''))
-                    cell_updates.append((row, 'timestamp', ''))
-                    cell_updates.append((row, 'duration', ''))
-                    gw.batch_set_cell(cell_updates)
-
+                    # check date
+                    original_archive_date = gw.get_cell(row, 'date')
+                    # eg 2023-01-03T08:56:12.055561+00:00
+                    # an empty date so that we can rerun the FB archiver by setting status to: wayback: and not worry about the date
+                    # which may still be blank 
+                    if original_archive_date.startswith('2023-') or original_archive_date == "":
+                        logger.info(f'date is {original_archive_date}')
+                        logger.info(f'*** NEW FB {row} ***')
+                        logger.info(f"the standard archiver has resorted to wayback, so lets run the specialised FB archiver {status=} {row=}")
+                        logger.info("Setting columns to blank so new archiver can write into them")
+                        # Archive status is set further down
+                        cell_updates = []
+                        cell_updates.append((row, 'archive', ''))
+                        cell_updates.append((row, 'date', ''))
+                        cell_updates.append((row, 'screenshot', ''))
+                        cell_updates.append((row, 'hash', ''))
+                        cell_updates.append((row, 'thumbnail', ''))
+                        cell_updates.append((row, 'thumbnail_index', ''))
+                        cell_updates.append((row, 'title', ''))
+                        cell_updates.append((row, 'timestamp', ''))
+                        cell_updates.append((row, 'duration', ''))
+                        gw.batch_set_cell(cell_updates)
+                    else:
+                        # logger.info(f'not a 2023 date so do nothing')
+                        continue
                   else:
-                    # logger.info(f"FB archvier probably has done it already so do nothing {status=}")
-                    continue
+                          # logger.info(f"status is not wayback: so FB archiver has probably has done it already so do nothing {status=}")
+                          continue
                 else:
                     logger.info(f"Nothing in status, so main archiver not found it yet, so wait")
                     continue
