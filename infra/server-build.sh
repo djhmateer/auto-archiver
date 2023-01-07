@@ -165,6 +165,9 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin
 # cron runs as user dave
 sudo usermod -aG docker dave
 
+# x virtual frame buffer
+# for playwright (screenshotter) to run in headed mode
+sudo apt install xvfb
 
 sudo reboot now
 
