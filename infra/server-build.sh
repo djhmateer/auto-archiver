@@ -58,7 +58,7 @@ sudo apt update -y
 # 3.9.12
 sudo apt install python3.9 -y
 
-
+# need this for pip upgrade to work
 export PATH=/home/dave/.local/bin:$PATH
 
 sudo apt install python3-pip -y
