@@ -12,6 +12,7 @@ from pathlib import Path
 # assume 1 argument which is the url
 # assume proxy-username.txt and proxy-password.txt are stored in secrets directory
 
+
 url = sys.argv[1]
 # print(f"{url=}")
 
