@@ -146,6 +146,25 @@
 			"console": "integratedTerminal",
 			"justMyCode": true,
 			"args": ["--config","config-fb-test.yaml"]
+		},
+		{
+			"name": "AA Demo Main (davemateer@gmail)",
+			"type": "python",
+			"request": "launch",
+			"program": "auto_archive.py",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","config-aa-demo-main.yaml"]
+		},
+		,
+		{
+			"name": "AA Demo Maini_fb (davemateer@gmail)",
+			"type": "python",
+			"request": "launch",
+			"program": "auto_archive_fb.py",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","config-aa-demo-main.yaml"]
 		}
 	]
 }

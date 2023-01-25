@@ -634,6 +634,34 @@ class FacebookArchiver(Archiver):
                                     # else:
                                     #     logger.warning("trying special case of only saving the first image")
                                         # raise StopIteration
+                        if ct == 'image/png':
+                            status = record.http_headers.statusline
+                            if status=='200 OK':
+                                o = urlparse(uri)
+                                # eg 314610756_1646726005764739_1320718433281872139_n.jpg from the uri
+                                filename = os.path.basename(o.path)
+
+                                content = record.content_stream().read()
+
+                                img_bytes_io = BytesIO()
+                                img_bytes_io.write(content)
+
+                                filename_save_and_path = Storage.TMP_FOLDER + "/" + filename
+
+                                count_of_images_found += 1
+                                if os.path.isfile(filename_save_and_path):
+                                    logger.debug(f"png already saved {filename} so ignoring")
+                                else:
+                                    logger.debug(f"png found new image and saving {filename}")
+                                # write original bytes to file in binary mode
+                                    with open(filename_save_and_path, "wb") as f:
+                                        f.write(img_bytes_io.getbuffer())
+                                    filesize = os.path.getsize(filename_save_and_path)
+                                    logger.debug(f'png Filesize is {round(filesize/1000, 1)}kb')
+                                    if filesize < 30000:
+                                        logger.debug(f'png Filesize is less the 30k, so deleting image')
+                                        count_of_images_found -= 1
+                                        os.remove(filename_save_and_path)
             if count_of_images_found == 0:
                 with open(warc_file_name, 'rb') as stream:
                     for record in ArchiveIterator(stream):

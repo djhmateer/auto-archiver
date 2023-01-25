@@ -8,6 +8,8 @@ from utils import GWorksheet, mkdir_if_not_exists, expand_url
 from configs import Config
 from storages import Storage
 
+import gspread
+import time
 random.seed()
 
 
@@ -64,7 +66,21 @@ def should_process_sheet(c, sheet_name):
 
 
 def process_sheet(c: Config):
-    sh = c.gsheets_client.open(c.sheet)
+    # TODO think about this more.. in the meantime, watch out for these errors
+    # to alleviate use a different service account to read from 
+    # can fail here with gspread.exceptions.APIError
+    # "Quota exceeded for quota metric 'Read requests' and limit 'Read requests per minute per user' of service 
+    retry_counter = 0
+    while (retry_counter < 10):
+        try:
+            sh = c.gsheets_client.open(c.sheet)
+            break # out of while
+        except gspread.exceptions.APIError as e:
+            retry_counter += 1
+            logger.error(f'{retry_counter} api exception')
+            time.sleep(20)
+
+
 
     # loop through worksheets to check
     for ii, wks in enumerate(sh.worksheets()):
@@ -73,6 +89,9 @@ def process_sheet(c: Config):
             continue
 
         logger.info(f'Opening worksheet {ii=}: {wks.title=} {c.header=}')
+
+        # can fail here with gspread.exceptions.APIError
+        # "Quota exceeded for quota metric 'Read requests' and limit 'Read requests per minute per user' of service 
         gw = GWorksheet(wks, header_row=c.header, columns=c.column_names)
 
         if missing_required_columns(gw): continue

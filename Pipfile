@@ -30,5 +30,10 @@ warcio = "*"
 #urlbox = "*"
 pytest-playwright = "*"
 
+# otherwise was getting AttributeError: module ‘lib’ has no attribute ‘OpenSSL_add_all_algorithms’
+# boto3 perhaps dependency
+# only seems to happen on WSL2 dev env (currently)
+pyopenssl = "*"
+
 [requires]
 python_version = "3.9"

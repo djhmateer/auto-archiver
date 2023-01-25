@@ -107,7 +107,9 @@ def process_sheet(c: Config):
                 if status is not None:
                     # if the fb has worked with youtubedl, then we don't want to do it again.
                     # if it resorted to wayback we do
-                    if 'wayback:' in status:
+                    # if wayback failed (which is does) we want to try
+                    # if 'wayback:' in status or 'failed:' in status:
+                    if 'wayback:' in status or status.startswith('failed:'):
                         # check date
                         original_archive_date = gw.get_cell(row, 'date')
                         # eg 2023-01-03T08:56:12.055561+00:00

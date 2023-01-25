@@ -261,6 +261,8 @@ As of 1st April 2022 I have noticed
 
 - Public videos generally downloaded well
 
+2023-01-24 - currently I comment out the cookie and only get public videos. This works well, and doesn't caused FB locking out issues.
+
 - Facebook Public videos worked around cookie popup for screenshots with code - "Allow the use of cookies from Facebook in this browser". This is handled by `base_archiver.py` get which uses Selenium.Webdriver.Firefox which is configured in `base_archiver.py`
 
 Note to get the correct cookie, use Chrome, F12, first request to fb, Copy as Curl, paste into notepad, then get the cookie.
@@ -269,16 +271,15 @@ Note to get the correct cookie, use Chrome, F12, first request to fb, Copy as Cu
 
 - Private video screenshots not working as have login prompt
 
+**also note that it is easy to get the FB account locked out when the FB archiver is using the same account.
+
 
 # Facebook Images
 
-- DONT WORK
+There is a new FB Archiver which runs on a different server running `auto_archive_fb.py` which uses a different strategy.
 
-- Uses WaybackArchiver and only displays screenshot with facebook cookies images
+This archiver works first essentially going to the WaybackArchiver
 
-- Newly created snapshot doesn't appear in URL (takes more than 30s?)
-
-todo - https://gist.github.com/pcardune/1332911  uses facebook's fbconsole which may help.
 
 # Wayback
 
