@@ -47,6 +47,8 @@ if [ $(pgrep -c "${0##*/}") -gt 1 ]; then
           kill -9 $pid
           echo "killed" >> /home/dave/log.txt 2>&1
           echo "killed" >> /home/dave/kill_log.txt 2>&1
+          # as there are firefox processes which need to be killed
+          sudo reboot
      else
           echo "time diff less then $TIMETOWAIT - normal control flow when the FB archiver is running" >> /home/dave/log.txt 2>&1
      fi
@@ -60,7 +62,7 @@ fi
 #pipenv run python auto_archive_fb.py --config config-test-hashing.yaml
 # pipenv run python auto_archive.py --config config-test-hashing-2.yaml
 
-TIME=0
+TIME=5
 pipenv run python auto_archive_fb.py --config config-aw.yaml
 sleep $TIME
 
