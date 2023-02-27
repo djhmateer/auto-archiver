@@ -156,7 +156,6 @@
 			"justMyCode": true,
 			"args": ["--config","config-aa-demo-main.yaml"]
 		},
-		,
 		{
 			"name": "AA Demo Maini_fb (davemateer@gmail)",
 			"type": "python",
@@ -165,6 +164,15 @@
 			"console": "integratedTerminal",
 			"justMyCode": true,
 			"args": ["--config","config-aa-demo-main.yaml"]
+		},
+		{
+			"name": "Airwars_fb (davemateer@gmail)",
+			"type": "python",
+			"request": "launch",
+			"program": "auto_archive_fb.py",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","config-airwars.yaml"]
 		}
 	]
 }

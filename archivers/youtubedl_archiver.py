@@ -10,7 +10,12 @@ from storages import Storage
 
 class YoutubeDLArchiver(Archiver):
     name = "youtube_dl"
-    ydl_opts = {'outtmpl': f'{Storage.TMP_FOLDER}%(id)s.%(ext)s', 'quiet': False}
+    ydl_opts = {
+                 'outtmpl': f'{Storage.TMP_FOLDER}%(id)s.%(ext)s',
+                 'quiet': False,
+                 #  DM added this so that if a linked video is in a playlist then it will work
+                 'noplaylist':True
+                 }
 
     def __init__(self, storage: Storage, driver, fb_cookie, hash_algorithm):
         super().__init__(storage, driver, hash_algorithm)
@@ -69,9 +74,10 @@ class YoutubeDLArchiver(Archiver):
 
             key = self.get_key(filename)
 
-            if self.storage.exists(key):
-                status = 'already archived'
-                cdn_url = self.storage.get_cdn_url(key)
+            # DM comment out as there are cases where a yt download fails and we want it to try again
+            # if self.storage.exists(key):
+            #     status = 'already archived'
+            #     cdn_url = self.storage.get_cdn_url(key)
 
         # sometimes this results in a different filename, so do this again
         info = ydl.extract_info(url, download=True)
