@@ -157,6 +157,15 @@
 			"args": ["--config","config-aa-demo-main.yaml"]
 		},
 		{
+			"name": "AFP Demo (davemateer@gmail)",
+			"type": "python",
+			"request": "launch",
+			"program": "auto_archive.py",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","config-afp-demo.yaml"]
+		},
+		{
 			"name": "AA Demo Maini_fb (davemateer@gmail)",
 			"type": "python",
 			"request": "launch",
