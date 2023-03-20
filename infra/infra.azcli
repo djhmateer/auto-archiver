@@ -32,7 +32,10 @@ dnsname=cirautoarchiver${int}
 adminusername=dave
 adminpassword=${password}
 
-region=westeurope
+# region=westeurope
+region=centralindia
+# region-northcentralus
+
 vmname=${dnsname}vm
 vnet=vnet${int}
 subnet=subnet${int}
@@ -146,6 +149,7 @@ do
    sleep 15
 done
 
+scp -o StrictHostKeyChecking=no ../service_account_b.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
 scp -o StrictHostKeyChecking=no ../anon.session dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
 
 # configs
