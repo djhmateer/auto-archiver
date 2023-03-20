@@ -65,15 +65,15 @@ fi
 # pipenv run python auto_archive.py --config config-test-hashing-2.yaml
 ## pipenv run python auto_archive.py --config config-fb-test.yaml
 
-TIME=5
+TIME=1
 pipenv run python auto_archive.py --config config-aw.yaml
 sleep $TIME
 pipenv run python auto_archive.py --config config-mw.yaml
 sleep $TIME
 pipenv run python auto_archive.py --config config-eor.yaml
 sleep $TIME
-pipenv run python auto_archive.py --config config-ukraine-environment.yaml
-sleep $TIME
+#pipenv run python auto_archive.py --config config-ukraine-environment.yaml
+#sleep $TIME
 pipenv run python auto_archive.py --config config-cir-projects.yaml
 sleep $TIME
 
@@ -93,14 +93,24 @@ sleep $TIME
 pipenv run python auto_archive.py --config config-amnesty-demo.yaml
 sleep $TIME
 
-#pipenv run python auto_archive.py --config config-cmu-demo.yaml
-
-pipenv run python auto_archive.py --config config-aa-demo-main.yaml
-
-pipenv run python auto_archive.py --config config-rmit-demo.yaml
+pipenv run python auto_archive.py --config config-cmu-demo.yaml
 sleep $TIME
 
+#pipenv run python auto_archive.py --config config-aa-demo-main.yaml
+#sleep $TIME
+
+#pipenv run python auto_archive.py --config config-rmit-demo.yaml
+#sleep $TIME
+
 pipenv run python auto_archive.py --config config-bellingcat-demo.yaml
+sleep $TIME
+
+pipenv run python auto_archive.py --config config-witness-demo.yaml
+sleep $TIME
+
+pipenv run python auto_archive.py --config config-afp-demo.yaml
+sleep $TIME
+
 
 ## cron job output is in 
 ## vim /home/dave/log.txt

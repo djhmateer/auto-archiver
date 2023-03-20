@@ -124,14 +124,8 @@ sudo service cron stop
 # runs the script every minute
 # notice put in a # to disable so will have to manually start it.
 cat <<EOT >> run-auto-archive
-#* * * * * dave /home/dave/auto-archiver/infra/cron.sh
+#*/2 * * * * dave /home/dave/auto-archiver/infra/cron.sh
 EOT
-
-# specialised version of the archiver which runs on proxmox currently only
-cat <<EOT >> fb-run-auto-archive
-#* * * * * dave /home/dave/auto-archiver/infra/cron_fb.sh
-EOT
-
 
 sudo mv run-auto-archive /etc/cron.d
 
@@ -142,6 +136,19 @@ sudo chmod 600 /etc/cron.d/run-auto-archive
 # https://stackoverflow.com/questions/72015245/firefox-unicode-boxes-in-selenium-screenshot-instead-of-characters/72015719#72015719
 sudo apt install fonts-noto -y
 
+
+## Comment out for FB
+## don't need these bits for main aa
+
+sudo reboot now
+##
+## FB Archiver from here down!!!!
+##
+
+# specialised version of the archiver which runs on proxmox currently only
+cat <<EOT >> fb-run-auto-archive
+#* * * * * dave /home/dave/auto-archiver/infra/cron_fb.sh
+EOT
 
 # docker
 # https://docs.docker.com/engine/install/ubuntu/
