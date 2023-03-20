@@ -32,10 +32,11 @@ dnsname=cirautoarchiver${int}
 adminusername=dave
 adminpassword=${password}
 
-# region=westeurope
+# https://azure.microsoft.com/en-gb/pricing/calculator/
+region=westeurope
 # region=centralindia
 # region=northcentralus
-region=eastus
+# region=eastus
 
 vmname=${dnsname}vm
 vnet=vnet${int}
