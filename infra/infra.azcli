@@ -32,7 +32,11 @@ dnsname=cirautoarchiver${int}
 adminusername=dave
 adminpassword=${password}
 
+# to see actual pricing I used the portal, vm, size
 # https://azure.microsoft.com/en-gb/pricing/calculator/
+
+# to see all the locations
+# https://github.com/Azure/azure-cli/issues/1520
 region=westeurope
 # region=centralindia
 # region=northcentralus
