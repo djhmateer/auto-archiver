@@ -33,8 +33,9 @@ adminusername=dave
 adminpassword=${password}
 
 # region=westeurope
-region=centralindia
-# region-northcentralus
+# region=centralindia
+# region=northcentralus
+region=eastus
 
 vmname=${dnsname}vm
 vnet=vnet${int}
