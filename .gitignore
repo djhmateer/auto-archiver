@@ -22,6 +22,7 @@ secrets
 delCurrentRg.sh
 sshCurrentVm.sh
 service_account_b.json
+service_account_hms_cir.json
 
 credentials.json
 token.json

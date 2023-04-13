@@ -69,6 +69,11 @@ pip install --upgrade pip
 # We are calling pipenv from cron so need to install this way
 # https://stackoverflow.com/questions/46391721/pipenv-command-not-found
 # pip install --user pipenv
+
+# installing this to avoid error in pipenv install below
+# **NOT FULLY TESTED YET
+sudo apt install python3-testresources
+
 sudo -H pip install -U pipenv
 
 cd auto-archiver
@@ -108,7 +113,8 @@ rm geckodriver*
 
 # so the cron job can execute the shell script (running as user dave)
 # sudo chmod +x ~/auto-archiver/infra/cron.sh
-sudo chmod +x /home/dave/auto-archiver/infra/cron.sh
+# sudo chmod +x /home/dave/auto-archiver/infra/cron.sh
+sudo chmod +x /home/dave/auto-archiver/infra/cron_fb.sh
 
 # to stop errors
 # **DONT SEEM TO NEED AT THE MOMENT*
@@ -172,9 +178,17 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin
 # cron runs as user dave
 sudo usermod -aG docker dave
 
+sudo pip install pytest-playwright
+
 # x virtual frame buffer
 # for playwright (screenshotter) to run in headed mode
 sudo apt install xvfb
+
+# **need to run playwright install to download chrome**
+# **NOT TESTED**
+##sudo playwright install-deps
+#sudo apt-get install libgbm1
+
 
 sudo reboot now
 

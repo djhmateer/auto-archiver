@@ -166,7 +166,7 @@
 			"args": ["--config","config-afp-demo.yaml"]
 		},
 		{
-			"name": "AA Demo Maini_fb (davemateer@gmail)",
+			"name": "AA Demo Main_fb (davemateer@gmail)",
 			"type": "python",
 			"request": "launch",
 			"program": "auto_archive_fb.py",
@@ -182,6 +182,15 @@
 			"console": "integratedTerminal",
 			"justMyCode": true,
 			"args": ["--config","config-airwars.yaml"]
+		},
+		{
+			"name": "CIR Test on HMS (dave@hms)",
+			"type": "python",
+			"request": "launch",
+			"program": "auto_archive.py",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","config-cir-test-on-hms.yaml"]
 		}
 	]
 }

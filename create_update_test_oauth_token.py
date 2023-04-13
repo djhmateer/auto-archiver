@@ -8,7 +8,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-from googleapiclient.http import MediaFileUpload
+# from googleapiclient.http import MediaFileUpload
 
 # If creating for first time download the json `credentials.json` from https://console.cloud.google.com/apis/credentials OAuth 2.0 Client IDs
 # https://davemateer.com/2022/04/28/google-drive-with-python for more information
@@ -44,7 +44,13 @@ def main():
 
     # 6. davemateer@gmail.com
     # created on 1st July 2022 against published project
-    token_file = 'secrets/token-davemateer-gmail.json'
+    #token_file = 'secrets/token-davemateer-gmail.json'
+
+    # 7. davemateer@gmail.com
+    # created on 21st March 23
+    # token_file = 'secrets/token-aa23.json'
+
+    token_file = 'secrets/token-dave-hms2.json'
 
     creds = None
 
