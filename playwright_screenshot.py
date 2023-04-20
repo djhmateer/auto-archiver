@@ -65,7 +65,7 @@ def run(use_proxy):
         # https://github.com/microsoft/playwright/issues/12182
         # sometimes a timeout
         def page_goto(url):
-            return page.goto(url, timeout=60000, wait_until='networkidle')
+            return page.goto(url, timeout=80000, wait_until='networkidle')
         counter = 0
         Found = False
         while (counter < 10):

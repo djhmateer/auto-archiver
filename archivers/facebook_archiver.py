@@ -22,6 +22,8 @@ class FacebookArchiver(Archiver):
 
       Part 1
         curl the mobile version of the page to get a fb_id and photo_id
+         **update 18th Apr 23, mobile version now giving 302 to login
+         **revert back to www version 
       Part 2
         use browsertrix which saves webpages as a warc file
         the binary images are all saved too in the warc file
@@ -32,8 +34,6 @@ class FacebookArchiver(Archiver):
       needs
          brightdata_proxy_secret in facebook config
          docker installed
-         
-
     """
 
     name = "facebook"
@@ -65,6 +65,11 @@ class FacebookArchiver(Archiver):
             logger.info(message)
             return ArchiveResult(status=message)
 
+        if 'facebook.com/photo/?fbid=' in url:
+           logger.info("strategy 0 - direct link to a single photo so just download it")
+           self.save_jpegs_to_temp_folder_from_url_using_browsertrix(url)
+           return self.upload_all_jpegs_from_temp_folder_and_generate_screenshot_and_html(url)
+
         if 'facebook.com/photo?fbid=' in url:
            logger.info("strategy 0 - direct link to a single photo so just download it")
            self.save_jpegs_to_temp_folder_from_url_using_browsertrix(url)
@@ -82,16 +87,17 @@ class FacebookArchiver(Archiver):
 
         # mobile version of the url for strategy 1 curl
         if url.startswith("https://www."):
-            m_url = url.replace("https://www.", "https://mobile.")
+            logger.debug('www normal code path')
+            # m_url = url.replace("https://www.", "https://mobile.")
         # web. which we want to convert to www
         elif url.startswith("https://web."):
             url = url.replace("https://web.", "https://www.")
-            m_url = url.replace("https://www.", "https://mobile.")
+            # m_url = url.replace("https://www.", "https://mobile.")
         else:
             logger.warning(f'unusual starting url {url}')
-            m_url = url
+            # m_url = url
 
-        logger.info(f"{m_url=}")
+        # logger.info(f"{m_url=}")
 
         def chop_below_recent_post_by_page(response):
             logger.info(f'Response length is {len(response)}')
@@ -108,30 +114,49 @@ class FacebookArchiver(Archiver):
 
             return top_bit
 
-        def get_html_from_curl(m_url):
-            logger.info(f"curl on url: {m_url}")
+        def get_html_from_curl(url, force_proxy=False):
+            # logger.info(f"curl on url: {m_url}")
+            logger.info(f"curl on www url: {url}")
+
+            # 19th Apr - turning off local curl in favour of proxy as more reliable
+            # nope still need local curl for AA009 https://www.facebook.com/permalink.php?story_fbid=pfbid0BqNZHQaQfqTAKzVaaeeYNuyPXFJhkPmzwWT7mZPZJLFnHNEvsdbnLJRPkHJDMcqFl&id=100082135548177
+            # but then fails for FM002 https://web.facebook.com/shannewsburmese/posts/pfbid02ovzrfRaA6JPPL73QiA3uzvBSbY8yodiWnWbXNxoXB2GZe2T3yEMzyphNPmFDZgSNl
+
+            # was getting spurious results ie now correct html from www rather than mobile
+
             # Silent mode (--silent) activated otherwise we receive progress data inside err message later
             # triple quotes are multi line string literal
-            cURL = f"""curl --silent --http1.0 '{m_url}' """
+            # cURL = f"""curl --silent --http1.0 '{m_url}' """
+            cURL = f"""curl --silent --http1.0 '{url}' """
             logger.info(cURL)
 
             lCmd = shlex.split(cURL) # Splits cURL into an array
             p = subprocess.Popen(lCmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             out, err = p.communicate() # Get the output and the err message
 
+            should_do_proxy_run = False
+
             if out == b'':
+                should_do_proxy_run = True
+            if force_proxy == True:
+                should_do_proxy_run = True
+
+            # if 1 ==1:
+            if should_do_proxy_run:
                 retry_counter = 0
-                logger.debug("No response from curl (probably 302). Could do request again to get status code")
+                # logger.debug("No response from curl (probably 302). Could do request again to get status code")
 
                 # rather than retyring we could write to the spreadsheet then come back on the next run
                 # this does seem to work manually
-                max_num_of_retries_to_do = 2
-                pause = 90 
+                max_num_of_retries_to_do = 5
+                pause = 5 
                 while (retry_counter < max_num_of_retries_to_do):
                     logger.debug(f"Trying proxy attempt {retry_counter}")
 
                     # Datacentre proxy on https://brightdata.com/cp/dashboard
-                    cURL = f"""curl --proxy zproxy.lum-superproxy.io:22225 --proxy-user {self.brightdata_proxy_secret} --silent --http1.0 "{m_url}" """
+                    # cURL = f"""curl --proxy zproxy.lum-superproxy.io:22225 --proxy-user {self.brightdata_proxy_secret} --silent --http1.0 "{m_url}" """
+                    cURL = f"""curl --proxy zproxy.lum-superproxy.io:22225 --proxy-user {self.brightdata_proxy_secret} --silent --http1.0 "{url}" """
+
                     logger.info(cURL)
 
                     lCmd = shlex.split(cURL) # Splits cURL into an array
@@ -145,9 +170,11 @@ class FacebookArchiver(Archiver):
                     else:
                         break # out of while loop
                 if retry_counter == max_num_of_retries_to_do:
-                    logger.error(f'Proxy didnt work after {max_num_of_retries_to_do} retries on {m_url}')
+                    # logger.error(f'Proxy didnt work after {max_num_of_retries_to_do} retries on {m_url}')
+                    logger.error(f'Proxy didnt work after {max_num_of_retries_to_do} retries on {url}')
 
-                    logger.error(f'Try checking for a 301 Perm Redirect eg:   curl -s -D - -o /dev/null {m_url}')
+                    # logger.error(f'Try checking for a 301 Perm Redirect eg:   curl -s -D - -o /dev/null {m_url}')
+                    logger.error(f'Try checking for a 301 Perm Redirect or 302 to login eg:   curl -s -D - -o /dev/null {url}')
 
                     return 'proxy failed'
                 else:
@@ -285,60 +312,81 @@ class FacebookArchiver(Archiver):
 
         # Part 1
         # we need a photo_id as will be calling that page via browsertrix on the www side to get full size image
-        response = get_html_from_curl(m_url)
-        if response == 'proxy failed':
-            return ArchiveResult(status="problem ** - failure on curl nothing worked. time pause????")
+        def foo(force_proxy=False):
+            # hack - globals to give scope. this function maybe calls itself further down
+            # need to refactor
+            global response
+            response = get_html_from_curl(url, force_proxy)
+            if response == 'proxy failed':
+                return ArchiveResult(status="problem ** - failure on curl nothing worked. time pause????")
 
-        response = chop_below_recent_post_by_page(response)
+            response = chop_below_recent_post_by_page(response)
 
-        logger.info("Trying strategy 1 - /photos/pcb.")
-        search = "/photos/pcb."
-        count1 = response.count(search)
-        count2 = 0
-        count3 = 0
-        warc_result = None
-        logger.info(f"Count of all images found on strategy1: {count1}")
+            logger.info("Trying strategy 1 - /photos/pcb.")
+            global search
+            search = "/photos/pcb."
+            global count1, count2, count3, warc_result
+            count1 = response.count(search)
+            count2 = 0
+            count3 = 0
+            warc_result = None
+            logger.info(f"Count of all images found on strategy1: {count1}")
 
-        if count1 == 0:
-            # logger.info("Trying strategy 2 - /photo.php")
-            # # https://www.facebook.com/photo.php?fbid=10159120790245976&amp;set=pcb.10159120790695976
-            # # not searching for ?fbid= section as it is a regex
-            # search = "/photo.php"
-            # count2 = response.count(search)
-            # logger.info(f"Count of all images found on strategy2: {count2}")
+            if count1 == 0:
+                # logger.info("Trying strategy 2 - /photo.php")
+                # # https://www.facebook.com/photo.php?fbid=10159120790245976&amp;set=pcb.10159120790695976
+                # # not searching for ?fbid= section as it is a regex
+                # search = "/photo.php"
+                # count2 = response.count(search)
+                # logger.info(f"Count of all images found on strategy2: {count2}")
 
-            logger.info("Trying strategy 3 - /photos/a.")
-            # https://www.facebook.com/khitthitnews/photos/a.386800725090613/1425302087907133/
-            search = "/photos/a."
-            count3 = response.count(search)
-            logger.info(f"Count of all images found on strategy3: {count3}")
+                logger.info("Trying strategy 3 - /photos/a.")
+                # https://www.facebook.com/khitthitnews/photos/a.386800725090613/1425302087907133/
+                search = "/photos/a."
+                count3 = response.count(search)
+                logger.info(f"Count of all images found on strategy3: {count3}")
 
-            if count3 == 0:
-                # logger.info("Trying strategy 3 - /photos/a.")
-                # # https://www.facebook.com/khitthitnews/photos/a.386800725090613/1425302087907133/
-                # search = "/photos/a."
-                # count3 = response.count(search)
-                # logger.info(f"Count of all images found on strategy3: {count3}")
+                if count3 == 0:
+                    # logger.info("Trying strategy 3 - /photos/a.")
+                    # # https://www.facebook.com/khitthitnews/photos/a.386800725090613/1425302087907133/
+                    # search = "/photos/a."
+                    # count3 = response.count(search)
+                    # logger.info(f"Count of all images found on strategy3: {count3}")
 
 
-                logger.info("Trying strategy 2 - /photo.php")
-                # https://www.facebook.com/photo.php?fbid=10159120790245976&amp;set=pcb.10159120790695976
-                # not searching for ?fbid= section as it is a regex
-                search = "/photo.php"
-                count2 = response.count(search)
-                logger.info(f"Count of all images found on strategy2: {count2}")
+                    logger.info("Trying strategy 2 - /photo.php")
+                    # https://www.facebook.com/photo.php?fbid=10159120790245976&amp;set=pcb.10159120790695976
+                    # not searching for ?fbid= section as it is a regex
+                    search = "/photo.php"
+                    count2 = response.count(search)
+                    logger.info(f"Count of all images found on strategy2: {count2}")
 
-                if count2 == 0:
-                    logger.info(f'No results from curl - trying warc - could be a sensitive photo which requires a login to FB')
+                    if count2 == 0:
+                        logger.info(f'No results from curl - trying warc - could be a sensitive photo which requires a login to FB')
 
-                    warc_result = do_browsertrix_call_to_www(url)
+                        warc_result = do_browsertrix_call_to_www(url)
 
-                    if warc_result is None:
-                        message = "Potential problem? No results from any curl strategy nor warc. This could be a page that is not available anymore. Could be an embedded video which youtubedlp should get"
-                        logger.error(message)
-                        return ArchiveResult(status=message)
+                        if warc_result is None:
+                            message = "Potential problem? No results from any curl strategy nor warc. This could be a page that is not available anymore. Could be an embedded video which youtubedlp should get"
+                            logger.warning(message)
 
-        o = urlparse(m_url)
+                            # we've already called force proxy below, so fail
+                            if force_proxy == True:
+                                message = "Potential problem? No results from any curl strategy nor warc. This could be a page that is not available anymore. Could be an embedded video which youtubedlp should get"
+                                logger.error(message)
+
+                                return ArchiveResult(status=message)
+                            # try all this again but force the proxy
+                            # edge case where local curl worked but gave back bad results
+                            # eg FM002 https://www.facebook.com/shannewsburmese/posts/pfbid02ovzrfRaA6JPPL73QiA3uzvBSbY8yodiWnWbXNxoXB2GZe2T3yEMzyphNPmFDZgSNl?_rdc=1&_rdr
+                            message = "Edge case - local curl gave 200 but no images, so trying proxy"
+                            logger.success(message)
+                            foo(force_proxy = True)
+
+        foo()
+
+        # o = urlparse(m_url)
+        o = urlparse(url)
         # /shannewsburmese/posts/pfbid02ovzrfRaA6JPPL73QiA3uzvBSbY8yodiWnWbXNxoXB2GZe2T3yEMzyphNPmFDZgSNl
         path = o.path
         path_second_slash_pos= path.find("/", 1)
@@ -394,6 +442,12 @@ class FacebookArchiver(Archiver):
                     # set_id_start_posc = response.find("set=p.", photo_id_end_pos)
                     if set_id_start_pos > 0:
                         logger.debug("set=pcb.")
+
+                        # the first number
+                        # DM 19th Apr
+                        fb_id_end_pos=response.find("&set=", end_pos_of_equals+1)
+                        fb_id = response[end_pos_of_equals:fb_id_end_pos]
+
                         count2_style = "pcb"
                         set_id_end_pos = response.find("&amp", set_id_start_pos)
                         set_id = response[set_id_start_pos+8:set_id_end_pos]
@@ -432,9 +486,10 @@ class FacebookArchiver(Archiver):
 
                     break # out of for loop as only want the first image
 
+        ## Part 2
+        # logger.info(f"Part2 - we now have a starting url for warc - {fb_id=} and {photo_id=}")
         photo_ids_requested = []
         photo_ids_to_request = []
-        
         
         while (True):
             if count2 > 0:
@@ -443,15 +498,17 @@ class FacebookArchiver(Archiver):
                 # special case eg DMFIRE030 
                 # https://www.facebook.com/permalink.php?story_fbid=261548436183660&id=100069855172938
                 # I can't tell when to stop
-                if len(photo_ids_requested) > 10:
-                    logger.warning(f'More than 10 in {photo_ids_requested=} and {photo_ids_to_request=}')
+                if len(photo_ids_requested) > 20:
+                    logger.warning(f'More than 20 in {photo_ids_requested=} and {photo_ids_to_request=}')
                     break
             else:
-                builder_url = f"https://www.facebook.com/{user_name}/photos/pcb.{fb_id}/{photo_id}"
+                # builder_url = f"https://www.facebook.com/{user_name}/photos/pcb.{fb_id}/{photo_id}"
+                builder_url = f"https://www.facebook.com/photo?fbid={photo_id}&set=pcb.{fb_id}"
 
             photo_ids_requested.append(photo_id)
             logger.debug(f"trying url {builder_url}")
             next_photo_ids = self.save_jpegs_to_temp_folder_from_url_using_browsertrix(builder_url)
+
 
             if next_photo_ids == -1:
                 message = f"Warc file should have contained images and didn't. Possible fb block? {builder_url=}"
@@ -490,6 +547,9 @@ class FacebookArchiver(Archiver):
             next_photo_id = photo_ids_to_request[0]
             photo_ids_to_request.remove(next_photo_id)
 
+            if len(next_photo_id) > 20:
+                logger.error(f"Photo ID not correct! Edge case possibly like FB006 where string is not ax expected. continuing on to get as much as possible. probably only 3")
+
             logger.info(f'{next_photo_id=}')
             photo_id = next_photo_id
 
@@ -511,7 +571,7 @@ class FacebookArchiver(Archiver):
         # docker needs to be setup to run as non root (eg dave)
         # see server-build.sh
         # --it for local debugging (interactive terminal)
-        command = f"docker run -v {os.getcwd()}/crawls:/crawls/ -v {os.getcwd()}/url.txt:/app/url.txt --rm webrecorder/browsertrix-crawler crawl --urlFile /app/url.txt --scopeType page --combineWarc --timeout 10 --profile /crawls/profiles/facebook-logged-in.tar.gz --collection {collection_name}"
+        command = f"docker run -v {os.getcwd()}/crawls:/crawls/ -v {os.getcwd()}/url.txt:/app/url.txt --rm webrecorder/browsertrix-crawler crawl --urlFile /app/url.txt --scopeType page --combineWarc --timeout 20 --profile /crawls/profiles/facebook-logged-in.tar.gz --collection {collection_name}"
         logger.info(command)
 
         lCmd = shlex.split(command) # Splits command into an array
@@ -557,9 +617,20 @@ class FacebookArchiver(Archiver):
 
                         # strategy 1 and 3
                         # route_urls[0]=%2Fdeltanewsagency%2Fphotos%2Fpcb.1560914197619606%2F1560914174286275&route_urls[1]=%2Fdeltanewsagency%2Fphotos%2Fpcb.1560914197619606%2F1560914074286285&
-                        dot_start_pos = foo.find(f'%2Fphotos%2Fpcb.',0)
 
-                        if (dot_start_pos > 0):
+                        # FB changed and is now putting the current page first
+                        # 19th Apr 2023
+                        # route_urls[0]=%2Fshannewsburmese%2Fphotos%2Fpcb.5639524319473298%2F5639523349473395&route_urls[1]=%2Fshannewsburmese%2Fphotos%2Fpcb.5639524319473298%2F5639523779473352&route_urls[2]
+
+                        # route_urls[0]=%2Fdeltanewsagency%2Fphotos%2Fpcb.1560914197619606%2F1560914044286288&route_urls[1]=%2Fphoto%2F%3Ffbid%3D1560914174286275%26set%3Dpcb.1560914197619606&
+                        dot_start_posX = foo.find(f'%2Fphotos%2Fpcb.',0)
+
+                        if (dot_start_posX > 0):
+                            # 19th Apr 2023 update
+                            # find the next %2Fphotos%2Fpcb. after the first one!
+                            dot_start_pos = foo.find(f'%2Fphotos%2Fpcb.',dot_start_posX+16)
+                            # dot_start_pos = dot_start_posX 
+
                             # the middle %2F
                             middle_2f_start_pos = foo.find(f'%2F', dot_start_pos+16)
                             
@@ -569,7 +640,7 @@ class FacebookArchiver(Archiver):
                             # next photo_id
                             next_photo_id = foo[middle_2f_start_pos+3:route_url_end_pos]
 
-                            logger.debug(f"Next photo id {next_photo_id}")
+                            logger.debug(f"warc parse Strategy 1 Next photo id {next_photo_id}")
                             
                             if next_photo_id not in next_photo_ids:
                                 next_photo_ids.append(next_photo_id)
@@ -586,7 +657,7 @@ class FacebookArchiver(Archiver):
 
                                 next_photo_id = foo[equals_start_pos:photo_id_end_pos]
 
-                                logger.debug(f"Strategy 2 Next photo id {next_photo_id}")
+                                logger.debug(f"warc parse Strategy 2 Next photo id {next_photo_id}")
                                 
                                 if next_photo_id not in next_photo_ids:
                                     next_photo_ids.append(next_photo_id)
