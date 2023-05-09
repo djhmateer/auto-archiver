@@ -50,7 +50,8 @@ def main():
     # created on 21st March 23
     # token_file = 'secrets/token-aa23.json'
 
-    token_file = 'secrets/token-dave-hms2.json'
+    # token_file = 'secrets/token-dave-hms2.json'
+    token_file = 'secrets/token-cir-domain-eor.json'
 
     creds = None
 
@@ -86,8 +87,12 @@ def main():
         print(emailAddress)
 
         # 1. Call the Drive v3 API and return some files
+        # results = service.files().list(
+            # pageSize=50, fields="nextPageToken, files(id, name)").execute()
+
         results = service.files().list(
-            pageSize=10, fields="nextPageToken, files(id, name)").execute()
+            pageSize=90, includeItemsFromAllDrives=True, supportsAllDrives=True, fields="nextPageToken, files(id, name)").execute()
+
         items = results.get('files', [])
 
         if not items:

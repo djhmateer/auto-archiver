@@ -50,14 +50,14 @@ def run(use_proxy):
         # so click accept cookies on facebook.com to try to alleviate
         try:
             response = page.goto("http://www.facebook.com", wait_until='networkidle')
-            time.sleep(5)
+            time.sleep(10)
             print(f'response done')
             foo = page.locator("//button[@data-cookiebanner='accept_only_essential_button']")
             print(f'page locator done')
             foo.click()
             print(f'click done - fb click worked')
             # linux server needs a sleep otherwise facebook cookie won't have worked and we'll get a popup on next page
-            time.sleep(5)
+            time.sleep(10)
         except Exception as e:
             print(f'Failed on fb accept cookies {url=} with {e=}')
 

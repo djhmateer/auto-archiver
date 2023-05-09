@@ -109,7 +109,8 @@ class GDStorage(Storage):
             'parents': [upload_to]
         }
         media = MediaFileUpload(file, resumable=True)
-        gd_file = self.service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+        # DM CHANGE
+        gd_file = self.service.files().create(supportsAllDrives=True,body=file_metadata, media_body=media, fields='id').execute()
         logger.debug(f'uploadf: uploaded file {gd_file["id"]} succesfully in folder={upload_to}')
 
     def upload(self, filename: str, key: str, **kwargs):
@@ -152,6 +153,9 @@ class GDStorage(Storage):
 
         for attempt in range(retries):
             results = self.service.files().list(
+                # DM CHANGE
+                supportsAllDrives=True,
+                includeItemsFromAllDrives=True,
                 q=query_string,
                 spaces='drive',  # ie not appDataFolder or photos
                 fields='files(id, name)'
@@ -184,5 +188,6 @@ class GDStorage(Storage):
             'mimeType': 'application/vnd.google-apps.folder',
             'parents': [parent_id]
         }
-        gd_folder = self.service.files().create(body=file_metadata, fields='id').execute()
+        # DM CHANGE
+        gd_folder = self.service.files().create(supportsAllDrives=True,body=file_metadata, fields='id').execute()
         return gd_folder.get('id')

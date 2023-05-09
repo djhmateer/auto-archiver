@@ -318,7 +318,7 @@ class FacebookArchiver(Archiver):
             global response
             response = get_html_from_curl(url, force_proxy)
             if response == 'proxy failed':
-                return ArchiveResult(status="problem ** - failure on curl nothing worked. time pause????")
+                return 'proxy failed'
 
             response = chop_below_recent_post_by_page(response)
 
@@ -362,17 +362,19 @@ class FacebookArchiver(Archiver):
                     logger.info(f"Count of all images found on strategy2: {count2}")
 
                     if count2 == 0:
-                        logger.info(f'No results from curl - trying warc - could be a sensitive photo which requires a login to FB')
+                        # logger.info(f'No results from curl - trying warc - could be a sensitive photo which requires a login to FB')
 
-                        warc_result = do_browsertrix_call_to_www(url)
+                        # try turning this off as curl calls to www doing well 
+                        # and this code has code paths which aren't implemented yet
+                        # warc_result = do_browsertrix_call_to_www(url)
 
                         if warc_result is None:
-                            message = "Potential problem? No results from any curl strategy nor warc. This could be a page that is not available anymore. Could be an embedded video which youtubedlp should get"
+                            # message = "Potential problem? No results from any curl strategy nor warc. This could be a page that is not available anymore. Could be an embedded video which youtubedlp should get"
+                            message = "Potential problem? No results from any curl strategy. This could be a page that is not available anymore. Could be an embedded video which youtubedlp should get"
                             logger.warning(message)
 
                             # we've already called force proxy below, so fail
                             if force_proxy == True:
-                                message = "Potential problem? No results from any curl strategy nor warc. This could be a page that is not available anymore. Could be an embedded video which youtubedlp should get"
                                 logger.error(message)
 
                                 return ArchiveResult(status=message)
@@ -381,9 +383,11 @@ class FacebookArchiver(Archiver):
                             # eg FM002 https://www.facebook.com/shannewsburmese/posts/pfbid02ovzrfRaA6JPPL73QiA3uzvBSbY8yodiWnWbXNxoXB2GZe2T3yEMzyphNPmFDZgSNl?_rdc=1&_rdr
                             message = "Edge case - local curl gave 200 but no images, so trying proxy"
                             logger.success(message)
-                            foo(force_proxy = True)
+                            return foo(force_proxy = True)
 
-        foo()
+        bar = foo()
+        if bar == 'proxy failed':
+             return ArchiveResult(status="problem ** - failure on curl nothing worked. time pause????")
 
         # o = urlparse(m_url)
         o = urlparse(url)
@@ -571,7 +575,7 @@ class FacebookArchiver(Archiver):
         # docker needs to be setup to run as non root (eg dave)
         # see server-build.sh
         # --it for local debugging (interactive terminal)
-        command = f"docker run -v {os.getcwd()}/crawls:/crawls/ -v {os.getcwd()}/url.txt:/app/url.txt --rm webrecorder/browsertrix-crawler crawl --urlFile /app/url.txt --scopeType page --combineWarc --timeout 20 --profile /crawls/profiles/facebook-logged-in.tar.gz --collection {collection_name}"
+        command = f"docker run -v {os.getcwd()}/crawls:/crawls/ -v {os.getcwd()}/url.txt:/app/url.txt --rm webrecorder/browsertrix-crawler crawl --urlFile /app/url.txt --scopeType page --combineWarc --timeout 10 --profile /crawls/profiles/facebook-logged-in.tar.gz --collection {collection_name}"
         logger.info(command)
 
         lCmd = shlex.split(command) # Splits command into an array

@@ -191,6 +191,15 @@
 			"console": "integratedTerminal",
 			"justMyCode": true,
 			"args": ["--config","config-cir-test-on-hms.yaml"]
+		},
+		{
+			"name": "CIR Domain EoR",
+			"type": "python",
+			"request": "launch",
+			"program": "auto_archive.py",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","config-cir-domain-eor.yaml"]
 		}
 	]
 }

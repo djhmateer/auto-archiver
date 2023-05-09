@@ -3,7 +3,7 @@ temp/
 .env*
 .DS_Store
 expmt/
-service_account.json
+# service_account.json
 __pycache__/
 ._*
 anu.html
@@ -21,8 +21,10 @@ vk_config*.json
 secrets
 delCurrentRg.sh
 sshCurrentVm.sh
-service_account_b.json
-service_account_hms_cir.json
+
+# service_account_b.json
+# service_account_hms_cir.json
+service_*.json
 
 credentials.json
 token.json
