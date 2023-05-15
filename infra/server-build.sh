@@ -90,12 +90,34 @@ sudo apt upgrade -y
 sudo apt install ffmpeg -y
 
 ## Firefox
+# for Ubuntu 22.04 this will come up with an error
+# failed to get new webdriver, possibly due to insufficient system resources or timeout settings: Message: Failed to read marionette port
+# https://stackoverflow.com/questions/72374955/failed-to-read-marionette-port-when-running-selenium-geckodriver-firefox-a
 sudo apt install firefox -y
+
+# to solve use these commands
+# https://www.omgubuntu.co.uk/2022/04/how-to-install-firefox-deb-apt-ubuntu-22-04
+# cd ~
+# sudo add-apt-repository ppa:mozillateam/ppa
+
+# echo '
+# Package: *
+# Pin: release o=LP-PPA-mozillateam
+# Pin-Priority: 1001
+# ' | sudo tee /etc/apt/preferences.d/mozilla-firefox
+
+# echo 'Unattended-Upgrade::Allowed-Origins:: "LP-PPA-mozillateam:${distro_codename}";' | sudo tee /etc/apt/apt.conf.d/51unattended-upgrades-firefox
+
+# sudo apt install firefox
+
+
+
 
 ## Gecko driver
 # check version numbers for new ones
 cd ~
-wget https://github.com/mozilla/geckodriver/releases/download/v0.31.0/geckodriver-v0.31.0-linux64.tar.gz
+# wget https://github.com/mozilla/geckodriver/releases/download/v0.31.0/geckodriver-v0.31.0-linux64.tar.gz
+wget https://github.com/mozilla/geckodriver/releases/download/v0.33.0/geckodriver-v0.33.0-linux64.tar.gz
 tar -xvzf geckodriver*
 chmod +x geckodriver
 sudo mv geckodriver /usr/local/bin/
