@@ -213,6 +213,9 @@ class Archiver(ABC):
         return self.storage.get_cdn_url(key)
 
     def get_thumbnails(self, filename, key, duration=None):
+        # DM comment out as feature request
+        # ie no video out files
+        return (None, None)
         thumbnails_folder = os.path.splitext(filename)[0] + os.path.sep
         key_folder = key.split('.')[0] + os.path.sep
 
