@@ -6,13 +6,14 @@ from loguru import logger
 
 from .base_archiver import Archiver, ArchiveResult
 from storages import Storage
+from configs import TwitterApiConfig
 
 
 class TelegramArchiver(Archiver):
     name = "telegram"
 
-    def __init__(self, storage: Storage, driver, hash_algorithm):
-        super().__init__(storage, driver, hash_algorithm)
+    def __init__(self, storage: Storage, driver, hash_algorithm, twitterconfig: TwitterApiConfig):
+        super().__init__(storage, driver, hash_algorithm, twitterconfig)
 
     def download(self, url, check_if_exists=False):
         # detect URLs that we definitely cannot handle

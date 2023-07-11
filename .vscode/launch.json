@@ -200,6 +200,60 @@
 			"console": "integratedTerminal",
 			"justMyCode": true,
 			"args": ["--config","config-cir-domain-eor.yaml"]
+		},
+		{
+			"name": "CIR Domain CIR Sahel",
+			"type": "python",
+			"request": "launch",
+			"program": "auto_archive.py",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","config-cir-domain-cir-sahel.yaml"]
+		},
+		{
+			"name": "CIR Domain CIR Sudan ",
+			"type": "python",
+			"request": "launch",
+			"program": "auto_archive.py",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","config-cir-domain-cir-sudan.yaml"]
+		},
+		{
+			"name": "Ninian Main (davemateer@gmail)",
+			"type": "python",
+			"request": "launch",
+			"program": "auto_archive.py",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","config-ninian-main.yaml"]
+		},
+		{
+			"name": "CIR Domain CIR AW ",
+			"type": "python",
+			"request": "launch",
+			"program": "auto_archive.py",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","config-cir-domain-aw.yaml"]
+		},
+		{
+			"name": "CIR Domain EoR GRC",
+			"type": "python",
+			"request": "launch",
+			"program": "auto_archive.py",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","config-cir-domain-eor-grc.yaml"]
+		},
+		{
+			"name": "CIR Domain MW",
+			"type": "python",
+			"request": "launch",
+			"program": "auto_archive.py",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","config-cir-domain-mw.yaml"]
 		}
 	]
 }

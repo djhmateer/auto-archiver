@@ -135,16 +135,20 @@ def process_sheet(c: Config):
                 # make a new driver so each spreadsheet row is idempotent
                 c.recreate_webdriver()
 
+                # DM
+                # logger.error(f'twitter consumer key is {c.twitter_config.consumer_key}')
+
                 # order matters, first to succeed excludes remaining
+                # passing twitter config to allow auto tweeting of hash
                 active_archivers = [
-                    TelethonArchiver(storage, c.webdriver, c.telegram_config, c.hash_algorithm),
-                    TiktokArchiver(storage, c.webdriver, c.hash_algorithm),
-                    TwitterApiArchiver(storage, c.webdriver, c.twitter_config, c.hash_algorithm),
-                    YoutubeDLArchiver(storage, c.webdriver, c.facebook_cookie,c.hash_algorithm),
-                    TelegramArchiver(storage, c.webdriver, c.hash_algorithm),
-                    TwitterArchiver(storage, c.webdriver, c.hash_algorithm),
-                    VkArchiver(storage,  c.webdriver, c.vk_config, c.hash_algorithm),
-                    WaybackArchiver(storage, c.webdriver, c.wayback_config, c.hash_algorithm)
+                    TelethonArchiver(storage, c.webdriver, c.telegram_config, c.hash_algorithm, c.twitter_config),
+                    TiktokArchiver(storage, c.webdriver, c.hash_algorithm, c.twitter_config),
+                    ####TwitterApiArchiver(storage, c.webdriver, c.twitter_config, c.hash_algorithm),
+                    YoutubeDLArchiver(storage, c.webdriver, c.facebook_cookie,c.hash_algorithm, c.twitter_config),
+                    TelegramArchiver(storage, c.webdriver, c.hash_algorithm, c.twitter_config),
+                    TwitterArchiver(storage, c.webdriver, c.hash_algorithm, c.twitter_config),
+                    VkArchiver(storage,  c.webdriver, c.vk_config, c.hash_algorithm, c.twitter_config),
+                    WaybackArchiver(storage, c.webdriver, c.wayback_config, c.hash_algorithm, c.twitter_config)
                 ]
 
                 for archiver in active_archivers:

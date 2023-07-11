@@ -4,6 +4,7 @@ from loguru import logger
 from snscrape.modules.twitter import TwitterTweetScraper, Video, Gif, Photo
 
 from .base_archiver import Archiver, ArchiveResult
+from configs import TwitterApiConfig
 
 from storages import Storage
 
@@ -12,8 +13,11 @@ class TwitterArchiver(Archiver):
     This Twitter Archiver uses unofficial scraping methods, and it works as 
     an alternative to TwitterApiArchiver when no API credentials are provided.
     """
-    def __init__(self, storage: Storage, driver, hash_algorithm):
-        super().__init__(storage, driver, hash_algorithm)
+    # def __init__(self, storage: Storage, driver, hash_algorithm):
+    #     super().__init__(storage, driver, hash_algorithm)
+    def __init__(self, storage: Storage, driver, hash_algorithm, twitterconfig: TwitterApiConfig):
+        super().__init__(storage, driver, hash_algorithm, twitterconfig)
+
 
     name = "twitter"
     link_pattern = re.compile(r"twitter.com\/(?:\#!\/)?(\w+)\/status(?:es)?\/(\d+)")
@@ -68,8 +72,29 @@ class TwitterArchiver(Archiver):
 
     def download_alternative(self, url, tweet_id):
         # https://stackoverflow.com/a/71867055/6196010
+        # https://github.com/JustAnotherArchivist/snscrape/issues/996#issuecomment-1615937362
+
+        # note headers isn't used.
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/114.0",
+            "Accept": "*/*",
+            "Accept-Language": "en-US,en;q=0.5",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Origin": "https://platform.twitter.com",
+            "Connection": "keep-alive",
+            "Referer": "https://platform.twitter.com/",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "cross-site",
+            "Pragma": "no-cache",
+            "Cache-Control": "no-cache",
+            "TE": "trailers"
+        }
         logger.debug(f"Trying twitter hack for {url=}")
-        hack_url = f"https://cdn.syndication.twimg.com/tweet?id={tweet_id}"
+
+        # hack_url = f"https://cdn.syndication.twimg.com/tweet?id={tweet_id}"
+        hack_url = f"https://cdn.syndication.twimg.com/tweet-result?id={tweet_id}"
+
         r = requests.get(hack_url)
         if r.status_code != 200: return False
         tweet = r.json()
@@ -89,6 +114,31 @@ class TwitterArchiver(Archiver):
         screenshot = self.get_screenshot(url)
         page_cdn, page_hash, thumbnail = self.generate_media_page(urls, url, r.text)
         return ArchiveResult(status="success", cdn_url=page_cdn, screenshot=screenshot, hash=page_hash, thumbnail=thumbnail, timestamp=timestamp, title=tweet["text"])
+
+
+    # def download_alternative(self, url, tweet_id):
+    #     # https://stackoverflow.com/a/71867055/6196010
+    #     logger.debug(f"Trying twitter hack for {url=}")
+    #     hack_url = f"https://cdn.syndication.twimg.com/tweet?id={tweet_id}"
+    #     r = requests.get(hack_url)
+    #     if r.status_code != 200: return False
+    #     tweet = r.json()
+
+    #     urls = []
+    #     for p in tweet["photos"]:
+    #         urls.append(p["url"])
+
+    #     # 1 tweet has 1 video max
+    #     if "video" in tweet:
+    #         v = tweet["video"]
+    #         urls.append(self.choose_variant(v.get("variants", [])))
+
+    #     logger.debug(f"Twitter hack got {urls=}")
+
+    #     timestamp = datetime.strptime(tweet["created_at"], "%Y-%m-%dT%H:%M:%S.%fZ")
+    #     screenshot = self.get_screenshot(url)
+    #     page_cdn, page_hash, thumbnail = self.generate_media_page(urls, url, r.text)
+    #     return ArchiveResult(status="success", cdn_url=page_cdn, screenshot=screenshot, hash=page_hash, thumbnail=thumbnail, timestamp=timestamp, title=tweet["text"])
 
     def choose_variant(self, variants):
         # choosing the highest quality possible

@@ -125,7 +125,7 @@ class GDStorage(Storage):
         return key
 
     # gets the Drive folderID if it is there
-    def _get_id_from_parent_and_name(self, parent_id: str, name: str, retries: int = 1, sleep_seconds: int = 10, use_mime_type: bool = False, raise_on_missing: bool = True, use_cache=True):
+    def _get_id_from_parent_and_name(self, parent_id: str, name: str, retries: int = 2, sleep_seconds: int = 10, use_mime_type: bool = False, raise_on_missing: bool = True, use_cache=True):
         """
         Retrieves the id of a folder or file from its @name and the @parent_id folder
         Optionally does multiple @retries and sleeps @sleep_seconds between them
@@ -133,8 +133,6 @@ class GDStorage(Storage):
         If @raise_on_missing will throw error when not found, or returns None
         Will remember previous calls to avoid duplication if @use_cache
         DM - caching giving a perf improvement in order of 41s to 46s
-          So I prefer not to use yet, purely as caching notoriously hard in terms of edge cases
-          and pro's don't outweigh cons for me (yet)
         Returns the id of the file or folder from its name as a string
         """
         # cache logic
@@ -153,7 +151,7 @@ class GDStorage(Storage):
 
         for attempt in range(retries):
             results = self.service.files().list(
-                # DM CHANGE
+                # both below for Google Shared Drives
                 supportsAllDrives=True,
                 includeItemsFromAllDrives=True,
                 q=query_string,

@@ -13,6 +13,10 @@ from slugify import slugify
 from storages import Storage
 from utils import mkdir_if_not_exists
 
+import tweepy
+import time
+
+from configs import TwitterApiConfig
 
 @dataclass
 class ArchiveResult:
@@ -31,10 +35,11 @@ class Archiver(ABC):
     name = "default"
     retry_regex = r"retrying at (\d+)$"
 
-    def __init__(self, storage: Storage, driver, hash_algorithm):
+    def __init__(self, storage: Storage, driver, hash_algorithm, config: TwitterApiConfig):
         self.storage = storage
         self.driver = driver
         self.hash_algorithm = hash_algorithm
+        self.config = config
 
     def __str__(self):
         return self.__class__.__name__
@@ -77,6 +82,30 @@ class Archiver(ABC):
             f.write(page)
 
         page_hash = self.get_hash(page_filename)
+
+        # DM automatically tweet the hash
+        consumer_key = self.config.consumer_key
+        consumer_secret = self.config.consumer_secret
+        access_token = self.config.access_token
+        access_token_secret = self.config.access_secret
+
+        client = tweepy.Client(
+            consumer_key=consumer_key,
+            consumer_secret=consumer_secret,
+            access_token=access_token,
+            access_token_secret=access_token_secret
+        )
+
+        message = f"{page_hash}" 
+        try: 
+            client.create_tweet(text=message)
+            logger.success(f"Tweeted hash")
+        except Exception as e:
+            # could be we just don't want tweets so keys not preset and this will error 
+            logger.warning(f'Unexpected error post tweet for {url=}: {e}')
+
+
+
 
         self.storage.upload(page_filename, page_key, extra_args={
             'ACL': 'public-read', 'ContentType': 'text/html'})

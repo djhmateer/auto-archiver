@@ -4,6 +4,7 @@ from loguru import logger
 
 from .base_archiver import Archiver, ArchiveResult
 from storages import Storage
+from configs import TwitterApiConfig
 
 
 class TiktokArchiver(Archiver):
@@ -15,8 +16,8 @@ class TiktokArchiver(Archiver):
 
         status = 'success'
 
-        def __init__(self, storage: Storage, driver, hash_algorithm):
-            super().__init__(storage, driver, hash_algorithm)
+        def __init__(self, storage: Storage, driver, hash_algorithm, twitterconfig: TwitterApiConfig):
+            super().__init__(storage, driver, hash_algorithm, twitterconfig)
 
         try:
             # really slow for some videos here 25minutes plus or stalls

@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 from storages import Storage
 from .base_archiver import Archiver, ArchiveResult
 from configs import WaybackConfig
+from configs import TwitterApiConfig
 
 
 class WaybackArchiver(Archiver):
@@ -15,8 +16,8 @@ class WaybackArchiver(Archiver):
     """
     name = "wayback"
 
-    def __init__(self, storage: Storage, driver, config: WaybackConfig, hash_algorithm):
-        super(WaybackArchiver, self).__init__(storage, driver, hash_algorithm)
+    def __init__(self, storage: Storage, driver, config: WaybackConfig, hash_algorithm, twitterconfig: TwitterApiConfig):
+        super(WaybackArchiver, self).__init__(storage, driver, hash_algorithm, twitterconfig)
         self.config = config
         self.seen_urls = {}
 

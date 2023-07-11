@@ -36,6 +36,12 @@ pytest-playwright = "*"
 # only seems to happen on WSL2 dev env (currently)
 pyopenssl = "*"
 
+# for tweeting the hash
+tweepy = "*"
+
+# for connecting to sql server for auto twitter queue
+pyodbc = "*"
+
 [requires]
 #python_version = "3.9"
 python_version = "3.10"

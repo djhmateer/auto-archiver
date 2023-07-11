@@ -148,8 +148,8 @@ class FacebookArchiver(Archiver):
 
                 # rather than retyring we could write to the spreadsheet then come back on the next run
                 # this does seem to work manually
-                max_num_of_retries_to_do = 5
-                pause = 5 
+                max_num_of_retries_to_do = 2
+                pause = 90 
                 while (retry_counter < max_num_of_retries_to_do):
                     logger.debug(f"Trying proxy attempt {retry_counter}")
 

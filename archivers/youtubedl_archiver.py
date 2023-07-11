@@ -6,7 +6,7 @@ from loguru import logger
 
 from .base_archiver import Archiver, ArchiveResult
 from storages import Storage
-
+from configs import TwitterApiConfig
 
 class YoutubeDLArchiver(Archiver):
     name = "youtube_dl"
@@ -17,8 +17,8 @@ class YoutubeDLArchiver(Archiver):
                  'noplaylist':True
                  }
 
-    def __init__(self, storage: Storage, driver, fb_cookie, hash_algorithm):
-        super().__init__(storage, driver, hash_algorithm)
+    def __init__(self, storage: Storage, driver, fb_cookie, hash_algorithm, twitterconfig: TwitterApiConfig):
+        super().__init__(storage, driver, hash_algorithm, twitterconfig)
         self.fb_cookie = fb_cookie
 
     def download(self, url, check_if_exists=False):

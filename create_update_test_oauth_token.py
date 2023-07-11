@@ -51,7 +51,8 @@ def main():
     # token_file = 'secrets/token-aa23.json'
 
     # token_file = 'secrets/token-dave-hms2.json'
-    token_file = 'secrets/token-cir-domain-eor.json'
+    # token_file = 'secrets/token-cir-domain-eor.json'
+    token_file = 'secrets/token-cir-domain-cir.json'
 
     creds = None
 
@@ -101,6 +102,51 @@ def main():
         print('Files:')
         for item in items:
             print(u'{0} ({1})'.format(item['name'], item['id']))
+
+        # 2. show folders this token can see
+
+        # sahel - doen't work (no files)
+        # parent_id='1iVHKuTYFBssQBO58awRM8Rh_fuyr465n'
+        
+        # Archived_Files - no files
+        # parent_id='1h8KlmqRhG-rXCGScLub6BbFDcD4szK-K'
+
+        # sudan - this works
+        parent_id='1tETv61dQJsWfLrBy2USQtIvJeywchm3y'
+
+        # name="Sahel"
+        # query_string = f"'{parent_id}' in parents and name = '{name}' and trashed = false "
+        # query_string = f"name = '{name}' and trashed = false "
+        # query_string = f"trashed = false "
+
+        # 100 items including items I've not created
+        query_string = f"'{parent_id}' in parents and trashed = false "
+        # query_string += f" and mimeType='application/vnd.google-apps.folder' "
+
+        # 12 items only - just the folder names I've created
+        # query_string = f"mimeType='application/vnd.google-apps.folder' "
+
+        # this only gets stuff I've created ie 38 items
+        # query_string = ''
+
+        results = service.files().list(
+                # both below for Google Shared Drives
+                supportsAllDrives=True,
+                includeItemsFromAllDrives=True,
+                q=query_string,
+                spaces='drive',  # ie not appDataFolder or photos
+                fields='files(id, name)'
+            ).execute()
+        items = results.get('files', [])
+
+        print('#2 Files:')
+        if not items:
+            print('No files found.')
+            return
+        print(f'#2 Files: {len(items)}')
+        for item in items:
+            print(u'{0} ({1})'.format(item['name'], item['id']))
+
 
     except HttpError as error:
         print(f'An error occurred: {error}')

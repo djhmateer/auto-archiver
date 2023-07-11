@@ -21,13 +21,14 @@ int=$(shuf -i 1-1000 -n 1)
 # generate a 34 character password (normal, capitals and numbers)
 password=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c34)
 
-# rgprefix=osrDemoAutoArchiver
-rgprefix=cirAutoArchiver
+# CHANGE DNS BELOW TOO!
+rgprefix=osrDemoAutoArchiver
+# rgprefix=cirAutoArchiver
 
 rg=${rgprefix}${int}
 # Don't put capitals in dns name below and it needs to be unique (ie not used in azure at the moment)
-# dnsname=osrdemoautoarchiver${int}
-dnsname=cirautoarchiver${int}
+dnsname=osrdemoautoarchiver${int}
+# dnsname=cirautoarchiver${int}
 
 adminusername=dave
 adminpassword=${password}
@@ -155,29 +156,30 @@ do
    sleep 15
 done
 
+# service accounts
 scp -o StrictHostKeyChecking=no ../service_account_b.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
 scp -o StrictHostKeyChecking=no ../anon.session dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
 
 # configs
-scp -o StrictHostKeyChecking=no ../config-aw.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
-scp -o StrictHostKeyChecking=no ../config-mw.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
-scp -o StrictHostKeyChecking=no ../config-eor.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
-scp -o StrictHostKeyChecking=no ../config-ukraine-environment.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
-scp -o StrictHostKeyChecking=no ../config-cir-projects.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
+# scp -o StrictHostKeyChecking=no ../config-aw.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
+# scp -o StrictHostKeyChecking=no ../config-mw.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
+# scp -o StrictHostKeyChecking=no ../config-eor.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
+# scp -o StrictHostKeyChecking=no ../config-ukraine-environment.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
+# scp -o StrictHostKeyChecking=no ../config-cir-projects.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
 
-scp -o StrictHostKeyChecking=no ../config-osr-demo.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
-scp -o StrictHostKeyChecking=no ../config-airwars.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
-scp -o StrictHostKeyChecking=no ../config-france24.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
-scp -o StrictHostKeyChecking=no ../config-un-demo.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
-scp -o StrictHostKeyChecking=no ../config-wagner-demo.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
-scp -o StrictHostKeyChecking=no ../config-amnesty-demo.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
+# scp -o StrictHostKeyChecking=no ../config-osr-demo.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
+# scp -o StrictHostKeyChecking=no ../config-airwars.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
+# scp -o StrictHostKeyChecking=no ../config-france24.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
+# scp -o StrictHostKeyChecking=no ../config-un-demo.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
+# scp -o StrictHostKeyChecking=no ../config-wagner-demo.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
+# scp -o StrictHostKeyChecking=no ../config-amnesty-demo.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
 
-scp -o StrictHostKeyChecking=no ../config-cmu-demo.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
+# scp -o StrictHostKeyChecking=no ../config-cmu-demo.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
 scp -o StrictHostKeyChecking=no ../config-aa-demo-main.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
-scp -o StrictHostKeyChecking=no ../config-rmit-demo.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
-scp -o StrictHostKeyChecking=no ../config-bellingcat-demo.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
-scp -o StrictHostKeyChecking=no ../config-witness-demo.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
-scp -o StrictHostKeyChecking=no ../config-afp-demo.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
+# scp -o StrictHostKeyChecking=no ../config-rmit-demo.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
+# scp -o StrictHostKeyChecking=no ../config-bellingcat-demo.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
+# scp -o StrictHostKeyChecking=no ../config-witness-demo.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
+# scp -o StrictHostKeyChecking=no ../config-afp-demo.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
 
 # tokens
 scp -o StrictHostKeyChecking=no ../secrets/token-davemateer-gmail.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
