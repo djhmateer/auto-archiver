@@ -13,10 +13,15 @@ from slugify import slugify
 from storages import Storage
 from utils import mkdir_if_not_exists
 
-import tweepy
+# import tweepy
 import time
 
 from configs import TwitterApiConfig
+
+import pyodbc 
+import time
+
+import cred_mssql
 
 @dataclass
 class ArchiveResult:
@@ -83,26 +88,55 @@ class Archiver(ABC):
 
         page_hash = self.get_hash(page_filename)
 
+        # DM insert hash into db in readyness for it to be tweeted
+        # as twitter is limiting the number of tweets we have to queue them up
+
+        # credentials are in cred_mssql.py which is copied (not in source control)
+     
+        # simple retry from https://stackoverflow.com/a/41480876/26086
+        # exponential backoff would be better like polly
+        retry_flag = True
+        retry_count = 0
+        while retry_flag and retry_count < 5:
+            try:
+                # cnxn = pyodbc.connect('DRIVER={ODBC Driver 18 for SQL Server};SERVER='+server+';DATABASE='+database+';ENCRYPT=yes;UID='+username+';PWD='+ password)
+                cnxn = pyodbc.connect('DRIVER={ODBC Driver 18 for SQL Server};SERVER='+cred_mssql.server+';DATABASE='+cred_mssql.database+';ENCRYPT=yes;UID='+cred_mssql.username+';PWD='+ cred_mssql.password)
+                cursor = cnxn.cursor()
+
+                cursor.execute(
+                    'INSERT INTO Hash (HashText, HasBeenTweeted) VALUES (?,?)',
+                    'asdfasdf', '0')
+                cnxn.commit()
+
+                retry_flag = False
+            except Exception as e:
+                print(f"DB Retry after 30 secs as {e}")
+                retry_count = retry_count + 1
+                time.sleep(30)
+
+
+
+
         # DM automatically tweet the hash
-        consumer_key = self.config.consumer_key
-        consumer_secret = self.config.consumer_secret
-        access_token = self.config.access_token
-        access_token_secret = self.config.access_secret
+        # consumer_key = self.config.consumer_key
+        # consumer_secret = self.config.consumer_secret
+        # access_token = self.config.access_token
+        # access_token_secret = self.config.access_secret
 
-        client = tweepy.Client(
-            consumer_key=consumer_key,
-            consumer_secret=consumer_secret,
-            access_token=access_token,
-            access_token_secret=access_token_secret
-        )
+        # client = tweepy.Client(
+        #     consumer_key=consumer_key,
+        #     consumer_secret=consumer_secret,
+        #     access_token=access_token,
+        #     access_token_secret=access_token_secret
+        # )
 
-        message = f"{page_hash}" 
-        try: 
-            client.create_tweet(text=message)
-            logger.success(f"Tweeted hash")
-        except Exception as e:
-            # could be we just don't want tweets so keys not preset and this will error 
-            logger.warning(f'Unexpected error post tweet for {url=}: {e}')
+        # message = f"{page_hash}" 
+        # try: 
+        #     client.create_tweet(text=message)
+        #     logger.success(f"Tweeted hash")
+        # except Exception as e:
+        #     # could be we just don't want tweets so keys not preset and this will error 
+        #     logger.warning(f'Unexpected error post tweet for {url=}: {e}')
 
 
 

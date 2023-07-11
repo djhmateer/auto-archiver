@@ -187,6 +187,9 @@ scp -o StrictHostKeyChecking=no ../config-aa-demo-main.yaml dave@${dnsname}.west
 scp -o StrictHostKeyChecking=no ../secrets/token-davemateer-gmail.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 scp -o StrictHostKeyChecking=no ../secrets/token-dataac.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 
+# mssql credentials
+scp -o StrictHostKeyChecking=no ../cred_mssql.py dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
+
 
 # delete old resource groups
 groupstodel=$(az group list --query "[?contains(name, '${rgprefix}')]".name --output tsv)
