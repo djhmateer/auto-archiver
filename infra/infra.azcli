@@ -11,6 +11,7 @@ cd infra
 
 set -x
 
+# todo - upgrade to 22.04 as it works fine on WSL2 envi
 image=Canonical:0001-com-ubuntu-server-focal:20_04-lts-gen2:latest
 
 # Generate a random suffix between 1 and 1000

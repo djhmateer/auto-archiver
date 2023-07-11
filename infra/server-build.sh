@@ -73,7 +73,8 @@ sudo add-apt-repository ppa:deadsnakes/ppa -y
 sudo apt update -y
 
 # 3.9.12
-sudo apt install python3.9 -y
+# sudo apt install python3.9 -y
+sudo apt install python3.10 -y
 
 # need this for pip upgrade to work
 export PATH=/home/dave/.local/bin:$PATH
