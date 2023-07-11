@@ -22,6 +22,7 @@ int=$(shuf -i 1-1000 -n 1)
 password=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c34)
 
 # CHANGE DNS BELOW TOO!
+# AND CHANGE file at end eg ./ssh
 rgprefix=osrDemoAutoArchiver
 # rgprefix=cirAutoArchiver
 
@@ -202,8 +203,8 @@ do
     fi
 done
 
-# echo -e "\nssh -o StrictHostKeyChecking=no dave@${dnsname}.westeurope.cloudapp.azure.com\n" > sshCurrentVm.sh
-echo -e "\nssh -o StrictHostKeyChecking=no dave@${dnsname}.westeurope.cloudapp.azure.com\n" > cirsshCurrentVm.sh
+echo -e "\nssh -o StrictHostKeyChecking=no dave@${dnsname}.westeurope.cloudapp.azure.com\n" > sshCurrentVm.sh
+# echo -e "\nssh -o StrictHostKeyChecking=no dave@${dnsname}.westeurope.cloudapp.azure.com\n" > cirsshCurrentVm.sh
 
 # echo -e "password is ${adminpassword}" > password.txt
 
