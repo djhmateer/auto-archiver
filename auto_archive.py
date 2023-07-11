@@ -10,6 +10,10 @@ from storages import Storage
 
 import gspread
 import time
+# credentials for db - need something to be there for code to work!
+import cred_mssql
+import pyodbc 
+
 random.seed()
 
 
@@ -140,6 +144,7 @@ def process_sheet(c: Config):
 
                 # order matters, first to succeed excludes remaining
                 # passing twitter config to allow auto tweeting of hash
+                # todo - take it out!
                 active_archivers = [
                     TelethonArchiver(storage, c.webdriver, c.telegram_config, c.hash_algorithm, c.twitter_config),
                     TiktokArchiver(storage, c.webdriver, c.hash_algorithm, c.twitter_config),
@@ -173,6 +178,39 @@ def process_sheet(c: Config):
                         logger.warning(f'{archiver.name} did not succeed on {row=}, final status: {result.status}')
 
                 if result:
+                    # do an auto tweet
+                    # as twitter is limiting the number of tweets we have to queue them up
+
+                    # credentials are in cred_mssql.py which is copied (not in source control)
+                
+                    # simple retry from https://stackoverflow.com/a/41480876/26086
+                    # exponential backoff would be better like polly
+                    retry_flag = True
+                    retry_count = 0
+                    while retry_flag and retry_count < 5:
+                        try:
+                            # cnxn = pyodbc.connect('DRIVER={ODBC Driver 18 for SQL Server};SERVER='+server+';DATABASE='+database+';ENCRYPT=yes;UID='+username+';PWD='+ password)
+                            cnxn = pyodbc.connect('DRIVER={ODBC Driver 18 for SQL Server};SERVER='+cred_mssql.server+';DATABASE='+cred_mssql.database+';ENCRYPT=yes;UID='+cred_mssql.username+';PWD='+ cred_mssql.password)
+                            cursor = cnxn.cursor()
+
+                            cursor.execute(
+                                'INSERT INTO Hash (HashText, HasBeenTweeted) VALUES (?,?)',
+                                result.page_hash, '0')
+                            cnxn.commit()
+
+                            retry_flag = False
+                        except Exception as e:
+                            logger.error(f'Hash problem is {result.page_hash}')
+                            logger.error(f"DB Retry after 30 secs as {e}")
+                            retry_count = retry_count + 1
+                            time.sleep(30)
+                            
+                    if (retry_flag):
+                        # insert failed into db so alert on sheet
+                        result.status = result.status + " TWEET FAILED"
+                    else:
+                        logger.success(f"Inserted hash into db {result.page_hash}")
+
                     update_sheet(gw, row, result)
                 else:
                     gw.set_cell(row, 'status', 'failed: no archiver')
