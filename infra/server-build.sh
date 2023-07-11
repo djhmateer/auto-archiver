@@ -47,6 +47,18 @@ if [ $# -eq 0 ]
 fi
 
 ## ODBC for MSSQL (pyodbc installed via pipenv)
+# https://learn.microsoft.com/en-us/sql/connect/odbc/linux-mac/installing-the-microsoft-odbc-driver-for-sql-server?view=sql-server-ver16&tabs=ubuntu18-install%2Calpine17-install%2Cdebian8-install%2Credhat7-13-install%2Crhel7-offline
+
+
+# add ms prod repo
+# https://learn.microsoft.com/en-us/windows-server/administration/linux-package-repository-for-microsoft-software
+
+curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo tee /etc/apt/trusted.gpg.d/microsoft.asc
+sudo apt-add-repository https://packages.microsoft.com/ubuntu/20.04/prod
+sudo apt-get update
+
+# add odbc
+sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18
 
 # sudo su
 # curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
@@ -56,13 +68,6 @@ fi
 # exit
 # sudo apt-get update
 # sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18
-
-# optional: for bcp and sqlcmd
-# sudo ACCEPT_EULA=Y apt-get install -y mssql-tools18
-# echo 'export PATH="$PATH:/opt/mssql-tools18/bin"' >> ~/.bashrc
-# source ~/.bashrc
-
-
 
 
 ## Python
