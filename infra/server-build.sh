@@ -46,6 +46,9 @@ if [ $# -eq 0 ]
     sudo chown -R dave /home/dave/auto-archiver
 fi
 
+# DM TEST SCRRIPT
+exit
+
 ## ODBC for MSSQL (pyodbc installed via pipenv)
 
 # sudo su
