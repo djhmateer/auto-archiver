@@ -189,6 +189,7 @@ scp -o StrictHostKeyChecking=no ../secrets/token-dataac.json dave@${dnsname}.wes
 
 # mssql credentials
 scp -o StrictHostKeyChecking=no ../cred_mssql.py dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
+scp -o StrictHostKeyChecking=no ../cred_twitter.py dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/
 
 
 # delete old resource groups
