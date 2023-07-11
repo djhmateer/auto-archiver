@@ -162,6 +162,8 @@ rm geckodriver*
 sudo chmod +x /home/dave/auto-archiver/infra/cron.sh
 # sudo chmod +x /home/dave/auto-archiver/infra/cron_fb.sh
 
+sudo chmod +x /home/dave/auto-archiver/infra/tweet.sh
+
 # to stop errors
 # **DONT SEEM TO NEED AT THE MOMENT*
 # https://askubuntu.com/questions/1383506/deprecation-warnings-python3-8-packages
@@ -176,13 +178,22 @@ sudo service cron stop
 # runs the script every minute
 # notice put in a # to disable so will have to manually start it.
 cat <<EOT >> run-auto-archive
-#*/2 * * * * dave /home/dave/auto-archiver/infra/cron.sh
+*/2 * * * * dave /home/dave/auto-archiver/infra/cron.sh
+EOT
+
+cat <<EOT >> run-tweet
+*/2 * * * * dave /home/dave/auto-archiver/infra/twitter.sh
 EOT
 
 sudo mv run-auto-archive /etc/cron.d
+sudo mv run-tweet /etc/cron.d
 
 sudo chown root /etc/cron.d/run-auto-archive
 sudo chmod 600 /etc/cron.d/run-auto-archive
+
+sudo chown root /etc/cron.d/run-tweet
+sudo chmod 600 /etc/cron.d/run-tweet
+
 
 # install fonts eg burmese, chinese for rendering in selenium firefox
 # https://stackoverflow.com/questions/72015245/firefox-unicode-boxes-in-selenium-screenshot-instead-of-characters/72015719#72015719

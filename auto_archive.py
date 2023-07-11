@@ -189,18 +189,17 @@ def process_sheet(c: Config):
                     retry_count = 0
                     while retry_flag and retry_count < 5:
                         try:
-                            # cnxn = pyodbc.connect('DRIVER={ODBC Driver 18 for SQL Server};SERVER='+server+';DATABASE='+database+';ENCRYPT=yes;UID='+username+';PWD='+ password)
                             cnxn = pyodbc.connect('DRIVER={ODBC Driver 18 for SQL Server};SERVER='+cred_mssql.server+';DATABASE='+cred_mssql.database+';ENCRYPT=yes;UID='+cred_mssql.username+';PWD='+ cred_mssql.password)
                             cursor = cnxn.cursor()
 
                             cursor.execute(
                                 'INSERT INTO Hash (HashText, HasBeenTweeted) VALUES (?,?)',
-                                result.page_hash, '0')
+                                result.hash, '0')
                             cnxn.commit()
 
                             retry_flag = False
                         except Exception as e:
-                            logger.error(f'Hash problem is {result.page_hash}')
+                            logger.error(f'Hash problem is {result.hash}')
                             logger.error(f"DB Retry after 30 secs as {e}")
                             retry_count = retry_count + 1
                             time.sleep(30)
@@ -209,7 +208,7 @@ def process_sheet(c: Config):
                         # insert failed into db so alert on sheet
                         result.status = result.status + " TWEET FAILED"
                     else:
-                        logger.success(f"Inserted hash into db {result.page_hash}")
+                        logger.success(f"Inserted hash into db {result.hash}")
 
                     update_sheet(gw, row, result)
                 else:
