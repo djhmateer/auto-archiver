@@ -182,7 +182,7 @@ cat <<EOT >> run-auto-archive
 EOT
 
 cat <<EOT >> run-tweet
-*/2 * * * * dave /home/dave/auto-archiver/infra/twitter.sh
+*/2 * * * * dave /home/dave/auto-archiver/infra/tweet.sh
 EOT
 
 sudo mv run-auto-archive /etc/cron.d

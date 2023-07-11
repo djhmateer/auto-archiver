@@ -1,5 +1,8 @@
 #!/bin/bash
 
+cd /home/dave/auto-archiver
+PATH=/usr/local/bin:$PATH
+
 # only 1 instance of this will run if job lasts longer than 1 minute
 # https://askubuntu.com/a/915731/677298
 if [ $(pgrep -c "${0##*/}") -gt 1 ]; then
