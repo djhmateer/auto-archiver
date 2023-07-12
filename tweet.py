@@ -32,34 +32,55 @@ while retry_flag and retry_count < 5:
 
         # fetchall() so don't get error with using 2 cursors
         # can reuse the cursor as have all in memory
-        cursor.execute("SELECT * from hash WHERE HasBeenTweeted = 'False'") 
+        cursor.execute("SELECT top 2 * from hash WHERE HasBeenTweeted = 'False'") 
         rows = cursor.fetchall()
-        logger.debug(f'Selecting hashes which need to be tweeted')
-        for row in rows:
-            # tweet here
-            # message = f"hash is: {row.HashText} and time {time.time()}"
-            message = f"found this hash so will try to tweet it: {row.HashText}"
-            logger.debug(message)
-            tweet_success = False
-            tweet_exception = ""
-            try:    
-                client.create_tweet(text=message)
-                logger.success(f'Tweet success')
-                tweet_success = True
-            except Exception as e:
-                # eg 403 Forbidden You are not allowed to create a Tweet with duplicate content
-                # 400 Bad Request Your Tweet text is too long. For more information on how Twitter determines text length see https://github.com/twitter/twitter-text.
-                # 429 Too Many Requests Too Many Requests (after 50 tweets - 1226 on Sat)
-                logger.error(f'Error tweeting: {e}')
-                tweet_exception = e
+        num_rows = len(rows)
+        if (num_rows== 2):
+            logger.debug("found 2 hashes which need tweeted")
+        elif (num_rows == 1):
+            logger.debug(f"only found {num_rows}, so wait as want to tweet 2 together")
+            break # out of while
+        else:
+            logger.debug(f"no new hashes found")
+            break # out of while
 
-            # if successful, update the row
-            if (tweet_success):
-              cursor.execute("UPDATE hash set HasBeenTweeted = 'True' WHERE HashId = ?", row.HashId)
-              cursor.commit()
+        logger.debug(f'Selecting 2 hashes which need to be tweeted')
+        tweet_text = ""
+        hashId1 = ""
+        hashId2 = ""
+        for row in rows:
+            if (tweet_text == ""):
+                tweet_text = row.HashText
+                hashId1 = row.HashId
             else:
-              cursor.execute("UPDATE hash set HasBeenTweeted = 'True', ErrorText = ? WHERE HashId = ?", str(tweet_exception), row.HashId)
-              cursor.commit()
+                tweet_text = tweet_text + " " + row.HashText
+                hashId2 = row.HashId
+
+        # tweet here
+        message = f"trying to tweet {tweet_text}"
+        logger.debug(message)
+        tweet_success = False
+        tweet_exception = ""
+        try:    
+            client.create_tweet(text=tweet_text)
+            logger.success(f'Tweet success')
+            tweet_success = True
+        except Exception as e:
+            # eg 403 Forbidden You are not allowed to create a Tweet with duplicate content
+            # 400 Bad Request Your Tweet text is too long. For more information on how Twitter determines text length see https://github.com/twitter/twitter-text.
+            # 429 Too Many Requests Too Many Requests (after 50 tweets - 1226 on Sat)
+            logger.error(f'Error tweeting: {e}')
+            tweet_exception = e
+
+        # if successful, update the rows
+        if (tweet_success):
+            cursor.execute("UPDATE hash set HasBeenTweeted = 'True' WHERE HashId = ?", hashId1)
+            cursor.execute("UPDATE hash set HasBeenTweeted = 'True' WHERE HashId = ?", hashId2)
+            cursor.commit()
+        else:
+            cursor.execute("UPDATE hash set HasBeenTweeted = 'True', ErrorText = ? WHERE HashId = ?", str(tweet_exception), hashId1)
+            cursor.execute("UPDATE hash set HasBeenTweeted = 'True', ErrorText = ? WHERE HashId = ?", str(tweet_exception), hashId2)
+            cursor.commit()
 
         retry_flag = False
     except Exception as e:
