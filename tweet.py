@@ -38,19 +38,19 @@ while retry_flag and retry_count < 5:
         for row in rows:
             # tweet here
             # message = f"hash is: {row.HashText} and time {time.time()}"
-            message = f"{row.HashText}"
+            message = f"found this hash so will try to tweet it: {row.HashText}"
             logger.debug(message)
             tweet_success = False
             tweet_exception = ""
             try:    
                 client.create_tweet(text=message)
-                logger.success(f'Tweet success: {message}')
+                logger.success(f'Tweet success')
                 tweet_success = True
             except Exception as e:
                 # eg 403 Forbidden You are not allowed to create a Tweet with duplicate content
                 # 400 Bad Request Your Tweet text is too long. For more information on how Twitter determines text length see https://github.com/twitter/twitter-text.
                 # 429 Too Many Requests Too Many Requests (after 50 tweets - 1226 on Sat)
-                logger.error(f'unexpected error tweeting: \n\n{e}\n')
+                logger.error(f'Error tweeting: {e}')
                 tweet_exception = e
 
             # if successful, update the row
