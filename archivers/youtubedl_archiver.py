@@ -17,8 +17,8 @@ class YoutubeDLArchiver(Archiver):
                  'noplaylist':True
                  }
 
-    def __init__(self, storage: Storage, driver, fb_cookie, hash_algorithm, twitterconfig: TwitterApiConfig):
-        super().__init__(storage, driver, hash_algorithm, twitterconfig)
+    def __init__(self, storage: Storage, driver, fb_cookie, hash_algorithm):
+        super().__init__(storage, driver, hash_algorithm)
         self.fb_cookie = fb_cookie
 
     def download(self, url, check_if_exists=False):

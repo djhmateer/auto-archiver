@@ -8,6 +8,10 @@ from utils import GWorksheet, mkdir_if_not_exists, expand_url
 from configs import Config
 from storages import Storage
 
+# credentials for db - need something to be there for code to work!
+import cred_mssql
+import pyodbc 
+
 random.seed()
 
 # This is a specialised version of auto_archive.py which only runs the facebook_archiver
@@ -80,10 +84,10 @@ def process_sheet(c: Config):
     # loop through worksheets to check
     for ii, wks in enumerate(sh.worksheets()):
         if not should_process_sheet(c, wks.title):
-            logger.info(f'Ignoring worksheet "{wks.title}" due to allow/block configurations')
+            logger.info(f'Ignoring worksheet "{c.sheet} - {wks.title}" due to allow/block configurations')
             continue
 
-        logger.info(f'Opening worksheet {ii=}: {wks.title=} {c.header=}')
+        logger.info(f'Opening worksheet {ii=}: {c.sheet} - {wks.title} {c.header=}')
         gw = GWorksheet(wks, header_row=c.header, columns=c.column_names)
 
         if missing_required_columns(gw): continue
@@ -209,6 +213,41 @@ def process_sheet(c: Config):
                         logger.warning(f'{archiver.name} did not succeed on {row=}, final status: {result.status}')
 
                 if result:
+                    # do an auto tweet (well, write to the db hash queue)
+                    # as twitter is limiting the number of tweets we have to queue them up
+
+                    # credentials are in cred_mssql.py which is copied (not in source control)
+                
+                    # simple retry from https://stackoverflow.com/a/41480876/26086
+                    # exponential backoff would be better like polly
+                    if (result.hash == None):
+                        logger.debug("Result is fine, no hash, probable wayback, so write to spreadsheet and continue")
+                    else:
+                        retry_flag = True
+                        retry_count = 0
+                        while retry_flag and retry_count < 5:
+                            try:
+                                cnxn = pyodbc.connect('DRIVER={ODBC Driver 18 for SQL Server};SERVER='+cred_mssql.server+';DATABASE='+cred_mssql.database+';ENCRYPT=yes;UID='+cred_mssql.username+';PWD='+ cred_mssql.password)
+                                cursor = cnxn.cursor()
+
+                                cursor.execute(
+                                    'INSERT INTO Hash (HashText, HasBeenTweeted) VALUES (?,?)',
+                                    result.hash, '0')
+                                cnxn.commit()
+
+                                retry_flag = False
+                            except Exception as e:
+                                logger.error(f'Hash problem is {result.hash}')
+                                logger.error(f"DB Retry after 30 secs as {e}")
+                                retry_count = retry_count + 1
+                                time.sleep(30)
+                            
+                        if (retry_flag):
+                            # insert failed into db so alert on sheet
+                            result.status = result.status + " TWEET FAILED"
+                        else:
+                            logger.success(f"Inserted hash into db {result.hash}")
+
                     update_sheet(gw, row, result)
                 else:
                     gw.set_cell(row, 'status', 'FB failed: no archiver')
@@ -221,7 +260,7 @@ def process_sheet(c: Config):
             except Exception as e:
                 logger.error(f'Got unexpected error in row {row} for {url=}: {e}\n{traceback.format_exc()}')
                 gw.set_cell(row, 'status', 'failed: unexpected error (see logs)')
-        logger.success(f'Finished worksheet {wks.title}')
+        logger.success(f'Finished worksheet {c.sheet} - {wks.title}')
 
 
 @logger.catch

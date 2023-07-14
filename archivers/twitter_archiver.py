@@ -15,8 +15,8 @@ class TwitterArchiver(Archiver):
     """
     # def __init__(self, storage: Storage, driver, hash_algorithm):
     #     super().__init__(storage, driver, hash_algorithm)
-    def __init__(self, storage: Storage, driver, hash_algorithm, twitterconfig: TwitterApiConfig):
-        super().__init__(storage, driver, hash_algorithm, twitterconfig)
+    def __init__(self, storage: Storage, driver, hash_algorithm):
+        super().__init__(storage, driver, hash_algorithm)
 
 
     name = "twitter"

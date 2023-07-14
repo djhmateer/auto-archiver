@@ -13,15 +13,7 @@ from slugify import slugify
 from storages import Storage
 from utils import mkdir_if_not_exists
 
-# import tweepy
 import time
-
-from configs import TwitterApiConfig
-
-
-import time
-
-
 
 @dataclass
 class ArchiveResult:
@@ -40,11 +32,10 @@ class Archiver(ABC):
     name = "default"
     retry_regex = r"retrying at (\d+)$"
 
-    def __init__(self, storage: Storage, driver, hash_algorithm, config: TwitterApiConfig):
+    def __init__(self, storage: Storage, driver, hash_algorithm):
         self.storage = storage
         self.driver = driver
         self.hash_algorithm = hash_algorithm
-        self.config = config
 
     def __str__(self):
         return self.__class__.__name__

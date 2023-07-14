@@ -588,7 +588,7 @@ class FacebookArchiver(Archiver):
             
         # for prod - docker runs as non-root (dave) but write files as root. So change perms.
         # we're running nopasswd for sudo 
-        if os.getcwd() == "/mnt/c/dev/test/auto-archiver":
+        if os.getcwd() == "/mnt/c/dev/auto-archiver":
             logger.debug('Dev env found so not updating permissions of /crawls/collections')
         else:
             logger.info("Updating permissions for crawls/collections")

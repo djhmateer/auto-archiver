@@ -89,10 +89,10 @@ def process_sheet(c: Config):
     # loop through worksheets to check
     for ii, wks in enumerate(sh.worksheets()):
         if not should_process_sheet(c, wks.title):
-            logger.info(f'Ignoring worksheet "{wks.title}" due to allow/block configurations')
+            logger.info(f'Ignoring worksheet "{c.sheet} - {wks.title}" due to allow/block configurations')
             continue
 
-        logger.info(f'Opening worksheet {ii=}: {wks.title=} {c.header=}')
+        logger.info(f'Opening worksheet {ii=}: {c.sheet} - {wks.title} {c.header=}')
 
         # can fail here with gspread.exceptions.APIError
         # "Quota exceeded for quota metric 'Read requests' and limit 'Read requests per minute per user' of service 
@@ -146,14 +146,14 @@ def process_sheet(c: Config):
                 # passing twitter config to allow auto tweeting of hash
                 # todo - take it out!
                 active_archivers = [
-                    TelethonArchiver(storage, c.webdriver, c.telegram_config, c.hash_algorithm, c.twitter_config),
-                    TiktokArchiver(storage, c.webdriver, c.hash_algorithm, c.twitter_config),
+                    TelethonArchiver(storage, c.webdriver, c.telegram_config, c.hash_algorithm),
+                    TiktokArchiver(storage, c.webdriver, c.hash_algorithm),
                     ####TwitterApiArchiver(storage, c.webdriver, c.twitter_config, c.hash_algorithm),
-                    YoutubeDLArchiver(storage, c.webdriver, c.facebook_cookie,c.hash_algorithm, c.twitter_config),
-                    TelegramArchiver(storage, c.webdriver, c.hash_algorithm, c.twitter_config),
-                    TwitterArchiver(storage, c.webdriver, c.hash_algorithm, c.twitter_config),
-                    VkArchiver(storage,  c.webdriver, c.vk_config, c.hash_algorithm, c.twitter_config),
-                    WaybackArchiver(storage, c.webdriver, c.wayback_config, c.hash_algorithm, c.twitter_config)
+                    YoutubeDLArchiver(storage, c.webdriver, c.facebook_cookie,c.hash_algorithm),
+                    TelegramArchiver(storage, c.webdriver, c.hash_algorithm),
+                    TwitterArchiver(storage, c.webdriver, c.hash_algorithm),
+                    VkArchiver(storage,  c.webdriver, c.vk_config, c.hash_algorithm),
+                    WaybackArchiver(storage, c.webdriver, c.wayback_config, c.hash_algorithm)
                 ]
 
                 for archiver in active_archivers:
@@ -225,7 +225,7 @@ def process_sheet(c: Config):
             except Exception as e:
                 logger.error(f'Got unexpected error in row {row} for {url=}: {e}\n{traceback.format_exc()}')
                 gw.set_cell(row, 'status', 'failed: unexpected error (see logs)')
-        logger.success(f'Finished worksheet {wks.title}')
+        logger.success(f'Finished worksheet {c.sheet} - {wks.title}')
 
 
 @logger.catch
