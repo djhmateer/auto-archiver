@@ -13,7 +13,14 @@ logger.add("logs/t3success.log", level="SUCCESS", rotation="00:00")
 logger.add("logs/t4warning.log", level="WARNING", rotation="00:00")
 logger.add("logs/t5error.log", level="ERROR", rotation="00:00")
 
-logger.debug(f'tweet.py')
+
+# DMTEST
+logger.debug(f'Trying to connect to db')
+conn_string = 'DRIVER={ODBC Driver 18 for SQL Server};SERVER='+cred_mssql.server+';DATABASE='+cred_mssql.database+';ENCRYPT=yes;UID='+cred_mssql.username+';PWD='+ cred_mssql.password
+logger.debug(conn_string)
+# cnxn = pyodbc.connect('DRIVER={ODBC Driver 18 for SQL Server};SERVER='+cred_mssql.server+';DATABASE='+cred_mssql.database+';ENCRYPT=yes;UID='+cred_mssql.username+';PWD='+ cred_mssql.password)
+cnxn = pyodbc.connect(conn_string)
+
 
 client = tweepy.Client(
     consumer_key=cred_twitter.consumer_key,
@@ -27,7 +34,10 @@ retry_count = 0
 while retry_flag and retry_count < 5:
     try:
         logger.debug(f'Trying to connect to db')
-        cnxn = pyodbc.connect('DRIVER={ODBC Driver 18 for SQL Server};SERVER='+cred_mssql.server+';DATABASE='+cred_mssql.database+';ENCRYPT=yes;UID='+cred_mssql.username+';PWD='+ cred_mssql.password)
+        conn_string = 'DRIVER={ODBC Driver 18 for SQL Server};SERVER='+cred_mssql.server+';DATABASE='+cred_mssql.database+';ENCRYPT=yes;UID='+cred_mssql.username+';PWD='+ cred_mssql.password
+        logger.debug(conn_string)
+        # cnxn = pyodbc.connect('DRIVER={ODBC Driver 18 for SQL Server};SERVER='+cred_mssql.server+';DATABASE='+cred_mssql.database+';ENCRYPT=yes;UID='+cred_mssql.username+';PWD='+ cred_mssql.password)
+        cnxn = pyodbc.connect(conn_string)
         cursor = cnxn.cursor()
 
         # fetchall() so don't get error with using 2 cursors
@@ -43,6 +53,9 @@ while retry_flag and retry_count < 5:
         else:
             logger.debug(f"no new hashes found")
             break # out of while
+
+        # DM TEST
+        # exit
 
         logger.debug(f'Selecting 2 hashes which need to be tweeted')
         tweet_text = ""
@@ -84,7 +97,7 @@ while retry_flag and retry_count < 5:
 
         retry_flag = False
     except Exception as e:
-        logger.error(f"DB Retry after 30 secs as {e}")
+        logger.error(f"DB Retry after 30 secs as: {e}")
         retry_count = retry_count + 1
         time.sleep(30)
 

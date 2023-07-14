@@ -11,6 +11,7 @@ from storages import Storage
 # credentials for db - need something to be there for code to work!
 import cred_mssql
 import pyodbc 
+import time
 
 random.seed()
 
@@ -237,7 +238,7 @@ def process_sheet(c: Config):
 
                                 retry_flag = False
                             except Exception as e:
-                                logger.error(f'Hash problem is {result.hash}')
+                                logger.error(f'Hash problem on {result.hash}')
                                 logger.error(f"DB Retry after 30 secs as {e}")
                                 retry_count = retry_count + 1
                                 time.sleep(30)
