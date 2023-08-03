@@ -63,45 +63,66 @@ fi
 # pipenv run python auto_archive.py --config config-test-hashing-2.yaml
 
 TIME=5
-pipenv run python auto_archive_fb.py --config config-aw.yaml
+# pipenv run python auto_archive_fb.py --config config-aw.yaml
+# sleep $TIME
+
+# # DM turn these on for FB
+# pipenv run python auto_archive_fb.py --config config-mw.yaml
+# sleep $TIME
+# #pipenv run python auto_archive_fb.py --config config-cmu-demo.yaml
+
+# pipenv run python auto_archive_fb.py --config config-eor.yaml
+# sleep $TIME
+
+# pipenv run python auto_archive_fb.py --config config-ukraine-environment.yaml
+# sleep $TIME
+
+# #pipenv run python auto_archive_fb.py --config config-cir-projects.yaml
+
+# #pipenv run python auto_archive_fb.py --config config-osr-demo.yaml
+
+# #pipenv run python auto_archive.py --config config-airwars.yaml
+
+# #pipenv run python auto_archive.py --config config-france24.yaml
+
+# #pipenv run python auto_archive.py --config config-un-demo.yaml
+
+# #pipenv run python auto_archive.py --config config-wagner-demo.yaml
+
+# #pipenv run python auto_archive.py --config config-amnesty-demo.yaml
+
+# ## pipenv run python auto_archive.py --config config-fb-test.yaml
+
+
+
+# pipenv run python auto_archive_fb.py --config config-aa-demo-main.yaml
+# sleep $TIME
+
+# pipenv run python auto_archive_fb.py --config config-rmit-demo.yaml
+# sleep $TIME
+
+# pipenv run python auto_archive_fb.py --config config-bellingcat-demo.yaml
+
+# PROD
+
+pipenv run python auto_archive_fb.py --config config-cir-domain-eor.yaml
 sleep $TIME
 
-# DM turn these on for FB
-pipenv run python auto_archive_fb.py --config config-mw.yaml
-sleep $TIME
-#pipenv run python auto_archive_fb.py --config config-cmu-demo.yaml
-
-pipenv run python auto_archive_fb.py --config config-eor.yaml
+pipenv run python auto_archive_fb.py --config config-cir-domain-cir-sahel.yaml
 sleep $TIME
 
-pipenv run python auto_archive_fb.py --config config-ukraine-environment.yaml
+pipenv run python auto_archive_fb.py --config config-cir-domain-cir-sudan.yaml
 sleep $TIME
 
-#pipenv run python auto_archive_fb.py --config config-cir-projects.yaml
-
-#pipenv run python auto_archive_fb.py --config config-osr-demo.yaml
-
-#pipenv run python auto_archive.py --config config-airwars.yaml
-
-#pipenv run python auto_archive.py --config config-france24.yaml
-
-#pipenv run python auto_archive.py --config config-un-demo.yaml
-
-#pipenv run python auto_archive.py --config config-wagner-demo.yaml
-
-#pipenv run python auto_archive.py --config config-amnesty-demo.yaml
-
-## pipenv run python auto_archive.py --config config-fb-test.yaml
-
-
-
-pipenv run python auto_archive_fb.py --config config-aa-demo-main.yaml
+pipenv run python auto_archive_fb.py --config config-cir-domain-aw.yaml
 sleep $TIME
 
-pipenv run python auto_archive_fb.py --config config-rmit-demo.yaml
+pipenv run python auto_archive_fb.py --config config-cir-domain-eor-grc.yaml
 sleep $TIME
 
-pipenv run python auto_archive_fb.py --config config-bellingcat-demo.yaml
+pipenv run python auto_archive_fb.py --config config-cir-domain-mw.yaml
+sleep $TIME
+
 ## cron job output is in 
 ## vim /home/dave/log.txt
 

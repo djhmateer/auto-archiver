@@ -111,6 +111,26 @@ sleep $TIME
 # pipenv run python auto_archive.py --config config-afp-demo.yaml
 # sleep $TIME
 
+# PROD
+
+pipenv run python auto_archive.py --config config-cir-domain-eor.yaml
+sleep $TIME
+
+pipenv run python auto_archive.py --config config-cir-domain-cir-sahel.yaml
+sleep $TIME
+
+pipenv run python auto_archive.py --config config-cir-domain-cir-sudan.yaml
+sleep $TIME
+
+pipenv run python auto_archive.py --config config-cir-domain-aw.yaml
+sleep $TIME
+
+pipenv run python auto_archive.py --config config-cir-domain-eor-grc.yaml
+sleep $TIME
+
+pipenv run python auto_archive.py --config config-cir-domain-mw.yaml
+sleep $TIME
+
 
 ## cron job output is in 
 ## vim /home/dave/log.txt

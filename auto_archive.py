@@ -187,6 +187,8 @@ def process_sheet(c: Config):
                     # exponential backoff would be better like polly
                     if (result.hash == None):
                         logger.debug("Result is fine, no hash, probable wayback, so write to spreadsheet and continue")
+                    elif (cred_mssql.server == ''):
+                        logger.debug("no db for auto twitter so write to spreadsheet and continue")
                     else:
                         retry_flag = True
                         retry_count = 0
@@ -196,8 +198,8 @@ def process_sheet(c: Config):
                                 cursor = cnxn.cursor()
 
                                 cursor.execute(
-                                    'INSERT INTO Hash (HashText, HasBeenTweeted) VALUES (?,?)',
-                                    result.hash, '0')
+                                    'INSERT INTO Hash (HashText, DocumentName, TabName, EntryNumber, HasBeenTweeted) VALUES (?,?,?,?,?)',
+                                    result.hash, c.sheet, wks.title, entry_number, '0')
                                 cnxn.commit()
 
                                 retry_flag = False
