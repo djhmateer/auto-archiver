@@ -148,7 +148,7 @@ def process_sheet(c: Config):
                 active_archivers = [
                     TelethonArchiver(storage, c.webdriver, c.telegram_config, c.hash_algorithm),
                     TiktokArchiver(storage, c.webdriver, c.hash_algorithm),
-                    ####TwitterApiArchiver(storage, c.webdriver, c.twitter_config, c.hash_algorithm),
+                    TwitterApiArchiver(storage, c.webdriver, c.twitter_config, c.hash_algorithm),
                     YoutubeDLArchiver(storage, c.webdriver, c.facebook_cookie,c.hash_algorithm),
                     TelegramArchiver(storage, c.webdriver, c.hash_algorithm),
                     TwitterArchiver(storage, c.webdriver, c.hash_algorithm),
