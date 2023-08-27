@@ -111,10 +111,15 @@ class Archiver(ABC):
         and call self.generate_media_page_html with them
         """
 
+        # url: 'https://twitter.com/EverestToday/status/1546152848819232768'
+        # urls: 'https://video.twimg.com/ext_tw_video/1546152721773785088/pu/vid/720x1280/DSxOVl52T7Vr52zf.mp4?tag=12'
+
         thumbnail = None
         uploaded_media = []
         for media_url in urls:
-            key = self._get_key_from_url(media_url, ".jpg")
+            # DM experiment commenting this .jpg out ***************
+            # key = self._get_key_from_url(media_url, ".jpg")
+            key = self._get_key_from_url(media_url)
 
             filename = os.path.join(Storage.TMP_FOLDER, key)
             self.download_from_url(media_url, filename)
@@ -153,6 +158,7 @@ class Archiver(ABC):
         if @append_date is true, the key adds a timestamp after the URL slug and before the extension
         """
         url_path = urlparse(url).path
+        # url_path: '/ext_tw_video/1546152721773785088/pu/vid/720x1280/DSxOVl52T7Vr52zf.mp4'
         path, ext = os.path.splitext(url_path)
         slug = slugify(path)
         if append_datetime:

@@ -65,6 +65,7 @@ class GDStorage(Storage):
         """
         key = self.clean_key(key)
 
+        # self.folder is AA001
         full_name = os.path.join(self.folder, key)
         parent_id, folder_id = self.root_folder_id, None
         path_parts = full_name.split(os.path.sep)

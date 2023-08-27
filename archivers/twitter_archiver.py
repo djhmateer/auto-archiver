@@ -140,11 +140,13 @@ class TwitterArchiver(Archiver):
     #     page_cdn, page_hash, thumbnail = self.generate_media_page(urls, url, r.text)
     #     return ArchiveResult(status="success", cdn_url=page_cdn, screenshot=screenshot, hash=page_hash, thumbnail=thumbnail, timestamp=timestamp, title=tweet["text"])
 
-    def choose_variant(self, variants):
+    # old code which I tried to get to work but failed
+    def choose_variantXXX(self, variants):
         # choosing the highest quality possible
         variant, width, height = None, 0, 0
         for var in variants:
-            if var["type"] == "video/mp4":
+            # if var["type"] == "video/mp4":
+            if var.content_type == "video/mp4":
                 width_height = re.search(r"\/(\d+)x(\d+)\/", var["src"])
                 if width_height:
                     w, h = int(width_height[1]), int(width_height[2])
@@ -153,4 +155,23 @@ class TwitterArchiver(Archiver):
                         variant = var.get("src", variant)
             else:
                 variant = var.get("src") if not variant else variant
+        return variant
+
+    # from new v6 codebase
+    def choose_variant(self, variants):
+        # choosing the highest quality possible
+        variant, bit_rate = None, -1
+        for var in variants:
+            if var.content_type == "video/mp4":
+                if var.bit_rate > bit_rate:
+                    bit_rate = var.bit_rate
+                    # variant = var
+                    #  'MediaVariant' object has no attribute 'get'
+                    # variant = var.get("src", variant)
+                    variant = var.url
+
+            else:
+                variant = var if not variant else variant
+        # returns a string eg
+        # 'https://video.twimg.com/ext_tw_video/1546152721773785088/pu/vid/720x1280/DSxOVl52T7Vr52zf.mp4?tag=12'
         return variant

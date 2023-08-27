@@ -134,6 +134,8 @@ def process_sheet(c: Config):
                 gw.set_cell(row, 'status', 'Archive in progress')
                 url = expand_url(url)
                 # if no folder eg TH054 then use Google Worksheet/Title
+                # DM HERE******************
+                # does this set self.folder in gd_storage - yes it does!
                 c.set_folder(gw.get_cell_or_default(row, 'folder', default_folder, when_empty_use_default=True))
 
                 # make a new driver so each spreadsheet row is idempotent

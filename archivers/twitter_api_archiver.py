@@ -43,10 +43,12 @@ class TwitterApiArchiver(TwitterArchiver):
         urls = []
         if tweet.includes:
             for m in tweet.includes.media:
+                # 'https://pbs.twimg.com/media/FOXyEykWQAAtarU.jpg'
                 if m.url:
                     urls.append(m.url)
                 elif hasattr(m, "variants"):
                     var_url = self.choose_variant(m.variants)
+                    # url of 'https://video.twimg.com/ext_tw_video/1546152721773785088/pu/vid/720x1280/DSxOVl52T7Vr52zf.mp4?tag=12'
                     urls.append(var_url)
                 else:
                     urls.append(None)  # will trigger error
@@ -68,5 +70,6 @@ class TwitterApiArchiver(TwitterArchiver):
         }, ensure_ascii=False, indent=4)
 
         screenshot = self.get_screenshot(url)
+        # does the download then upload of the url in here
         page_cdn, page_hash, thumbnail = self.generate_media_page(urls, url, output)
         return ArchiveResult(status="success", cdn_url=page_cdn, screenshot=screenshot, hash=page_hash, thumbnail=thumbnail, timestamp=timestamp, title=tweet.data.text)
