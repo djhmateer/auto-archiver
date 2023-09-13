@@ -132,6 +132,7 @@ def process_sheet(c: Config):
                             cell_updates.append((row, 'screenshot', ''))
                             cell_updates.append((row, 'hash', ''))
                             cell_updates.append((row, 'thumbnail', ''))
+                            # dm comment out 13 sept
                             cell_updates.append((row, 'thumbnail_index', ''))
                             cell_updates.append((row, 'title', ''))
                             cell_updates.append((row, 'timestamp', ''))
