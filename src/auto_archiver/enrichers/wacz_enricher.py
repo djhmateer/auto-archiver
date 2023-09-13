@@ -125,6 +125,7 @@ class WaczArchiverEnricher(Enricher, Archiver):
         with ZipFile(wacz_filename, 'r') as z_obj:
             z_obj.extractall(path=unzipped_dir)
 
+        # DM - use --combineWarc  so don't have to do this?
         # if warc is split into multiple gzip chunks, merge those
         warc_dir = os.path.join(unzipped_dir, "archive")
         warc_filename = os.path.join(tmp_dir, "merged.warc")
@@ -162,6 +163,9 @@ class WaczArchiverEnricher(Enricher, Archiver):
                 if not content_type: continue
                 if not any(x in content_type for x in ["video", "image", "audio"]): continue
 
+                # DM - ignore this specialised content type for facebook
+                if content_type == "image/x.fb.keyframes": continue
+
                 # create local file and add media
                 ext = mimetypes.guess_extension(content_type)
                 warc_fn = f"warc-file-{counter}{ext}"
@@ -182,6 +186,9 @@ class WaczArchiverEnricher(Enricher, Archiver):
 
                 # remove bad videos
                 if m.is_video() and not m.is_valid_video(): continue
+
+                # DM if size of media file is <30k discard
+                if os.path.getsize(m.filename) < 30000: continue
                 
                 to_enrich.add_media(m, warc_fn)
                 counter += 1
