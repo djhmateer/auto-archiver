@@ -58,7 +58,7 @@ class WaczArchiverEnricher(Enricher, Archiver):
         # bar = os.path.abspath(foo)
 
         browsertrix_home_host = '/mnt/c/dev/v6-auto-archiver' + ArchivingContext.get_tmp_dir()[1:]
-
+        # browsertrix_home_host = os.environ.get('BROWSERTRIX_HOME_HOST') or os.path.abspath(ArchivingContext.get_tmp_dir())
         browsertrix_home_container = os.environ.get('BROWSERTRIX_HOME_CONTAINER') or browsertrix_home_host
 
         cmd = [
@@ -82,7 +82,7 @@ class WaczArchiverEnricher(Enricher, Archiver):
             logger.debug(f"generating WACZ in Docker for {url=}")
             logger.debug(f"{browsertrix_home_host=} {browsertrix_home_container=}")
 
-            
+
             if self.docker_commands:
                 cmd = self.docker_commands + cmd
             else:
@@ -532,19 +532,11 @@ class WaczArchiverEnricher(Enricher, Archiver):
 
                     # DM if size of media file is < x discard
                     fs = os.path.getsize(fn)
-                    if fs < 10000 and ext == ".jpg": 
-                        logger.debug(f' size too small so removed {fn}')
-                        continue
-
-                    if fs < 37000 and ext == ".png": 
-                        logger.debug(f' size too small with png so removed {fn}')
-                        continue
-
-                    if ext == ".gif": 
-                        logger.debug(f' ignoring gifs {fn}')
-                        continue
-
+                    if fs < 10000 and ext == ".jpg": continue
+                    if fs < 37000 and ext == ".png": continue
+                    if ext == ".gif": continue
                     if ext == ".ico": continue
+                    if ext == None : continue
 
                     m = Media(filename=fn)
                     m.set("src", record_url)
