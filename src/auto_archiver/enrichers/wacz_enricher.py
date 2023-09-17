@@ -81,12 +81,12 @@ class WaczArchiverEnricher(Enricher, Archiver):
         if use_docker:
             logger.debug(f"generating WACZ in Docker for {url=}")
             logger.debug(f"{browsertrix_home_host=} {browsertrix_home_container=}")
-            # problem here on 2nd time through it thinks there is a self.docker_commands, but this is the previous tmp directory 
-            # comment out for now, but this means command line passing wont work
-            # if not self.docker_commands:
-            self.docker_commands = ["docker", "run", "--rm", "-v", f"{browsertrix_home_host}:/crawls/", "webrecorder/browsertrix-crawler"]
 
-            cmd = self.docker_commands + cmd
+            
+            if self.docker_commands:
+                cmd = self.docker_commands + cmd
+            else:
+                cmd = ["docker", "run", "--rm", "-v", f"{browsertrix_home_host}:/crawls/", "webrecorder/browsertrix-crawler"] + cmd
 
             if self.profile:
                 profile_fn = os.path.join(browsertrix_home_container, "profile.tar.gz")
@@ -108,17 +108,17 @@ class WaczArchiverEnricher(Enricher, Archiver):
             return False
 
         if use_docker:
-            filename = os.path.join(browsertrix_home_container, "collections", collection, f"{collection}.wacz")
+            wacz_fn = os.path.join(browsertrix_home_container, "collections", collection, f"{collection}.wacz")
         else:
-            filename = os.path.join("collections", collection, f"{collection}.wacz")
+            wacz_fn = os.path.join("collections", collection, f"{collection}.wacz")
 
-        if not os.path.exists(filename):
-            logger.warning(f"Unable to locate and upload WACZ  {filename=}")
+        if not os.path.exists(wacz_fn):
+            logger.warning(f"Unable to locate and upload WACZ  {wacz_fn=}")
             return False
 
-        to_enrich.add_media(Media(filename), "browsertrix")
+        to_enrich.add_media(Media(wacz_fn), "browsertrix")
         if self.extract_media:
-            self.extract_media_from_wacz(to_enrich, filename)
+            self.extract_media_from_wacz(to_enrich, wacz_fn)
         return True
 
     def extract_media_from_wacz(self, to_enrich: Metadata, wacz_filename: str) -> None:
