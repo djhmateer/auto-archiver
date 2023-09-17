@@ -108,6 +108,13 @@ class Config:
         self.databases = [Database.init(e, self.config) for e in steps.get("databases", [])]
         self.storages = [Storage.init(e, self.config) for e in steps.get("storages", [])]
 
+        # log files setup
+        logger.add("logs/1trace.log", level="TRACE", rotation="00:00")
+        logger.add("logs/2info.log", level="INFO", rotation="00:00")
+        logger.add("logs/3success.log", level="SUCCESS", rotation="00:00")
+        logger.add("logs/4warning.log", level="WARNING", rotation="00:00")
+        logger.add("logs/5error.log", level="ERROR", rotation="00:00")
+        
         logger.info(f"FEEDER: {self.feeder.name}")
         logger.info(f"ENRICHERS: {[x.name for x in self.enrichers]}")
         logger.info(f"ARCHIVERS: {[x.name for x in self.archivers]}")
