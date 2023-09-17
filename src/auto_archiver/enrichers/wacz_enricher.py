@@ -544,6 +544,8 @@ class WaczArchiverEnricher(Enricher, Archiver):
                         logger.debug(f' ignoring gifs {fn}')
                         continue
 
+                    if ext == ".ico": continue
+
                     m = Media(filename=fn)
                     m.set("src", record_url)
                     m.set("src_alternative", record_url)
