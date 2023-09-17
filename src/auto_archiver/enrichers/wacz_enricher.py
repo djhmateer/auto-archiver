@@ -199,7 +199,7 @@ class WaczArchiverEnricher(Enricher, Archiver):
 
                                 set_id = foo[middle_26_start_pos+13:set_end_pos]
 
-                                logger.debug(f"Strategy 1 and 3 {fb_id=} and {set_id=}")
+                                logger.info(f"  *** Part 1 - Strategy 1 {fb_id=} and {set_id=}")
                                 bar = f'https://www.facebook.com/photo/?fbid={fb_id}&set=pcb.{set_id}'
 
                                 logger.debug(f'starting url go to next full res image js viewer page, and start crawl is {bar}')
@@ -212,14 +212,17 @@ class WaczArchiverEnricher(Enricher, Archiver):
 
                                     fb_ids_requested.append(fb_id)
 
-                                    logger.warning(f"Part 2 trying url {builder_url}")
+                                    logger.info(f"  *** Part 2 next trying url for js page {builder_url}")
 
                                     next_fb_id = self.save_images_to_enrich_object_from_url_using_browsertrix(builder_url, to_enrich, fb_id)
 
+                                    total_images = len(to_enrich.media)
+                                    if total_images > 70:
+                                        logger.warning('Total images is > 70 so stopping crawl')
+                                        break
                                     if next_fb_id in fb_ids_requested:
                                         logger.debug('have looped around all photos in js viewer so end')
                                         break
-                                        # fb_ids_to_request.append(next_fb_id)
                                     else: 
                                         fb_id = next_fb_id
 
@@ -241,7 +244,7 @@ class WaczArchiverEnricher(Enricher, Archiver):
 
                                     set_id = foo[middle_2F_start_pos+3:set_end_pos]
 
-                                    logger.debug(f"Strategy 1 and 3 {fb_id=} and {set_id=}")
+                                    logger.debug(f"Strategy x single photo {fb_id=} and {set_id=}")
 
                                     # route_urls[0]=%2Fkhitthitnews%3F
                                     name_thing_start_pos = foo.find(f'route_urls[0]=%2F', 0)
@@ -259,8 +262,12 @@ class WaczArchiverEnricher(Enricher, Archiver):
 
                                     # no crawl as a single photo only which has already been added
 
+                                    # this is probably meant to be a single photo
+                                    # however there may be many more via left and right arrows, but we don't want
+                                    # can't guarantee this first one is the photo though hmmm
+
                                 
-                        # end of strategy 1,2,3 
+                        # end of strategy 1 
                         continue # to the next record
 
                     # only strategy 0
@@ -379,15 +386,14 @@ class WaczArchiverEnricher(Enricher, Archiver):
 
 
     def save_images_to_enrich_object_from_url_using_browsertrix(self, url_build, to_enrich: Metadata, current_fb_id):
-            logger.debug(f'{url_build=}')
+            logger.debug(f' Inside Part 2')
+            # call browsertrix and get a warc file using a logged in facebook profile
+            # this will get full resolution image which we can then save as a jpg
+
             with open('url.txt', 'w') as file:
                 file.write(url_build)
 
             tmp_dir = ArchivingContext.get_tmp_dir()
-
-            # call browsertrix and get a warc file using a logged in facebook profile
-            # this will get full resolution image which we can then save as a jpg
-            logger.info(f"Part 2 - calling Browsertrix in Docker {url_build}")
 
             collection = str(uuid.uuid4())[0:8]
             # browsertrix_home = self.browsertrix_home or os.path.abspath(ArchivingContext.get_tmp_dir())
@@ -516,13 +522,28 @@ class WaczArchiverEnricher(Enricher, Archiver):
                     
                     with open(fn, "wb") as outf: outf.write(record.raw_stream.read())
 
-                    # DM if size of media file is <30k discard
+                    # FB serves many images in the page as helpers - we just want the main high res image
+                    # many of the small images are from comments
+                    # 1k jpg
+                    # 22k png
+                    # 35k png - mobile phone image
+                    # 17k png
+                    # gifs are common in comments
+
+                    # DM if size of media file is < x discard
                     fs = os.path.getsize(fn)
-                    if fs < 30000: 
-                        os.remove(fn)
+                    if fs < 10000 and ext == ".jpg": 
+                        logger.debug(f' size too small so removed {fn}')
                         continue
 
-                    # fn = tmp_dir + "/warc-file-104.jpg"
+                    if fs < 37000 and ext == ".png": 
+                        logger.debug(f' size too small with png so removed {fn}')
+                        continue
+
+                    if ext == ".gif": 
+                        logger.debug(f' ignoring gifs {fn}')
+                        continue
+
                     m = Media(filename=fn)
                     m.set("src", record_url)
                     m.set("src_alternative", record_url)
