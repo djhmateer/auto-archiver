@@ -25,7 +25,7 @@ class GsheetsDb(Database):
         return {}
 
     def started(self, item: Metadata) -> None:
-        logger.warning(f"STARTED {item}")
+        logger.info(f"STARTED {item}")
         gw, row = self._retrieve_gsheet(item)
         gw.set_cell(row, 'status', 'Archive in progress')
 

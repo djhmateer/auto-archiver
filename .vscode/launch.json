@@ -25,14 +25,25 @@
 		// }
         // ,
         {
-			"name": "AA Demo Main (davemateer@gmail)",
+			"name": "FB - AA Demo Main (davemateer@gmail)",
 			"type": "python",
 			"request": "launch",
 			// "program": "src/auto_archiver",
             "module": "src.auto_archiver",
 			"console": "integratedTerminal",
 			"justMyCode": true,
-			"args": ["--config","secrets/orchestration.yaml"]
+			"args": ["--config","secrets/orchestration-aa-demo-main.yaml"]
+		},
+        {
+			"name": "FB - CIR - DOMAIN - MW",
+			"type": "python",
+			"request": "launch",
+			// "program": "src/auto_archiver",
+            "module": "src.auto_archiver",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","secrets/orchestration-cir-domain-mw.yaml"]
 		}
+
     ]
 }

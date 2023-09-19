@@ -109,12 +109,19 @@ class Config:
         self.storages = [Storage.init(e, self.config) for e in steps.get("storages", [])]
 
         # log files setup
-        logger.add("logs/1trace.log", level="TRACE", rotation="00:00")
-        logger.add("logs/2info.log", level="INFO", rotation="00:00")
-        logger.add("logs/3success.log", level="SUCCESS", rotation="00:00")
-        logger.add("logs/4warning.log", level="WARNING", rotation="00:00")
-        logger.add("logs/5error.log", level="ERROR", rotation="00:00")
-        
+        # https://loguru.readthedocs.io/en/stable/overview.html#easier-file-logging-with-rotation-retention-compression
+        # logger.add("logs/1trace.log", level="TRACE", rotation="00:00")
+        # logger.add("logs/2info.log", level="INFO", rotation="00:00")
+        # logger.add("logs/3success.log", level="SUCCESS", rotation="00:00")
+        # logger.add("logs/4warning.log", level="WARNING", rotation="00:00")
+        # logger.add("logs/5error.log", level="ERROR", rotation="00:00")
+
+        logger.add("logs/1trace.log", level="TRACE", rotation="100 MB")
+        logger.add("logs/2info.log", level="INFO", rotation="100 MB")
+        logger.add("logs/3success.log", level="SUCCESS", rotation="100 MB")
+        logger.add("logs/4warning.log", level="WARNING", rotation="100 MB")
+        logger.add("logs/5error.log", level="ERROR", rotation="100 MB")
+
         logger.info(f"FEEDER: {self.feeder.name}")
         logger.info(f"ENRICHERS: {[x.name for x in self.enrichers]}")
         logger.info(f"ARCHIVERS: {[x.name for x in self.archivers]}")
