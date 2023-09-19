@@ -56,10 +56,24 @@ class GsheetsFeeder(Gsheets, Feeder):
                 url = gw.get_cell(row, 'url').strip()
                 if not len(url): continue
 
+                # DM - special code path for only FB archiver
+                if 'facebook.com' not in url: continue
+                
+                # leave 2022 alone
+                original_archive_date = gw.get_cell(row, 'date')
+                if original_archive_date.startswith('2022-'): continue
+                    
                 original_status = gw.get_cell(row, 'status')
-                status = gw.get_cell(row, 'status', fresh=original_status in ['', None])
+                # status = gw.get_cell(row, 'status', fresh=original_status in ['', None])
+
+                # DM TODO - patch in FB failed: no archiver
+                # status = gw.get_cell(row, 'status', fresh=original_status in ['wayback: success', 'asdf'])
+                # DM - not sure quite how this works.. perhaps a cache version and then verify with a fresh version?
+                status = gw.get_cell(row, 'status', fresh='wayback:' in original_status)
                 # TODO: custom status parser(?) aka should_retry_from_status
-                if status not in ['', None]: continue
+                # if status not in ['', None]: continue
+                # if status not in ['wayback: success', 'asdf']: continue
+                if 'wayback:' not in status: continue
 
                 # All checks done - archival process starts here
                 m = Metadata().set_url(url)
