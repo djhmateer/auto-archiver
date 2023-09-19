@@ -403,9 +403,10 @@ class WaczArchiverEnricher(Enricher, Archiver):
             hard_code_directory_for_wsl2 ='/mnt/c/dev/v6-auto-archiver' 
             browsertrix_home = ""
             try:
-                browsertrix_home = self.browsertrix_home or os.path.abspath(ArchivingContext.get_tmp_dir())
-            # get strange AttributeError as well as FileNotFound error if catch either separately
-            except: 
+                # get strange AttributeError as well as FileNotFound error if catch either separately
+                # browsertrix_home = self.browsertrix_home or os.path.abspath(ArchivingContext.get_tmp_dir())
+                browsertrix_home = os.path.abspath(ArchivingContext.get_tmp_dir())
+            except FileNotFoundError: 
                 logger.warning(f'Dev found in function 2')
                 tmp_dir = ArchivingContext.get_tmp_dir()
                 foo = tmp_dir[1:]
