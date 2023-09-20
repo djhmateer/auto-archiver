@@ -39,6 +39,9 @@ requests = {extras = ["socks"], version = "*"}
 numpy = "*"
 warcio = "*"
 
+# for connecting to sql server for auto twitter queue
+pyodbc = "*"
+
 [dev-packages]
 autopep8 = "*"
 setuptools-pipfile = "*"
