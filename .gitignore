@@ -31,3 +31,4 @@ logs*
 cron_fb.sh
 crawls/
 git-filter-repo
+sshCurrentVm.sh
