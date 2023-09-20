@@ -34,11 +34,55 @@
 			"justMyCode": true,
 			"args": ["--config","secrets/orchestration-aa-demo-main.yaml"]
 		},
+		{
+			"name": "FB - CIR - DOMAIN - EOR",
+			"type": "python",
+			"request": "launch",
+            "module": "src.auto_archiver",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","secrets/orchestration-cir-domain-eor.yaml"]
+		},
+		{
+			"name": "FB - CIR - DOMAIN - CIR - Sahel",
+			"type": "python",
+			"request": "launch",
+            "module": "src.auto_archiver",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","secrets/orchestration-cir-domain-cir-sahel.yaml"]
+		},
+		{
+			"name": "FB - CIR - DOMAIN - CIR - Sudan",
+			"type": "python",
+			"request": "launch",
+            "module": "src.auto_archiver",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","secrets/orchestration-cir-domain-cir-sudan.yaml"]
+		},
+		{
+			"name": "FB - CIR - DOMAIN - AW",
+			"type": "python",
+			"request": "launch",
+            "module": "src.auto_archiver",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","secrets/orchestration-cir-domain-aw.yaml"]
+		},
+        {
+			"name": "FB - CIR - DOMAIN - EOR - GRC",
+			"type": "python",
+			"request": "launch",
+            "module": "src.auto_archiver",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","secrets/orchestration-cir-domain-eor-grc.yaml"]
+		},
         {
 			"name": "FB - CIR - DOMAIN - MW",
 			"type": "python",
 			"request": "launch",
-			// "program": "src/auto_archiver",
             "module": "src.auto_archiver",
 			"console": "integratedTerminal",
 			"justMyCode": true,

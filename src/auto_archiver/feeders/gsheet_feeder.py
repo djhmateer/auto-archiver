@@ -62,7 +62,7 @@ class GsheetsFeeder(Gsheets, Feeder):
                 # leave 2022 alone
                 original_archive_date = gw.get_cell(row, 'date')
                 if original_archive_date.startswith('2022-'): continue
-                    
+
                 original_status = gw.get_cell(row, 'status')
                 # status = gw.get_cell(row, 'status', fresh=original_status in ['', None])
 
