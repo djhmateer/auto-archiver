@@ -185,8 +185,6 @@ class GDriveStorage(Storage):
             'mimeType': 'application/vnd.google-apps.folder',
             'parents': [parent_id]
         }
-        # DM change to support shared drives
-        #gd_folder = self.service.files().create(body=file_metadata, fields='id').execute()
         gd_folder = self.service.files().create(supportsAllDrives=True,body=file_metadata, fields='id').execute()
         return gd_folder.get('id')
 

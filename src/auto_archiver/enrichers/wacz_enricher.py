@@ -427,6 +427,13 @@ class WaczArchiverEnricher(Enricher, Archiver):
                 "--combineWarc"
             ]
 
+            if self.profile:
+                # profile_fn = os.path.join(browsertrix_home_container, "profile.tar.gz")
+                # logger.debug(f"copying {self.profile} to {profile_fn}")
+                # shutil.copyfile(self.profile, profile_fn)
+                # cmd.extend(["--profile", os.path.join("/crawls", "profile.tar.gz")])
+                cmd.extend(["--profile", os.path.join("/crawls", "profile.tar.gz")])
+
             try:
                 logger.info(f"Running browsertrix-crawler: {' '.join(cmd)}")
                 subprocess.run(cmd, check=True)
@@ -516,7 +523,7 @@ class WaczArchiverEnricher(Enricher, Archiver):
 
                     # DM if size of media file is < x discard
                     fs = os.path.getsize(fn)
-                    if fs < 10000 and ext == ".jpg": continue
+                    if fs < 5000 and ext == ".jpg": continue
                     if fs < 37000 and ext == ".png": continue
                     if ext == ".gif": continue
                     if ext == ".ico": continue
