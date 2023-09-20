@@ -39,6 +39,11 @@ requests = {extras = ["socks"], version = "*"}
 numpy = "*"
 warcio = "*"
 
+# otherwise was getting AttributeError: module ‘lib’ has no attribute ‘OpenSSL_add_all_algorithms’
+# boto3 perhaps dependency
+# only seems to happen on WSL2 dev env (currently)
+pyopenssl = "*"
+
 # for connecting to sql server for auto twitter queue
 pyodbc = "*"
 
