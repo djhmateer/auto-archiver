@@ -55,10 +55,13 @@ class GsheetsDb(Database):
         cell_updates = []
         row_values = gw.get_row(row)
 
+        # DM hack - we are overwriting values in the FB archiver so don't check if blank already
         def batch_if_valid(col, val, final_value=None):
             final_value = final_value or val
             try:
-                if val and gw.col_exists(col) and gw.get_cell(row_values, col) == '':
+                # DM
+                # if val and gw.col_exists(col) and gw.get_cell(row_values, col) == '':
+                if val and gw.col_exists(col):
                     cell_updates.append((row, col, final_value))
             except Exception as e:
                 logger.error(f"Unable to batch {col}={final_value} due to {e}")
