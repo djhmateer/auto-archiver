@@ -35,7 +35,16 @@ class GsheetsFeeder(Gsheets, Feeder):
                 "use_sheet_names_in_stored_paths": {
                     "default": True,
                     "help": "if True the stored files path will include 'workbook_name/worksheet_name/...'",
+                },
+                "fb_archiver": {
+                    "default": False,
+                    "help": "if True only run on facebook.com urls. referenced in gsheet_feeder''",
+                } ,
+                "auto_tweet": {
+                    "default": False,
+                    "help": "DM",
                 }
+
             })
 
     def __iter__(self) -> Metadata:
@@ -56,24 +65,32 @@ class GsheetsFeeder(Gsheets, Feeder):
                 url = gw.get_cell(row, 'url').strip()
                 if not len(url): continue
 
-                # DM - special code path for only FB archiver
-                if 'facebook.com' not in url: continue
-                
-                # leave 2022 alone
-                original_archive_date = gw.get_cell(row, 'date')
-                if original_archive_date.startswith('2022-'): continue
-
                 original_status = gw.get_cell(row, 'status')
-                # status = gw.get_cell(row, 'status', fresh=original_status in ['', None])
 
-                # DM TODO - patch in FB failed: no archiver
-                # status = gw.get_cell(row, 'status', fresh=original_status in ['wayback: success', 'asdf'])
-                # DM - not sure quite how this works.. perhaps a cache version and then verify with a fresh version?
-                status = gw.get_cell(row, 'status', fresh='wayback:' in original_status)
-                # TODO: custom status parser(?) aka should_retry_from_status
-                # if status not in ['', None]: continue
-                # if status not in ['wayback: success', 'asdf']: continue
-                if 'wayback:' not in status: continue
+                # special code path for only FB archiver 
+                # as we only want it to feed when facebook.com is in url and wayback in status 
+                # ie normal archiver has ran already
+                # todo long term - see if can get all archivers running on proxmox,
+                # or maybe get fb working on cloud
+                # then don't need a separate fb archiver
+                if self.fb_archiver == True:
+                    if 'facebook.com' in url and 'wayback:' in original_status:
+                        # ignore 2022
+                        original_archive_date = gw.get_cell(row, 'date')
+                        if original_archive_date.startswith('2022-'): continue
+                        
+                        # do a fresh call to the sheet to make sure
+                        status = gw.get_cell(row, 'status', fresh='wayback:' in original_status)
+                        if 'wayback:' not in status: continue
+                    else: 
+                        continue
+
+                else:
+                    # normal code path - non fb archiver
+                    # archive status has to be blank for it to work
+                    status = gw.get_cell(row, 'status', fresh=original_status in ['', None])
+                    if status not in ['', None]: continue
+
 
                 # All checks done - archival process starts here
                 m = Metadata().set_url(url)

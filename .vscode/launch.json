@@ -24,8 +24,29 @@
 		// 	"args": ["--config","secrets/orchestration.yaml"]
 		// }
         // ,
-        {
-			"name": "FB - AA Demo Main (davemateer@gmail)",
+		{
+			"name": "GLAN (davemateer@gmail)",
+			"type": "python",
+			"request": "launch",
+			// "program": "src/auto_archiver",
+            "module": "src.auto_archiver",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","secrets/orchestration-glan.yaml"]
+		},
+		{
+			"name": "GLAN - Facebook (davemateer@gmail)",
+			"type": "python",
+			"request": "launch",
+			// "program": "src/auto_archiver",
+            "module": "src.auto_archiver",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","secrets/orchestration-glan-facebook.yaml"]
+		},
+
+		{
+			"name": "AA Demo Main (davemateer@gmail)",
 			"type": "python",
 			"request": "launch",
 			// "program": "src/auto_archiver",
@@ -33,6 +54,16 @@
 			"console": "integratedTerminal",
 			"justMyCode": true,
 			"args": ["--config","secrets/orchestration-aa-demo-main.yaml"]
+		},
+        {
+			"name": "AA Demo Main - Facebook (davemateer@gmail)",
+			"type": "python",
+			"request": "launch",
+			// "program": "src/auto_archiver",
+            "module": "src.auto_archiver",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","secrets/orchestration-aa-demo-main-facebook.yaml"]
 		},
 		{
 			"name": "FB - CIR - DOMAIN - EOR",

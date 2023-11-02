@@ -170,6 +170,18 @@ class WaczArchiverEnricher(Enricher, Archiver):
                 crawl_and_get_media_from_sub_page = True
 
             with open(warc_filename, 'rb') as warc_stream:
+                # HERE
+                # Check for FB Block
+                # It looks like you were misusing this feature by going too fast. You’ve been temporarily blocked from using it.
+
+                # for record in ArchiveIterator(warc_stream):
+                #     content = record.content_stream().read()
+                #     # asdf = content.find(f'It looks like you were misusing this feature by going too fast', 0)
+                #     asdf = content.find(f'It looks like you were misusing this feature by going too fast', 0)
+
+                #     if asdf > 0:
+                #         logger.info('found a problem!')
+
                 for record in ArchiveIterator(warc_stream):
                     # only include fetched resources
                     if record.rec_type == "resource":  # browsertrix screenshots

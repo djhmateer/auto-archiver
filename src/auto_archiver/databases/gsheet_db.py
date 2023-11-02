@@ -20,10 +20,16 @@ class GsheetsDb(Database):
         could be updated in the future to support non-GsheetFeeder metadata 
     """
     name = "gsheet_db"
+    # auto_tweet
+    # auto_tweet 
 
     def __init__(self, config: dict) -> None:
         # without this STEP.__init__ is not called
         super().__init__(config)
+        foo = config.get('gsheet_feeder')
+        bar = foo.get("auto_tweet")
+        self.auto_tweet = bar
+
 
     @staticmethod
     def configs() -> dict:
@@ -105,6 +111,8 @@ class GsheetsDb(Database):
         logger.info(f'{hash=}')
         if (hash == None):
             logger.debug("no hash so write to spreadsheet and continue")
+        elif (self.auto_tweet == False):
+            logger.debug("auto_tweet not enabled in config")
         elif (cred_mssql.server == ''):
             logger.debug("no db for auto twitter so write to spreadsheet and continue")
         else:
