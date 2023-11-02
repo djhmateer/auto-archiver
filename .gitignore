@@ -28,7 +28,7 @@ orchestration.yaml
 auto_archiver.egg-info*
 logs*
 *.csv
-cron_fb.sh
+# cron_fb.sh
 crawls/
 git-filter-repo
 sshCurrentVm.sh
