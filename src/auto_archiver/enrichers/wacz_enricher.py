@@ -61,11 +61,9 @@ class WaczArchiverEnricher(Enricher, Archiver):
         hard_code_directory_for_wsl2 ='/mnt/c/dev/v6-auto-archiver' 
         try:
             browsertrix_home_host = os.environ.get('BROWSERTRIX_HOME_HOST') or os.path.abspath(ArchivingContext.get_tmp_dir())
-        # except OSError as e:
         except FileNotFoundError as e:
             logger.debug('Dev environment found using ' + hard_code_directory_for_wsl2)
             browsertrix_home_host = hard_code_directory_for_wsl2 + ArchivingContext.get_tmp_dir()[1:]
-
 
         browsertrix_home_container = os.environ.get('BROWSERTRIX_HOME_CONTAINER') or browsertrix_home_host
 
@@ -170,17 +168,6 @@ class WaczArchiverEnricher(Enricher, Archiver):
                 crawl_and_get_media_from_sub_page = True
 
             with open(warc_filename, 'rb') as warc_stream:
-                # HERE
-                # Check for FB Block
-                # It looks like you were misusing this feature by going too fast. You’ve been temporarily blocked from using it.
-
-                # for record in ArchiveIterator(warc_stream):
-                #     content = record.content_stream().read()
-                #     # asdf = content.find(f'It looks like you were misusing this feature by going too fast', 0)
-                #     asdf = content.find(f'It looks like you were misusing this feature by going too fast', 0)
-
-                #     if asdf > 0:
-                #         logger.info('found a problem!')
 
                 for record in ArchiveIterator(warc_stream):
                     # only include fetched resources
