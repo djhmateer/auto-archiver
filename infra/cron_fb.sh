@@ -56,6 +56,7 @@ fi
 
 TIME=5
 
+# pipenv run python -m src.auto_archiver --config secrets/orchestration-aa-demo-main.yaml
 # pipenv run python -m src.auto_archiver --config secrets/orchestration-aa-demo-main-facebook.yaml
 # sleep $TIME
 

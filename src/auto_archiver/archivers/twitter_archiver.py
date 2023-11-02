@@ -16,6 +16,9 @@ class TwitterArchiver(Archiver):
 
     name = "twitter_archiver"
     link_pattern = re.compile(r"twitter.com\/(?:\#!\/)?(\w+)\/status(?:es)?\/(\d+)")
+
+    link_pattern2 = re.compile(r"x.com\/(?:\#!\/)?(\w+)\/status(?:es)?\/(\d+)")
+
     link_clean_pattern = re.compile(r"(.+twitter\.com\/.+\/\d+)(\?)*.*")
 
     def __init__(self, config: dict) -> None:
@@ -127,9 +130,14 @@ class TwitterArchiver(Archiver):
         return result.success("twitter-hack")
 
     def get_username_tweet_id(self, url):
-        # detect URLs that we definitely cannot handle
+        # detect twitter.com URLs that we definitely cannot handle
         matches = self.link_pattern.findall(url)
-        if not len(matches): return False, False
+        # if not len(matches): return False, False
+        if not len(matches): 
+            # maybe it is an x.com url?
+            matches = self.link_pattern2.findall(url)
+            
+            if not len(matches): return False, False
 
         username, tweet_id = matches[0]  # only one URL supported
         logger.debug(f"Found {username=} and {tweet_id=} in {url=}")

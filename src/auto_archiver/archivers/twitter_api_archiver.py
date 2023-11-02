@@ -40,6 +40,8 @@ class TwitterApiArchiver(TwitterArchiver, Archiver):
 
     def download(self, item: Metadata) -> Metadata:
         url = item.get_url()
+        # x.com problem
+        
         # detect URLs that we definitely cannot handle
         username, tweet_id = self.get_username_tweet_id(url)
         if not username: return False
