@@ -132,7 +132,7 @@ class TwitterArchiver(Archiver):
     def get_username_tweet_id(self, url):
         # detect twitter.com URLs that we definitely cannot handle
         matches = self.link_pattern.findall(url)
-        # if not len(matches): return False, False
+        # twitter.com
         if not len(matches): 
             # maybe it is an x.com url?
             matches = self.link_pattern2.findall(url)
