@@ -54,7 +54,7 @@ class GsheetsFeeder(Gsheets, Feeder):
                 logger.debug(f"SKIPPED worksheet '{wks.title}' due to allow/block rules")
                 continue
 
-            logger.info(f'Opening worksheet {ii=}: {wks.title=} header={self.header}')
+            logger.info(f'Opening worksheet {ii=}: {sh.title} {wks.title=} header={self.header}')
             gw = GWorksheet(wks, header_row=self.header, columns=self.columns)
 
             if len(missing_cols := self.missing_required_columns(gw)):
