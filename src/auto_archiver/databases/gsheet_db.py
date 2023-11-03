@@ -103,6 +103,16 @@ class GsheetsDb(Database):
             batch_if_valid('wacz', "\n".join(browsertrix.urls))
             batch_if_valid('replaywebpage', "\n".join([f'https://replayweb.page/?source={quote(wacz)}#view=pages&url={quote(item.get_url())}' for wacz in browsertrix.urls]))
 
+        # DM Media URL
+        # get first media
+        # if there is no media then there will be a screenshot probably
+        first_media = all_media[0]
+        # a screenshot has no source, so this returns None.
+        first_media_url= first_media.get('src')
+
+        # will only write to spreadsheet if the column is defined in orchestration
+        batch_if_valid('media_url', first_media_url)
+
         gw.batch_set_cell(cell_updates)
 
         ## DM hack in auto tweet

@@ -72,7 +72,7 @@
             "module": "src.auto_archiver",
 			"console": "integratedTerminal",
 			"justMyCode": true,
-			"args": ["--config","secrets/orchestration-cir-domain-eor.yaml"]
+			"args": ["--config","secrets/orchestration-cir-domain-eor-facebook.yaml"]
 		},
 		{
 			"name": "FB - CIR - DOMAIN - CIR - Sahel",
@@ -81,7 +81,7 @@
             "module": "src.auto_archiver",
 			"console": "integratedTerminal",
 			"justMyCode": true,
-			"args": ["--config","secrets/orchestration-cir-domain-cir-sahel.yaml"]
+			"args": ["--config","secrets/orchestration-cir-domain-cir-sahel-facebook.yaml"]
 		},
 		{
 			"name": "FB - CIR - DOMAIN - CIR - Sudan",
@@ -90,7 +90,7 @@
             "module": "src.auto_archiver",
 			"console": "integratedTerminal",
 			"justMyCode": true,
-			"args": ["--config","secrets/orchestration-cir-domain-cir-sudan.yaml"]
+			"args": ["--config","secrets/orchestration-cir-domain-cir-sudan-facebook.yaml"]
 		},
 		{
 			"name": "FB - CIR - DOMAIN - AW",
@@ -99,7 +99,7 @@
             "module": "src.auto_archiver",
 			"console": "integratedTerminal",
 			"justMyCode": true,
-			"args": ["--config","secrets/orchestration-cir-domain-aw.yaml"]
+			"args": ["--config","secrets/orchestration-cir-domain-aw-facebook.yaml"]
 		},
         {
 			"name": "FB - CIR - DOMAIN - EOR - GRC",
@@ -108,7 +108,7 @@
             "module": "src.auto_archiver",
 			"console": "integratedTerminal",
 			"justMyCode": true,
-			"args": ["--config","secrets/orchestration-cir-domain-eor-grc.yaml"]
+			"args": ["--config","secrets/orchestration-cir-domain-eor-grc-facebook.yaml"]
 		},
         {
 			"name": "FB - CIR - DOMAIN - MW",
@@ -117,7 +117,7 @@
             "module": "src.auto_archiver",
 			"console": "integratedTerminal",
 			"justMyCode": true,
-			"args": ["--config","secrets/orchestration-cir-domain-mw.yaml"]
+			"args": ["--config","secrets/orchestration-cir-domain-mw-facebook.yaml"]
 		}
 
     ]

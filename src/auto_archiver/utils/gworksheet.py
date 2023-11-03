@@ -8,6 +8,7 @@ class GWorksheet:
     should always include the offset of the header. 
     eg: if header=4, row 5 will be the first with data. 
     """
+    # look in orchestration for column definitions
     COLUMN_NAMES = {
         'url': 'link',
         'status': 'archive status',

@@ -18,6 +18,7 @@ class Gsheets(Step):
 
     @staticmethod
     def configs() -> dict:
+        # look in orchestration for column definitions
         return {
             "sheet": {"default": None, "help": "name of the sheet to archive"},
             "sheet_id": {"default": None, "help": "(alternative to sheet name) the id of the sheet to archive"},
