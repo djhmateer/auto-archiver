@@ -83,7 +83,8 @@ sleep $TIME
 
 
 
-# pipenv run python -m src.auto_archiver --config secrets/orchestration-glan.yaml                
+pipenv run python -m src.auto_archiver --config secrets/orchestration-glan.yaml                
+sleep $TIME
 pipenv run python -m src.auto_archiver --config secrets/orchestration-glan-facebook.yaml
 sleep $TIME
 
