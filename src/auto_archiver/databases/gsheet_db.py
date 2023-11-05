@@ -103,15 +103,60 @@ class GsheetsDb(Database):
             batch_if_valid('wacz', "\n".join(browsertrix.urls))
             batch_if_valid('replaywebpage', "\n".join([f'https://replayweb.page/?source={quote(wacz)}#view=pages&url={quote(item.get_url())}' for wacz in browsertrix.urls]))
 
-        # DM Media URL
-        # get first media
-        # if there is no media then there will be a screenshot probably
-        first_media = all_media[0]
-        # a screenshot has no source, so this returns None.
-        first_media_url= first_media.get('src')
+        # DM Image URL1,2,3,4 and Video URL1,2 feature
+        # only run this feature if the column exists in the definition ie in orchestration in the db (assume if first column exists, then others do)
+        image_and_video_url_feature = False
+        try:
+            _ = gw.col_exists('image_url1')
+            image_and_video_url_feature = True
+        except: pass
 
-        # will only write to spreadsheet if the column is defined in orchestration
-        batch_if_valid('media_url', first_media_url)
+        if image_and_video_url_feature:
+            # get first media
+            # if there is no media then there will be a screenshot 
+            try:
+                first_media = all_media[0]
+                # a screenshot has no source, so this returns None.
+                first_media_url= first_media.get('src')
+
+                # is it a video?
+                if ('.mp4' in first_media_url):
+                    # will only write to spreadsheet if the column is defined in orchestration
+                    batch_if_valid('video_url1', first_media_url)
+                else:
+                    batch_if_valid('image_url1', first_media_url)
+            except: pass
+
+            try:
+                # if multiple videos then we have thumbnails which we don't want to consider
+                # so lets filter out any with properties of id thumbnail_
+                new_array = []
+                for media in all_media[1:]:
+                    dd = media.get('id')
+                    if dd is None:
+                        new_array.append(media) 
+                second_media = new_array[0]
+                second_media_url= second_media.get('src')
+
+                # is it a video?
+                if ('.mp4' in second_media_url):
+                    batch_if_valid('video_url2', second_media_url)
+                else:
+                    batch_if_valid('image_url2', second_media_url)
+            except Exception as e:
+                pass
+
+            try:
+                third_media = all_media[2]
+                third_media_url= third_media.get('src')
+                batch_if_valid('image_url3', third_media_url)
+            except: pass
+
+            try:
+                fourth_media = all_media[3]
+                fourth_media_url= fourth_media.get('src')
+                batch_if_valid('image_url4', fourth_media_url)
+            except: pass
 
         gw.batch_set_cell(cell_updates)
 

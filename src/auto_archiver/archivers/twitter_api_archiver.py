@@ -8,6 +8,7 @@ from slugify import slugify
 from . import Archiver
 from .twitter_archiver import TwitterArchiver
 from ..core import Metadata,Media
+import time
 
 
 class TwitterApiArchiver(TwitterArchiver, Archiver):
@@ -37,7 +38,7 @@ class TwitterApiArchiver(TwitterArchiver, Archiver):
             "access_token": {"default": None, "help": "twitter API access_token"},
             "access_secret": {"default": None, "help": "twitter API access_secret"},
         }
-
+    
     def download(self, item: Metadata) -> Metadata:
         url = item.get_url()
         
@@ -45,11 +46,24 @@ class TwitterApiArchiver(TwitterArchiver, Archiver):
         username, tweet_id = self.get_username_tweet_id(url)
         if not username: return False
 
-        try:
-            tweet = self.api.get_tweet(tweet_id, expansions=["attachments.media_keys"], media_fields=["type", "duration_ms", "url", "variants"], tweet_fields=["attachments", "author_id", "created_at", "entities", "id", "text", "possibly_sensitive"])
-        except Exception as e:
-            logger.error(f"Could not get tweet: {e}")
-            return False
+        # rate limit retry - 15 minutes sleep
+        try_again = True
+        i = 0
+        while try_again:
+            try:
+                tweet = self.api.get_tweet(tweet_id, expansions=["attachments.media_keys"], media_fields=["type", "duration_ms", "url", "variants"], tweet_fields=["attachments", "author_id", "created_at", "entities", "id", "text", "possibly_sensitive"])
+                try_again = False
+            except Exception as e:
+                if "too many requests" in str(e).lower():
+                    if i == 10:
+                        logger.error('Couldnt contact Twitter after 150 mintues so giving up')
+                        return False
+                    else:
+                        logger.info("Twitter API rate limit hit. Wait for 15 minutes")
+                        time.sleep(15*60) # Wait for 15 minutes
+                else:
+                    logger.error(f"Could not get tweet: {e}")
+                    return False
 
         result = Metadata()
         result.set_title(tweet.data.text)

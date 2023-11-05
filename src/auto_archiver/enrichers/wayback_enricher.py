@@ -55,7 +55,21 @@ class WaybackArchiverEnricher(Enricher, Archiver):
         if self.if_not_archived_within:
             post_data["if_not_archived_within"] = self.if_not_archived_within
         # see https://docs.google.com/document/d/1Nsv52MvSjbLb2PCpHlat0gkzw0EvtSgpKHu4mk0MnrA for more options
-        r = requests.post('https://web.archive.org/save/', headers=ia_headers, data=post_data)
+        # get Max retries exceeded with url: when too much
+        try_again = True
+        i = 0
+        while try_again:
+            try:
+                r = requests.post('https://web.archive.org/save/', headers=ia_headers, data=post_data)
+                try_again = False
+            except Exception as e:
+                if i == 50:
+                    logger.error('couldnt contact wayback after 50 minutes so giving up')
+                    return False
+                else:
+                    logger.debug("wayback error sleeping for 1 min")        
+                    time.sleep(1*60)
+                    i = i + 1
 
         if r.status_code != 200:
             logger.error(em := f"Internet archive failed with status of {r.status_code}: {r.json()}")
@@ -84,7 +98,7 @@ class WaybackArchiverEnricher(Enricher, Archiver):
                     return False
 
             except Exception as e:
-                logger.warning(f"error fetching status for {url=} due to: {e}")
+                logger.debug(f"error fetching status for {url=} due to: {e}")
             if not wayback_url:
                 attempt += 1
                 time.sleep(1)  # TODO: can be improved with exponential backoff
