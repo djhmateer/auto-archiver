@@ -107,7 +107,7 @@ class GsheetsFeeder(Gsheets, Feeder):
 
                 yield m
 
-            logger.success(f'Finished worksheet {sh.title} - {wks.title}')
+            logger.info(f'Finished worksheet {sh.title} - {wks.title}')
 
     def should_process_sheet(self, sheet_name: str) -> bool:
         if len(self.allow_worksheets) and sheet_name not in self.allow_worksheets:
