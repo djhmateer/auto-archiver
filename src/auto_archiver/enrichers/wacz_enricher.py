@@ -382,6 +382,8 @@ class WaczArchiverEnricher(Enricher, Archiver):
                     # remove bad videos
                     if m.is_video() and not m.is_valid_video(): continue
 
+                    logger.debug(f'Normal strategy 0. Saving {m.filename}')
+
                     to_enrich.add_media(m, warc_fn)
                     counter += 1
                     seen_urls.add(record_url)
