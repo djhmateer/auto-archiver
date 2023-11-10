@@ -37,7 +37,7 @@ class InstagramTbotArchiver(Archiver):
     def setup(self) -> None:
         logger.info(f"SETUP {self.name} checking login...")
         with self.client.start():
-            logger.success(f"SETUP {self.name} login works.")
+            logger.info(f"SETUP {self.name} login works.")
 
     def download(self, item: Metadata) -> Metadata:
         url = item.get_url()
