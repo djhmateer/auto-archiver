@@ -45,7 +45,7 @@ class TelethonArchiver(Archiver):
         """
         logger.info(f"SETUP {self.name} checking login...")
         with self.client.start():
-            logger.success(f"SETUP {self.name} login works.")
+            logger.info(f"SETUP {self.name} login works.")
 
         if self.join_channels and len(self.channel_invites):
             logger.info(f"SETUP {self.name} joining channels...")
