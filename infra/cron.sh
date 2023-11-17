@@ -58,7 +58,8 @@ TIME=5
 
 # pipenv run python -m src.auto_archiver --config secrets/orchestration-aa-demo-main.yaml
 
-# TEST - make sure that the FB profile is working
+# TEST 
+cd /home/dave/auto-archiver
 pipenv run python -m src.auto_archiver --config secrets/orchestration-aa-demo-main.yaml
 sleep $TIME
 

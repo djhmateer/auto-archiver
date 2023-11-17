@@ -4,32 +4,6 @@
 # 1.cir-auto-archiver - 
 # 2.osr4rightstools. poll-for-file - don't run the cron job. Wire up systemctl infra/python-poll-service
 
-### PROXMOX
-# Create a clean VM
-# Proxmox, shutdown VM, backup, restore
-# options change name to cir-auto-archiver-p30
-
-# connect to the VM
-# ssh pfsense -p 30 
-
-## clone a branch
-# git clone -b working https://github.com/djhmateer/auto-archiver ;  sudo chmod +x ~/auto-archiver/infra/server-build.sh ; ./auto-archiver/infra/server-build.sh
-
-# git clone https://github.com/djhmateer/auto-archiver ;  sudo chmod +x ~/auto-archiver/infra/server-build.sh ; ./auto-archiver/infra/server-build.sh
-
-
-## OLD
-# Use Filezilla to copy secrets - `.env` and `service-account.json` and `anon.session` and `gd-token.json`
-
-## NEW
-# Filezilla to copy: 
-# gd-token.json (make sure correct token eg davemateer@gmail.com or autoarchivingcentral@gmail.com) to secrets/
-# config-*.yaml
-# anon.session
-# service-acount.json
-# /crawls/profiles/facebook-logged-in.tar.gz copy to same
-
-### AZURE
 # run ./infra.azcli from bash to create the VM
 # that script will call this file
 # if [ $# -eq 0 ]
@@ -37,21 +11,16 @@
 #     echo "Deploying the PROXMOX - should ssh in first, then run"
 #     echo "git clone https://github.com/djhmateer/auto-archiver ;  sudo chmod +x ~/auto-archiver/infra/server-build.sh ; ./auto-archiver/infra/server-build.sh"
 # 	else
+
+
     echo "Deploying to Azure - infra.azcli should call this script using az vm run-command invoke with an argument. "
     echo "It copies the script to the VM from the local machine"
 		cd /home/dave
-		# git clone https://github.com/djhmateer/auto-archiver
 		git clone -b v6-test --single-branch https://github.com/djhmateer/auto-archiver
-		# git clone -b working https://github.com/djhmateer/auto-archiver
     mkdir /home/dave/auto-archiver/secrets
     sudo chown -R dave /home/dave/auto-archiver
-# fi
 
-exit
-
-# https://askubuntu.com/a/1431746
 # to stop the pink pop up (may be okay when no terminal attached, but useful if doing all these commands manually)
-# sudo NEEDRESTART_MODE=a apt-get dist-upgrade --yes
 
 # https://askubuntu.com/a/1421221
 sudo sed -i 's/#$nrconf{restart} = '"'"'i'"'"';/$nrconf{restart} = '"'"'a'"'"';/g' /etc/needrestart/needrestart.conf
@@ -194,24 +163,14 @@ cat <<EOT >> run-auto-archive
 */2 * * * * dave /home/dave/auto-archiver/infra/cron.sh
 EOT
 
-# cat <<EOT >> run-tweet
-# */2 * * * * dave /home/dave/auto-archiver/infra/tweet.sh
-# EOT
-
 sudo mv run-auto-archive /etc/cron.d
-# sudo mv run-tweet /etc/cron.d
 
 sudo chown root /etc/cron.d/run-auto-archive
 sudo chmod 600 /etc/cron.d/run-auto-archive
 
-# sudo chown root /etc/cron.d/run-tweet
-# sudo chmod 600 /etc/cron.d/run-tweet
-
-
 # install fonts eg burmese, chinese for rendering in selenium firefox
 # https://stackoverflow.com/questions/72015245/firefox-unicode-boxes-in-selenium-screenshot-instead-of-characters/72015719#72015719
 sudo apt install fonts-noto -y
-
 
 sudo apt install libimage-exiftool-perl -y
 

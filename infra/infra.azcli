@@ -155,8 +155,12 @@ do
    sleep 15
 done
 
+scp -o StrictHostKeyChecking=no ../src/auto-archiver/cred_mssql.py dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/src/auto-archiver/
+
+# orchestrations
 scp -o StrictHostKeyChecking=no ../secrets/orchestration-aa-demo-main.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 
+# tokens and service accounts
 scp -o StrictHostKeyChecking=no ../secrets/token-davemateer-gmail.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 
 scp -o StrictHostKeyChecking=no ../secrets/service_account_davemateer_gmail.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
