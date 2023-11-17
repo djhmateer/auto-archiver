@@ -149,11 +149,12 @@ az vm run-command invoke \
 n=0
 until [ "$n" -ge 20 ]
 do
-
    scp -o StrictHostKeyChecking=no ../src/auto_archiver/cred_mssql.py dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/ && break
    n=$((n+1)) 
    sleep 15
 done
+# telegram (telethon_archiver)
+scp -o StrictHostKeyChecking=no ../secrets/anon.session dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 
 scp -o StrictHostKeyChecking=no ../src/auto_archiver/cred_mssql.py dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/src/auto_archiver/
 
