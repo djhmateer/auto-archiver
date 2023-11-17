@@ -147,7 +147,7 @@ az network nsg rule create \
 # the param is just for my server-build script
 
 # DM HERE
-exit 1
+# exit 1
 
 # Wait for reboot from above
 n=0
