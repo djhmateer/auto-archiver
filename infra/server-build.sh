@@ -32,11 +32,11 @@
 ### AZURE
 # run ./infra.azcli from bash to create the VM
 # that script will call this file
-if [ $# -eq 0 ]
-  then
-    echo "Deploying the PROXMOX - should ssh in first, then run"
-    echo "git clone https://github.com/djhmateer/auto-archiver ;  sudo chmod +x ~/auto-archiver/infra/server-build.sh ; ./auto-archiver/infra/server-build.sh"
-	else
+# if [ $# -eq 0 ]
+#   then
+#     echo "Deploying the PROXMOX - should ssh in first, then run"
+#     echo "git clone https://github.com/djhmateer/auto-archiver ;  sudo chmod +x ~/auto-archiver/infra/server-build.sh ; ./auto-archiver/infra/server-build.sh"
+# 	else
     echo "Deploying to Azure - infra.azcli should call this script using az vm run-command invoke with an argument. "
     echo "It copies the script to the VM from the local machine"
 		cd /home/dave
@@ -45,7 +45,7 @@ if [ $# -eq 0 ]
 		# git clone -b working https://github.com/djhmateer/auto-archiver
     mkdir /home/dave/auto-archiver/secrets
     sudo chown -R dave /home/dave/auto-archiver
-fi
+# fi
 
 # https://askubuntu.com/a/1431746
 # to stop the pink pop up (may be okay when no terminal attached, but useful if doing all these commands manually)
@@ -53,9 +53,6 @@ fi
 
 # https://askubuntu.com/a/1421221
 sudo sed -i 's/#$nrconf{restart} = '"'"'i'"'"';/$nrconf{restart} = '"'"'a'"'"';/g' /etc/needrestart/needrestart.conf
-
-# DM HERE
-exit 1
 
 ## ODBC for MSSQL (pyodbc installed via pipenv)
 # https://learn.microsoft.com/en-us/sql/connect/odbc/linux-mac/installing-the-microsoft-odbc-driver-for-sql-server?view=sql-server-ver16&tabs=ubuntu18-install%2Calpine17-install%2Cdebian8-install%2Credhat7-13-install%2Crhel7-offline
