@@ -108,7 +108,7 @@ pip install --upgrade pip
 
 # installing this to avoid error in pipenv install below
 # **NOT FULLY TESTED YET
-sudo apt install python3-testresources
+sudo apt install python3-testresources -y
 
 sudo -H pip install -U pipenv
 
