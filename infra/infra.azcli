@@ -142,7 +142,8 @@ az vm run-command invoke \
     -g ${rg} \
     -n ${vmname} \
     --command-id RunShellScript \
-    --scripts @../infra/server-build.sh --parameters azure
+    --scripts @../infra/server-build.sh --parameters azure \
+    -o table
 # the param is just for my server-build script
 
 # DM HERE
