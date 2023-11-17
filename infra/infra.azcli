@@ -146,27 +146,21 @@ az network nsg rule create \
 #     -o table
 # the param is just for my server-build script
 
-# DM HERE
-# exit 1
 
-# Wait for reboot from above
-n=0
-until [ "$n" -ge 20 ]
-do
+# n=0
+# until [ "$n" -ge 20 ]
+# do
 
-   scp -o StrictHostKeyChecking=no ../src/auto_archiver/cred_mssql.py dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/ && break
-#    scp -o StrictHostKeyChecking=no ../service_account.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/ && break
-   n=$((n+1)) 
-   sleep 15
-done
+#    scp -o StrictHostKeyChecking=no ../src/auto_archiver/cred_mssql.py dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/ && break
+#    n=$((n+1)) 
+#    sleep 15
+# done
 
-# orchestration
-scp -o StrictHostKeyChecking=no ../secrets/orchestration-aa-demo-main.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
+# scp -o StrictHostKeyChecking=no ../secrets/orchestration-aa-demo-main.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 
-# service accounts and tokens
-scp -o StrictHostKeyChecking=no ../secrets/token-davemateer-gmail.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
+# scp -o StrictHostKeyChecking=no ../secrets/token-davemateer-gmail.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 
-scp -o StrictHostKeyChecking=no ../secrets/service_account_davemateer_gmail.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
+# scp -o StrictHostKeyChecking=no ../secrets/service_account_davemateer_gmail.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 
 
 # delete old resource groups
