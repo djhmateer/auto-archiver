@@ -47,6 +47,14 @@ if [ $# -eq 0 ]
     sudo chown -R dave /home/dave/auto-archiver
 fi
 
+# https://askubuntu.com/a/1431746
+# to stop the pink pop up (may be okay when no terminal attached, but useful if doing all these commands manually)
+# sudo NEEDRESTART_MODE=a apt-get dist-upgrade --yes
+
+# https://askubuntu.com/a/1421221
+sudo sed -i 's/#$nrconf{restart} = '"'"'i'"'"';/$nrconf{restart} = '"'"'a'"'"';/g' /etc/needrestart/needrestart.conf
+
+
 ## ODBC for MSSQL (pyodbc installed via pipenv)
 # https://learn.microsoft.com/en-us/sql/connect/odbc/linux-mac/installing-the-microsoft-odbc-driver-for-sql-server?view=sql-server-ver16&tabs=ubuntu18-install%2Calpine17-install%2Cdebian8-install%2Credhat7-13-install%2Crhel7-offline
 
@@ -55,7 +63,8 @@ fi
 # https://learn.microsoft.com/en-us/windows-server/administration/linux-package-repository-for-microsoft-software
 
 curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo tee /etc/apt/trusted.gpg.d/microsoft.asc
-sudo apt-add-repository https://packages.microsoft.com/ubuntu/20.04/prod
+# sudo apt-add-repository https://packages.microsoft.com/ubuntu/20.04/prod
+sudo apt-add-repository --yes https://packages.microsoft.com/ubuntu/22.04/prod
 sudo apt-get update
 
 # add odbc
@@ -75,20 +84,22 @@ sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18
 sudo apt update -y
 sudo apt upgrade -y
 
-sudo add-apt-repository ppa:deadsnakes/ppa -y
+# sudo add-apt-repository ppa:deadsnakes/ppa -y
 
-sudo apt update -y
+# sudo apt update -y
 
 # 3.9.12
 # sudo apt install python3.9 -y
-sudo apt install python3.10 -y
+# sudo apt install python3.10 -y
+
+# 3.10.6 already installed in Ubun 22.04
 
 # need this for pip upgrade to work
 export PATH=/home/dave/.local/bin:$PATH
 
 sudo apt install python3-pip -y
 
-# update pip to 22.0.4
+# update pip to 23.3.1
 pip install --upgrade pip
 
 # We are calling pipenv from cron so need to install this way
@@ -115,7 +126,7 @@ sudo apt upgrade -y
 sudo apt install ffmpeg -y
 
 ## Firefox
-# for Ubuntu 22.04 this will come up with an error
+# for Ubuntu 22.04 this will come up with an error (**17th Nov 23 - seems to work now)
 # failed to get new webdriver, possibly due to insufficient system resources or timeout settings: Message: Failed to read marionette port
 # https://stackoverflow.com/questions/72374955/failed-to-read-marionette-port-when-running-selenium-geckodriver-firefox-a
 sudo apt install firefox -y
@@ -163,7 +174,7 @@ rm geckodriver*
 sudo chmod +x /home/dave/auto-archiver/infra/cron.sh
 # sudo chmod +x /home/dave/auto-archiver/infra/cron_fb.sh
 
-sudo chmod +x /home/dave/auto-archiver/infra/tweet.sh
+# sudo chmod +x /home/dave/auto-archiver/infra/tweet.sh
 
 # to stop errors
 # **DONT SEEM TO NEED AT THE MOMENT*
@@ -182,24 +193,26 @@ cat <<EOT >> run-auto-archive
 */2 * * * * dave /home/dave/auto-archiver/infra/cron.sh
 EOT
 
-cat <<EOT >> run-tweet
-*/2 * * * * dave /home/dave/auto-archiver/infra/tweet.sh
-EOT
+# cat <<EOT >> run-tweet
+# */2 * * * * dave /home/dave/auto-archiver/infra/tweet.sh
+# EOT
 
 sudo mv run-auto-archive /etc/cron.d
-sudo mv run-tweet /etc/cron.d
+# sudo mv run-tweet /etc/cron.d
 
 sudo chown root /etc/cron.d/run-auto-archive
 sudo chmod 600 /etc/cron.d/run-auto-archive
 
-sudo chown root /etc/cron.d/run-tweet
-sudo chmod 600 /etc/cron.d/run-tweet
+# sudo chown root /etc/cron.d/run-tweet
+# sudo chmod 600 /etc/cron.d/run-tweet
 
 
 # install fonts eg burmese, chinese for rendering in selenium firefox
 # https://stackoverflow.com/questions/72015245/firefox-unicode-boxes-in-selenium-screenshot-instead-of-characters/72015719#72015719
 sudo apt install fonts-noto -y
 
+
+sudo apt install libimage-exiftool-perl -y
 
 ## Comment out for FB
 ## don't need these bits for main aa
@@ -249,7 +262,6 @@ sudo apt install xvfb
 ##sudo playwright install-deps
 #sudo apt-get install libgbm1
 
-sudo apt install libimage-exiftool-perl
 
 sudo reboot now
 
