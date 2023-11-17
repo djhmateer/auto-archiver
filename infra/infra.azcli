@@ -145,6 +145,8 @@ az vm run-command invoke \
     --scripts @../infra/server-build.sh --parameters azure
 # the param is just for my server-build script
 
+# DM HERE
+exit 1
 
 # Wait for reboot from above
 n=0
