@@ -175,6 +175,11 @@ sudo apt install fonts-noto -y
 
 sudo apt install libimage-exiftool-perl -y
 
+
+# otherwise firefox / selenium errors screenshotting
+apt-get install -y wget bzip2 libxtst6 libgtk-3-0 libx11-xcb-dev libdbus-glib-1-2 libxt6 libpci-dev 
+
+
 ## Comment out for FB
 ## don't need these bits for main aa
 sudo reboot now
