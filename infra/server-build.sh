@@ -47,6 +47,8 @@
     sudo chown -R dave /home/dave/auto-archiver
 # fi
 
+exit
+
 # https://askubuntu.com/a/1431746
 # to stop the pink pop up (may be okay when no terminal attached, but useful if doing all these commands manually)
 # sudo NEEDRESTART_MODE=a apt-get dist-upgrade --yes
