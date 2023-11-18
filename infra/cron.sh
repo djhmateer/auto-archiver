@@ -50,13 +50,7 @@ if [ $(pgrep -c "${0##*/}") -gt 1 ]; then
 fi
 
 
-# test sheets, saving to google drives with davemateer@gmail.com token
-#pipenv run python auto_archive_fb.py --config config-test-hashing.yaml
-# pipenv run python auto_archive.py --config config-test-hashing-2.yaml
-
 TIME=5
-
-# pipenv run python -m src.auto_archiver --config secrets/orchestration-aa-demo-main.yaml
 
 # TEST 
 cd /home/dave/auto-archiver
@@ -65,33 +59,28 @@ sleep $TIME
 
 # PROD
 
-#pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-eor.yaml
-#sleep $TIME
+pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-eor.yaml
+sleep $TIME
 
-#pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-cir-sahel.yaml
-#sleep $TIME
+pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-cir-sahel.yaml
+sleep $TIME
 
-#pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-cir-sudan.yaml
-#sleep $TIME
+pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-cir-sudan.yaml
+sleep $TIME
 
-#pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-aw.yaml
-#sleep $TIME
+pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-aw.yaml
+sleep $TIME
 
-#pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-eor-grc.yaml
-#sleep $TIME
+pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-eor-grc.yaml
+sleep $TIME
 
-#pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-mw.yaml
-#sleep $TIME
-
-
+pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-mw.yaml
+sleep $TIME
 
 
 
 ## cron job output is in 
 ## vim /home/dave/log.txt
-
-# ps -ef | grep auto
-# kill -9 to stop job
 
 # to stop cron job comment out in /etc/cron.d
 # then reload
