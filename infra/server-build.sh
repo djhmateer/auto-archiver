@@ -100,10 +100,12 @@ sudo apt install ffmpeg -y
 # for Ubuntu 22.04 this will come up with an error (**17th Nov 23 - seems to work now)
 # failed to get new webdriver, possibly due to insufficient system resources or timeout settings: Message: Failed to read marionette port
 # https://stackoverflow.com/questions/72374955/failed-to-read-marionette-port-when-running-selenium-geckodriver-firefox-a
-sudo apt install firefox -y
+# sudo apt install firefox -y
 
 # to solve use these commands
 # https://www.omgubuntu.co.uk/2022/04/how-to-install-firefox-deb-apt-ubuntu-22-04
+
+# **HERE**********
 # cd ~
 # sudo add-apt-repository ppa:mozillateam/ppa
 
@@ -117,6 +119,7 @@ sudo apt install firefox -y
 
 # sudo apt install firefox
 
+# **HERE************
 
 
 
@@ -161,7 +164,7 @@ sudo service cron stop
 # runs the script every minute
 # notice put in a # to disable so will have to manually start it.
 cat <<EOT >> run-auto-archive
-*/2 * * * * dave /home/dave/auto-archiver/infra/cron.sh
+#*/2 * * * * dave /home/dave/auto-archiver/infra/cron.sh
 EOT
 
 sudo mv run-auto-archive /etc/cron.d
@@ -177,12 +180,27 @@ sudo apt install libimage-exiftool-perl -y
 
 
 # otherwise firefox / selenium errors screenshotting
-apt-get install -y wget bzip2 libxtst6 libgtk-3-0 libx11-xcb-dev libdbus-glib-1-2 libxt6 libpci-dev 
+# apt-get install -y wget bzip2 libxtst6 libgtk-3-0 libx11-xcb-dev libdbus-glib-1-2 libxt6 libpci-dev 
 
 
 ## Comment out for FB
 ## don't need these bits for main aa
 sudo reboot now
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
