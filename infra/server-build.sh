@@ -105,28 +105,19 @@ sudo apt install ffmpeg -y
 # to solve use these commands
 # https://www.omgubuntu.co.uk/2022/04/how-to-install-firefox-deb-apt-ubuntu-22-04
 
-# **HERE**********
-# cd ~
-# sudo add-apt-repository ppa:mozillateam/ppa
+cd ~
+sudo add-apt-repository ppa:mozillateam/ppa -y
 
-# echo '
-# Package: *
-# Pin: release o=LP-PPA-mozillateam
-# Pin-Priority: 1001
-# ' | sudo tee /etc/apt/preferences.d/mozilla-firefox
+echo ' Package: * Pin: release o=LP-PPA-mozillateam Pin-Priority: 1001 ' | sudo tee /etc/apt/preferences.d/mozilla-firefox
 
-# echo 'Unattended-Upgrade::Allowed-Origins:: "LP-PPA-mozillateam:${distro_codename}";' | sudo tee /etc/apt/apt.conf.d/51unattended-upgrades-firefox
+echo 'Unattended-Upgrade::Allowed-Origins:: "LP-PPA-mozillateam:${distro_codename}";' | sudo tee /etc/apt/apt.conf.d/51unattended-upgrades-firefox
 
-# sudo apt install firefox
-
-# **HERE************
-
+sudo apt install firefox -y
 
 
 ## Gecko driver
 # check version numbers for new ones
 cd ~
-# wget https://github.com/mozilla/geckodriver/releases/download/v0.31.0/geckodriver-v0.31.0-linux64.tar.gz
 wget https://github.com/mozilla/geckodriver/releases/download/v0.33.0/geckodriver-v0.33.0-linux64.tar.gz
 tar -xvzf geckodriver*
 chmod +x geckodriver
@@ -144,18 +135,7 @@ rm geckodriver*
 ## CRON RUN EVERY MINUTE
 
 # so the cron job can execute the shell script (running as user dave)
-# sudo chmod +x ~/auto-archiver/infra/cron.sh
 sudo chmod +x /home/dave/auto-archiver/infra/cron.sh
-# sudo chmod +x /home/dave/auto-archiver/infra/cron_fb.sh
-
-# sudo chmod +x /home/dave/auto-archiver/infra/tweet.sh
-
-# to stop errors
-# **DONT SEEM TO NEED AT THE MOMENT*
-# https://askubuntu.com/questions/1383506/deprecation-warnings-python3-8-packages
-#/usr/local/lib/python3.8/dist-packages/pkg_resources/__init__.py:123: PkgResourcesDeprecationWarning: 0.23ubuntu1 is an invalid version and will not be supported in a future release      
-# sudo mv /usr/local/lib/python3.8/dist-packages/pkg_resources /usr/local/lib/python3.8/dist-packages/pkg_resources_back
-
 
 # don't want service to run until a reboot
 # otherwise problems with Gecko driver
@@ -164,7 +144,7 @@ sudo service cron stop
 # runs the script every minute
 # notice put in a # to disable so will have to manually start it.
 cat <<EOT >> run-auto-archive
-#*/2 * * * * dave /home/dave/auto-archiver/infra/cron.sh
+*/2 * * * * dave /home/dave/auto-archiver/infra/cron.sh
 EOT
 
 sudo mv run-auto-archive /etc/cron.d
@@ -177,11 +157,6 @@ sudo chmod 600 /etc/cron.d/run-auto-archive
 sudo apt install fonts-noto -y
 
 sudo apt install libimage-exiftool-perl -y
-
-
-# otherwise firefox / selenium errors screenshotting
-# apt-get install -y wget bzip2 libxtst6 libgtk-3-0 libx11-xcb-dev libdbus-glib-1-2 libxt6 libpci-dev 
-
 
 ## Comment out for FB
 ## don't need these bits for main aa
