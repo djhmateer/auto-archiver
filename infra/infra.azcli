@@ -162,8 +162,8 @@ scp -o StrictHostKeyChecking=no ../src/auto_archiver/cred_mssql.py dave@${dnsnam
 scp -o StrictHostKeyChecking=no ../secrets/orchestration-aa-demo-main.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 
 scp -o StrictHostKeyChecking=no ../secrets/orchestration-cir-domain-eor.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
-scp -o StrictHostKeyChecking=no ../secrets/orchestration-cir-domain-sahel.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
-scp -o StrictHostKeyChecking=no ../secrets/orchestration-cir-domain-sudan.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
+scp -o StrictHostKeyChecking=no ../secrets/orchestration-cir-domain-cir-sahel.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
+scp -o StrictHostKeyChecking=no ../secrets/orchestration-cir-domain-cir-sudan.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 scp -o StrictHostKeyChecking=no ../secrets/orchestration-cir-domain-aw.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 scp -o StrictHostKeyChecking=no ../secrets/orchestration-cir-domain-eor-grc.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 scp -o StrictHostKeyChecking=no ../secrets/orchestration-cir-domain-mw.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
