@@ -20,8 +20,6 @@ class GsheetsDb(Database):
         could be updated in the future to support non-GsheetFeeder metadata 
     """
     name = "gsheet_db"
-    # auto_tweet
-    # auto_tweet 
 
     def __init__(self, config: dict) -> None:
         # without this STEP.__init__ is not called
@@ -29,7 +27,6 @@ class GsheetsDb(Database):
         foo = config.get('gsheet_feeder')
         bar = foo.get("auto_tweet")
         self.auto_tweet = bar
-
 
     @staticmethod
     def configs() -> dict:

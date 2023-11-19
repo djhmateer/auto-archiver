@@ -99,11 +99,16 @@ class GsheetsFeeder(Gsheets, Feeder):
                     folder = ''
                 else:
                     folder = slugify(gw.get_cell_or_default(row, 'folder', "").strip())
+                    # if folder == '':
                 if len(folder):
                     if self.use_sheet_names_in_stored_paths:
                         ArchivingContext.set("folder", os.path.join(folder, slugify(self.sheet), slugify(wks.title)), True)
                     else:
                         ArchivingContext.set("folder", folder, True)
+                else:
+                    # DM fail out of entire run
+                    # should probably check that folder: entry number   is set.
+                    raise ValueError("Cant find entry number on spreadsheet")
 
                 yield m
 
