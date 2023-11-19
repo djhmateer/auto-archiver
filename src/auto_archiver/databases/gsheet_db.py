@@ -24,9 +24,11 @@ class GsheetsDb(Database):
     def __init__(self, config: dict) -> None:
         # without this STEP.__init__ is not called
         super().__init__(config)
-        foo = config.get('gsheet_feeder')
-        bar = foo.get("auto_tweet")
-        self.auto_tweet = bar
+        # foo = config.get('gsheet_feeder')
+        # bar = foo.get("auto_tweet")
+        # self.auto_tweet = bar
+        self.auto_tweet = config.get('gsheet_feeder').get("auto_tweet")
+        self.fb_archiver = config.get('gsheet_feeder').get("fb_archiver")
 
     @staticmethod
     def configs() -> dict:
@@ -167,6 +169,8 @@ class GsheetsDb(Database):
             logger.debug("auto_tweet not enabled in config")
         elif (cred_mssql.server == ''):
             logger.debug("no db for auto twitter so write to spreadsheet and continue")
+        elif ('facebook.com' in item.get_url()) and (self.fb_archiver == False):
+            logger.info('normal archiver doing a wayback archive for facebook, so dont want to write hash as facebook archiver will do that')
         else:
             retry_flag = True
             retry_count = 0
