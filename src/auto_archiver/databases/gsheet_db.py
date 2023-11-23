@@ -80,7 +80,12 @@ class GsheetsDb(Database):
         batch_if_valid('title', item.get_title())
         batch_if_valid('text', item.get("content", ""))
         batch_if_valid('timestamp', item.get_timestamp())
-        if media: batch_if_valid('hash', media.get("hash", "not-calculated"))
+
+        # DM - if Archive status is wayback, then don't write hash to spreadsheet
+        if item.status == 'wayback: success':
+            pass
+        else:
+            if media: batch_if_valid('hash', media.get("hash", "not-calculated"))
 
         # merge all pdq hashes into a single string, if present
         pdq_hashes = []
@@ -165,12 +170,14 @@ class GsheetsDb(Database):
         logger.info(f'{hash=}')
         if (hash == None):
             logger.debug("no hash so write to spreadsheet and continue")
+        elif item.status == 'wayback: success':
+            logger.debug("dont want wayback hashes - may be a normal website or facebook which other archvier will get soon")
         elif (self.auto_tweet == False):
             logger.debug("auto_tweet not enabled in config")
         elif (cred_mssql.server == ''):
             logger.debug("no db for auto twitter so write to spreadsheet and continue")
-        elif ('facebook.com' in item.get_url()) and (self.fb_archiver == False):
-            logger.info('normal archiver doing a wayback archive for facebook, so dont want to write hash as facebook archiver will do that')
+                # elif ('facebook.com' in item.get_url()) and (self.fb_archiver == False):
+            # logger.info('normal archiver doing a wayback archive for facebook, so dont want to write hash as facebook archiver will do that')
         else:
             retry_flag = True
             retry_count = 0
