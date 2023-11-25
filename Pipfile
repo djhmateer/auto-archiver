@@ -23,8 +23,8 @@ google-auth-httplib2 = "*"
 google-auth-oauthlib = "*"
 oauth2client = "*"
 
-# DM this is causing a problem on Ubuntu 20.04
-pdqhash = "*"
+# DM this is causing a problem on Ubuntu 20.04 and 22.04
+#pdqhash = "*"
 
 pillow = "*"
 python-slugify = "*"
