@@ -64,7 +64,7 @@ pipenv run python -m src.auto_archiver --config secrets/orchestration-aa-demo-ma
 sleep $TIME
 
 
-cd ~/cir_deduplication
+cd ~/cir-deduplication
 python tag_duplicates.py --single-sheet --worksheet-name Sheet1 --header-row 1 --case-id-col Entry\ Number --url-col Link --status-col Archive\ status --perceptual-hash-col Perceptual\ Hashes
 cd ~/auto-archiver
 
