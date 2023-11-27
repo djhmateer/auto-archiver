@@ -31,9 +31,19 @@ class PdqHashEnricher(Enricher):
         for m in to_enrich.media:
             for media in m.all_inner_media(True):
                 media_id = media.get("id", "")
-                if media.is_image() and "screenshot" not in media_id and "warc-file-" not in media_id and len(hd := self.calculate_pdq_hash(media.filename)):
-                    media.set("pdq_hash", hd)
-                    media_with_hashes.append(media.filename)
+                # if media.is_image() and "screenshot" not in media_id and "warc-file-" not in media_id and len(hd := self.calculate_pdq_hash(media.filename)):
+                if media.is_image() and "screenshot" not in media_id and len(hd := self.calculate_pdq_hash(media.filename)):
+                    should_process = True
+                    if 'facebook.com' in url:
+                        # DM special case in facebook we want warc-file- images
+                        pass
+                    else:
+                        if 'warc-file-' in media_id:
+                            should_process = False
+
+                    if should_process:
+                        media.set("pdq_hash", hd)
+                        media_with_hashes.append(media.filename)
 
         logger.debug(f"calculated '{len(media_with_hashes)}' perceptual hashes for {url=}: {media_with_hashes}")
 

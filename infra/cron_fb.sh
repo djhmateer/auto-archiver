@@ -8,7 +8,8 @@
 
 # * * * * * dave /home/dave/auto-archiver/infra/cron_fb.sh
 
-cd /home/dave/v6-auto-archiver
+# cd /home/dave/v6-auto-archiver
+cd /home/dave/auto-archiver
 PATH=/usr/local/bin:$PATH
 
 # only 1 instance of this will run if job lasts longer than 1 minute
@@ -62,33 +63,44 @@ TIME=5
 pipenv run python -m src.auto_archiver --config secrets/orchestration-aa-demo-main-facebook.yaml
 sleep $TIME
 
+
+cd ~/cir_deduplication
+python tag_duplicates.py --single-sheet --worksheet-name Sheet1 --header-row 1 --case-id-col Entry\ Number --url-col Link --status-col Archive\ status --perceptual-hash-col Perceptual\ Hashes
+cd ~/auto-archiver
+
+
 # PROD
 
-pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-eor-facebook.yaml
-sleep $TIME
+# pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-eor-facebook.yaml
+# sleep $TIME
 
-pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-cir-sahel-facebook.yaml
-sleep $TIME
+# pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-cir-sahel-facebook.yaml
+# sleep $TIME
 
-pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-cir-sudan-facebook.yaml
-sleep $TIME
+# pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-cir-sudan-facebook.yaml
+# sleep $TIME
 
-pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-aw-facebook.yaml
-sleep $TIME
+# pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-aw-facebook.yaml
+# sleep $TIME
 
-pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-eor-grc-facebook.yaml
-sleep $TIME
+# pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-eor-grc-facebook.yaml
+# sleep $TIME
 
-pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-mw-facebook.yaml
-sleep $TIME
-
-
+# pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-mw-facebook.yaml
+# sleep $TIME
 
 
-pipenv run python -m src.auto_archiver --config secrets/orchestration-glan.yaml                
-sleep $TIME
-pipenv run python -m src.auto_archiver --config secrets/orchestration-glan-facebook.yaml
-sleep $TIME
+
+
+# pipenv run python -m src.auto_archiver --config secrets/orchestration-glan.yaml                
+# sleep $TIME
+# pipenv run python -m src.auto_archiver --config secrets/orchestration-glan-facebook.yaml
+# sleep $TIME
+
+
+
+
+
 
 
 ## cron job output is in 

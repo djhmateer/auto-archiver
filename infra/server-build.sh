@@ -223,7 +223,7 @@ sudo pip install pytest-playwright
 
 # x virtual frame buffer
 # for playwright (screenshotter) to run in headed mode
-sudo apt install xvfb
+sudo apt install xvfb -y
 
 # **need to run playwright install to download chrome**
 # **NOT TESTED**
