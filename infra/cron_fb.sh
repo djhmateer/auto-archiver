@@ -66,7 +66,7 @@ sleep $TIME
 
 # run this after all FB archivers have ran
 # launch a new shell with different virtual environment
-bash infra/cir-deduplication.sh 
+bash /home/dave/auto-archiver/infra/cir-deduplication.sh 
 
 
 
