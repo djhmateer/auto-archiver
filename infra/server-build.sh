@@ -34,7 +34,6 @@
 # https://learn.microsoft.com/en-us/windows-server/administration/linux-package-repository-for-microsoft-software
 
 curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo tee /etc/apt/trusted.gpg.d/microsoft.asc
-# sudo apt-add-repository https://packages.microsoft.com/ubuntu/20.04/prod
 sudo apt-add-repository --yes https://packages.microsoft.com/ubuntu/22.04/prod
 sudo apt-get update
 
@@ -121,6 +120,7 @@ sudo apt install firefox -y
 
 ## Gecko driver
 # check version numbers for new ones
+# https://github.com/mozilla/geckodriver/releases/
 cd ~
 wget https://github.com/mozilla/geckodriver/releases/download/v0.33.0/geckodriver-v0.33.0-linux64.tar.gz
 tar -xvzf geckodriver*
@@ -139,7 +139,8 @@ rm geckodriver*
 ## CRON RUN EVERY MINUTE
 
 # so the cron job can execute the shell script (running as user dave)
-sudo chmod +x /home/dave/auto-archiver/infra/cron.sh
+# sudo chmod +x /home/dave/auto-archiver/infra/cron.sh
+sudo chmod +x /home/dave/auto-archiver/infra/cron_fb.sh
 
 # don't want service to run until a reboot
 # otherwise problems with Gecko driver
@@ -147,8 +148,12 @@ sudo service cron stop
 
 # runs the script every minute
 # notice put in a # to disable so will have to manually start it.
+# cat <<EOT >> run-auto-archive
+# #*/2 * * * * dave /home/dave/auto-archiver/infra/cron.sh
+# EOT
+
 cat <<EOT >> run-auto-archive
-#*/2 * * * * dave /home/dave/auto-archiver/infra/cron.sh
+#*/2 * * * * dave /home/dave/auto-archiver/infra/cron_fb.sh
 EOT
 
 sudo mv run-auto-archive /etc/cron.d
