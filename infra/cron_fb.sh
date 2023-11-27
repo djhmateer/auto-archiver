@@ -64,8 +64,9 @@ pipenv run python -m src.auto_archiver --config secrets/orchestration-aa-demo-ma
 sleep $TIME
 
 
+# run this after all FB archivers have ran
 # launch a new shell with different virtual environment
-bash bar.sh
+bash infra/cir-deduplication.sh 
 
 
 
