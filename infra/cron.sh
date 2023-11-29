@@ -77,6 +77,9 @@ sleep $TIME
 pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-mw.yaml
 sleep $TIME
 
+pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-projects.yaml
+sleep $TIME
+
 
 
 ## cron job output is in 

@@ -91,6 +91,10 @@ bash /home/dave/auto-archiver/infra/cir-deduplication.sh
 # sleep $TIME
 
 
+# pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-projects-facebook.yaml
+# sleep $TIME
+
+
 
 
 # pipenv run python -m src.auto_archiver --config secrets/orchestration-glan.yaml                
