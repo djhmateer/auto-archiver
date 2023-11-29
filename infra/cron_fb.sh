@@ -60,47 +60,47 @@ TIME=5
 # pipenv run python -m src.auto_archiver --config secrets/orchestration-aa-demo-main.yaml
 
 # TEST - make sure that the FB profile is working
-pipenv run python -m src.auto_archiver --config secrets/orchestration-aa-demo-main-facebook.yaml
-sleep $TIME
+# pipenv run python -m src.auto_archiver --config secrets/orchestration-aa-demo-main-facebook.yaml
+# sleep $TIME
 
 
+# TODO - get this working...need to patch in other ones (just have aa demo main working)
 # run this after all FB archivers have ran
 # launch a new shell with different virtual environment
-bash /home/dave/auto-archiver/infra/cir-deduplication.sh 
+# bash /home/dave/auto-archiver/infra/cir-deduplication.sh 
 
 
 
 # PROD
+pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-eor-facebook.yaml
+sleep $TIME
 
-# pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-eor-facebook.yaml
-# sleep $TIME
+pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-cir-sahel-facebook.yaml
+sleep $TIME
 
-# pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-cir-sahel-facebook.yaml
-# sleep $TIME
+pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-cir-sudan-facebook.yaml
+sleep $TIME
 
-# pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-cir-sudan-facebook.yaml
-# sleep $TIME
+pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-aw-facebook.yaml
+sleep $TIME
 
-# pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-aw-facebook.yaml
-# sleep $TIME
+pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-eor-grc-facebook.yaml
+sleep $TIME
 
-# pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-eor-grc-facebook.yaml
-# sleep $TIME
-
-# pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-mw-facebook.yaml
-# sleep $TIME
+pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-mw-facebook.yaml
+sleep $TIME
 
 
-# pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-projects-facebook.yaml
-# sleep $TIME
-
+pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-projects-facebook.yaml
+sleep $TIME
 
 
 
-# pipenv run python -m src.auto_archiver --config secrets/orchestration-glan.yaml                
-# sleep $TIME
-# pipenv run python -m src.auto_archiver --config secrets/orchestration-glan-facebook.yaml
-# sleep $TIME
+
+pipenv run python -m src.auto_archiver --config secrets/orchestration-glan.yaml                
+sleep $TIME
+pipenv run python -m src.auto_archiver --config secrets/orchestration-glan-facebook.yaml
+sleep $TIME
 
 
 
