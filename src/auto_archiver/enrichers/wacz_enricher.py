@@ -84,6 +84,9 @@ class WaczArchiverEnricher(Enricher, Archiver):
         # call docker if explicitly enabled or we are running on the host (not in docker)
         use_docker = os.environ.get('WACZ_ENABLE_DOCKER') or not os.environ.get('RUNNING_IN_DOCKER')
 
+#88 - generating WACZ in Docker for url='https://www.facebook.com/khitthitnews/posts/pfbid02tX6o4TcNykMYyH4Wjbz3ckq5bH5rRr7aqLFCymkWwhVzPJGwq2mSCnp9jYZ8CVdTl'
+# 89 - browsertrix_home_host='/home/dave/auto-archiver/tmplwb1vufr' browsertrix_home_container='/home/dave/auto-archiver/tmplwb1vufr'
+# 99 - copying secrets/profile.tar.gz to /home/dave/auto-archiver/tmplwb1vufr/profile.tar.gz
         if use_docker:
             logger.debug(f"generating WACZ in Docker for {url=}")
             logger.debug(f"{browsertrix_home_host=} {browsertrix_home_container=}")
@@ -92,7 +95,10 @@ class WaczArchiverEnricher(Enricher, Archiver):
             if self.docker_commands:
                 cmd = self.docker_commands + cmd
             else:
-                cmd = ["docker", "run", "--rm", "-v", f"{browsertrix_home_host}:/crawls/", "webrecorder/browsertrix-crawler"] + cmd
+                # 0.11.2 works - otherwise the test case OS4892 on AA Demo Main doesn't seem to crawl proplery
+                # note there is another part further down the code which needs to be changed too.
+                # cmd = ["docker", "run", "--rm", "-v", f"{browsertrix_home_host}:/crawls/", "webrecorder/browsertrix-crawler"] + cmd
+                cmd = ["docker", "run", "--rm", "-v", f"{browsertrix_home_host}:/crawls/", "webrecorder/browsertrix-crawler:0.11.2"] + cmd
 
             if self.profile:
                 profile_fn = os.path.join(browsertrix_home_container, "profile.tar.gz")
@@ -415,7 +421,8 @@ class WaczArchiverEnricher(Enricher, Archiver):
                 foo = tmp_dir[1:]
                 browsertrix_home = f'{hard_code_directory_for_wsl2}{foo}'
 
-            docker_commands = ["docker", "run", "--rm", "-v", f"{browsertrix_home}:/crawls/", "webrecorder/browsertrix-crawler"]
+            # docker_commands = ["docker", "run", "--rm", "-v", f"{browsertrix_home}:/crawls/", "webrecorder/browsertrix-crawler"]
+            docker_commands = ["docker", "run", "--rm", "-v", f"{browsertrix_home}:/crawls/", "webrecorder/browsertrix-crawler:0.11.2"]
             cmd = docker_commands + [
                 "crawl",
                 "--url", url_build,
