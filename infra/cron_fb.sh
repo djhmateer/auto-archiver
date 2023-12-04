@@ -60,7 +60,7 @@ TIME=5
 # pipenv run python -m src.auto_archiver --config secrets/orchestration-aa-demo-main.yaml
 
 # TEST - make sure that the FB profile is working
-# pipenv run python -m src.auto_archiver --config secrets/orchestration-aa-demo-main-facebook.yaml
+#pipenv run python -m src.auto_archiver --config secrets/orchestration-aa-demo-main-facebook.yaml
 # sleep $TIME
 
 
@@ -68,7 +68,6 @@ TIME=5
 # run this after all FB archivers have ran
 # launch a new shell with different virtual environment
 # bash /home/dave/auto-archiver/infra/cir-deduplication.sh 
-
 
 
 # PROD
