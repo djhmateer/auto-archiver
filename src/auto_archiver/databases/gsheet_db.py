@@ -82,7 +82,10 @@ class GsheetsDb(Database):
         batch_if_valid('timestamp', item.get_timestamp())
 
         # DM - if Archive status is wayback, then don't write hash to spreadsheet
+        # or no archiver we don't want hash in spreadsheet
         if item.status == 'wayback: success':
+            pass
+        elif item.status == "no archiver":
             pass
         else:
             if media: batch_if_valid('hash', media.get("hash", "not-calculated"))

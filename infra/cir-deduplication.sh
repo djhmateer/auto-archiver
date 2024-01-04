@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# to debug this go to the project in ~/cir-deduplication
+
 # this script is called from cron_fb.sh
 
 # sudo service cron stop
