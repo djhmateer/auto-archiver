@@ -116,6 +116,7 @@ class ArchivingOrchestrator:
             result.status = "nothing archived"
 
         # signal completion to databases (DBs, Google Sheets, CSV, ...)
+        # write to spreadsheet
         for d in self.databases: d.done(result)
 
         return result

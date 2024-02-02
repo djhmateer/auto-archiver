@@ -43,7 +43,12 @@ class GsheetsFeeder(Gsheets, Feeder):
                 "auto_tweet": {
                     "default": False,
                     "help": "DM",
+                },
+                "uwazi_integration": {
+                    "default": False,
+                    "help": "DM",
                 }
+
 
             })
 
@@ -88,8 +93,20 @@ class GsheetsFeeder(Gsheets, Feeder):
                 else:
                     # normal code path - non fb archiver
                     # archive status has to be blank for it to work
+
+                    # 30th Jan 24, when a status has been blanked, this comes back as True - good.
+                    foo = original_status in ['', None]
+
+                    # 30th Jan - refresh the status just in case
                     status = gw.get_cell(row, 'status', fresh=original_status in ['', None])
+
+                    # 30th Jan - when refreshed cell comes back, it is now a string 'None'
+                    # I had just done a pipenv update to gspread 6.0.0
+                    # reverting to 5.12.4 works as expected
                     if status not in ['', None]: continue
+
+                    # this worked with 6.0.0 but not happy as it may have other effects in codebase
+                    # if status not in ['', None, 'None']: continue
 
 
                 # All checks done - archival process starts here

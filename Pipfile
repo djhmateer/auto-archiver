@@ -4,7 +4,11 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-gspread = "*"
+
+# bug in 6.0.0 with returning None as a string. See issues on bellingcat/auto-archiver
+# gspread = "*"
+gspread = "==5.12.4"
+
 boto3 = "*"
 argparse = "*"
 beautifulsoup4 = "*"
@@ -12,9 +16,6 @@ tiktok-downloader = "*"
 bs4 = "*"
 loguru = "*"
 ffmpeg-python = "*"
-#selenium = "*"
-# bug where it renders to screen on 4.15.0, and fails on the server
-#selenium = "==4.12.0"
 selenium = "*"
 snscrape = "*"
 telethon = "*"
@@ -38,7 +39,12 @@ cryptography = "*"
 dataclasses-json = "*"
 yt-dlp = "*"
 vk-url-scraper = "*"
+
+# DM - Uwazi
 requests = {extras = ["socks"], version = "*"}
+# DM NEW
+urllib3 = "~=1.26.7"
+
 numpy = "*"
 warcio = "*"
 

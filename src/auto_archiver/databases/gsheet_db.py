@@ -13,6 +13,8 @@ from .. import cred_mssql
 import pyodbc 
 import time
 
+from ..uwazi_api.UwaziAdapter import UwaziAdapter
+
 
 class GsheetsDb(Database):
     """
@@ -24,11 +26,9 @@ class GsheetsDb(Database):
     def __init__(self, config: dict) -> None:
         # without this STEP.__init__ is not called
         super().__init__(config)
-        # foo = config.get('gsheet_feeder')
-        # bar = foo.get("auto_tweet")
-        # self.auto_tweet = bar
         self.auto_tweet = config.get('gsheet_feeder').get("auto_tweet")
         self.fb_archiver = config.get('gsheet_feeder').get("fb_archiver")
+        self.uwazi_integration = config.get('gsheet_feeder').get("uwazi_integration")
 
     @staticmethod
     def configs() -> dict:
@@ -119,6 +119,9 @@ class GsheetsDb(Database):
         except: pass
 
         if image_and_video_url_feature:
+            # for uwazi import below lets assign default values for urls
+            image_url1 = image_url2 = image_url3 = image_url4 = video_url1 = video_url2 = '' 
+
             # get first media
             # if there is no media then there will be a screenshot 
             try:
@@ -130,8 +133,10 @@ class GsheetsDb(Database):
                 if ('.mp4' in first_media_url):
                     # will only write to spreadsheet if the column is defined in orchestration
                     batch_if_valid('video_url1', first_media_url)
+                    video_url1 = first_media_url
                 else:
                     batch_if_valid('image_url1', first_media_url)
+                    image_url1 = first_media_url
             except: pass
 
             try:
@@ -164,6 +169,88 @@ class GsheetsDb(Database):
                 fourth_media_url= fourth_media.get('src')
                 batch_if_valid('image_url4', fourth_media_url)
             except: pass
+
+        # DM Uwazi Test feature - image_and_video_url_feature needs to run ie correct columns image_url1 etc.. should be defined on orchestration and spreadsheet
+        uwazi_feature = False
+        # needs to be set in config
+        if self.uwazi_integration:
+            # correct column(s) need to be there
+            try:
+                _ = gw.col_exists('send_to_uwazi')
+                uwazi_feature = True
+            except: pass
+
+        if uwazi_feature:
+            logger.debug('Uwazi feature is on')
+
+            # is send_to_uwazi set to y?
+            stu = gw.get_cell(row_values, 'send_to_uwazi').lower()
+            keep_going = True
+            if stu == 'y':
+                pass
+            else:
+                logger.debug('send_to_uwazi column not y, so not sending to Uwazi')
+                keep_going = False
+            
+            if keep_going:
+                # have we sent already ie is there a date?
+                ditu = gw.get_cell(row_values, 'date_imported_to_uwazi')
+                if ditu == '':
+                    logger.debug('no date found for uwazi so import')
+                else:
+                    logger.debug('date found for uwazi import so not doing again')
+                    keep_going = False
+            
+            if keep_going:
+                logger.debug('importing to uwazi')
+
+                # what if no title?
+                uwazi_title= gw.get_cell(row_values, 'uwazi_title')
+
+                link = gw.get_cell(row_values, 'url')
+                logger.debug(f'link {link}')
+
+                entry_number = gw.get_cell(row_values, 'folder')
+
+                # Date Posted on Uwazi - make it Upload Timestamp (of the original image eg Twitter)
+                # it may be blank
+                # also I need to convert to a unixtimestamp
+                media_upload_timestamp = item.get_timestamp()
+
+                uwazi_adapter = UwaziAdapter(user='admin', password='change this password now', url='http://localhost:3000')
+                entity = {
+                        # 'title': 'foo30',
+                        'title': uwazi_title,
+                        'template': '65b124284404bd242a8d3400', # Content
+                        "type": "entity",
+                        "documents": [],
+                        'metadata': {
+                            "video_url1":[{"value":video_url1}],
+                            "video_url2":[{"value":video_url2}],
+                            # "image_url1":[{"value":""}],
+                            "image_url1":[{"value":image_url1}],
+                            "image_url2":[{"value":image_url2}],
+                            "image_url3":[{"value":image_url3}],
+                            "image_url4":[{"value":image_url4}],
+                            # "generated_id":[{"value":"KJY5630-3351"}], # need to generate something here to send it
+                            "generated_id":[{"value":entry_number}], 
+                            "date_posted":[{"value":1706400000}], # 2022
+                            "case":[],
+                            "link": [{
+                                    "value": {
+                                        "label": link,
+                                        "url": link
+                                    }
+                                }]
+                            }
+                        }
+
+                # uploads the new Entity
+                shared_id = uwazi_adapter.entities.upload(entity=entity, language='en')
+
+                # if successful import then write date to spreadsheet
+                batch_if_valid('date_imported_to_uwazi', True, datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).isoformat())
+
 
         gw.batch_set_cell(cell_updates)
 

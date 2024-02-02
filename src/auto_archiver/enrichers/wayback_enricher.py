@@ -80,6 +80,15 @@ class WaybackArchiverEnricher(Enricher, Archiver):
         job_id = r.json().get('job_id')
         if not job_id:
             logger.error(f"Wayback failed with {r.json()}")
+
+            # Only seen on 1st Feb 24.
+            # Response from wayback: This host has been already captured 50,093.0 times today. Please try again tomorrow.
+            if 'This host has been already captured' in r.text:
+                if 'facebook.com' in url:
+                    logger.warning("Swallowing error so that fb archiver picks up properly")
+                    # swallow the error (wayback: success will show) so that
+                    # the fb archiver will pickup properly 
+                    return True
             return False
 
         # waits at most timeout seconds until job is completed, otherwise only enriches the job_id information
