@@ -171,85 +171,89 @@ class GsheetsDb(Database):
             except: pass
 
         # DM Uwazi Test feature - image_and_video_url_feature needs to run ie correct columns image_url1 etc.. should be defined on orchestration and spreadsheet
-        uwazi_feature = False
-        # needs to be set in config
-        if self.uwazi_integration:
-            # correct column(s) need to be there
-            try:
-                _ = gw.col_exists('send_to_uwazi')
-                uwazi_feature = True
-            except: pass
+        # uwazi_feature = False
+        # # needs to be set in config
+        # if self.uwazi_integration:
+        #     # correct column(s) need to be there
+        #     try:
+        #         _ = gw.col_exists('send_to_uwazi')
+        #         uwazi_feature = True
+        #     except: pass
 
-        if uwazi_feature:
-            logger.debug('Uwazi feature is on')
+        # if uwazi_feature:
+        #     logger.debug('Uwazi feature is on')
 
-            # is send_to_uwazi set to y?
-            stu = gw.get_cell(row_values, 'send_to_uwazi').lower()
-            keep_going = True
-            if stu == 'y':
-                pass
-            else:
-                logger.debug('send_to_uwazi column not y, so not sending to Uwazi')
-                keep_going = False
+        #     # is send_to_uwazi set to y?
+        #     stu = gw.get_cell(row_values, 'send_to_uwazi').lower()
+        #     keep_going = True
+        #     if stu == 'y':
+        #         pass
+        #     else:
+        #         logger.debug('send_to_uwazi column not y, so not sending to Uwazi')
+        #         keep_going = False
             
-            if keep_going:
-                # have we sent already ie is there a date?
-                ditu = gw.get_cell(row_values, 'date_imported_to_uwazi')
-                if ditu == '':
-                    logger.debug('no date found for uwazi so import')
-                else:
-                    logger.debug('date found for uwazi import so not doing again')
-                    keep_going = False
+        #     if keep_going:
+        #         # have we sent already ie is there a date?
+        #         ditu = gw.get_cell(row_values, 'date_imported_to_uwazi')
+        #         if ditu == '':
+        #             logger.debug('no date found for uwazi so import')
+        #         else:
+        #             logger.debug('date found for uwazi import so not doing again')
+        #             keep_going = False
             
-            if keep_going:
-                logger.debug('importing to uwazi')
+        #     if keep_going:
+        #         logger.debug('importing to uwazi')
 
-                # what if no title?
-                uwazi_title= gw.get_cell(row_values, 'uwazi_title')
+        #         # what if no title?
+        #         uwazi_title= gw.get_cell(row_values, 'uwazi_title')
 
-                link = gw.get_cell(row_values, 'url')
-                logger.debug(f'link {link}')
+        #         link = gw.get_cell(row_values, 'url')
+        #         logger.debug(f'link {link}')
 
-                entry_number = gw.get_cell(row_values, 'folder')
+        #         entry_number = gw.get_cell(row_values, 'folder')
 
-                # Date Posted on Uwazi - make it Upload Timestamp (of the original image eg Twitter)
-                # it may be blank
-                # also I need to convert to a unixtimestamp
-                media_upload_timestamp = item.get_timestamp()
+        #         # Date Posted on Uwazi - make it Upload Timestamp (of the original image eg Twitter)
+        #         # it may be blank
+        #         # also I need to convert to a unixtimestamp
+        #         media_upload_timestamp = item.get_timestamp()
 
-                uwazi_adapter = UwaziAdapter(user='admin', password='change this password now', url='http://localhost:3000')
-                entity = {
-                        # 'title': 'foo30',
-                        'title': uwazi_title,
-                        'template': '65b124284404bd242a8d3400', # Content
-                        "type": "entity",
-                        "documents": [],
-                        'metadata': {
-                            "video_url1":[{"value":video_url1}],
-                            "video_url2":[{"value":video_url2}],
-                            # "image_url1":[{"value":""}],
-                            "image_url1":[{"value":image_url1}],
-                            "image_url2":[{"value":image_url2}],
-                            "image_url3":[{"value":image_url3}],
-                            "image_url4":[{"value":image_url4}],
-                            # "generated_id":[{"value":"KJY5630-3351"}], # need to generate something here to send it
-                            "generated_id":[{"value":entry_number}], 
-                            "date_posted":[{"value":1706400000}], # 2022
-                            "case":[],
-                            "link": [{
-                                    "value": {
-                                        "label": link,
-                                        "url": link
-                                    }
-                                }]
-                            }
-                        }
+        #         # uwazi_adapter = UwaziAdapter(user='admin', password='change this password now', url='http://localhost:3000')
+        #         # uwazi_adapter = UwaziAdapter(user='admin', password='change this password now', url='http://pfsense:3000')
+        #         uwazi_adapter = UwaziAdapter(user='admin', password='change this password now', url='https://hmsoftware.uwazi.io')
+        #         entity = {
+        #                 # 'title': 'foo30',
+        #                 'title': uwazi_title,
+        #                 # 'template': '65b124284404bd242a8d3400', # Content on localhost
+        #                 # 'template': '65c21763b86e4246e7ea57f6', # Content on pfsense
+        #                 'template': '65c2276ae959b06a6dfdce4d', # Content on hmsoftware
+        #                 "type": "entity",
+        #                 "documents": [],
+        #                 'metadata': {
+        #                     "video_url1":[{"value":video_url1}],
+        #                     "video_url2":[{"value":video_url2}],
+        #                     # "image_url1":[{"value":""}],
+        #                     "image_url1":[{"value":image_url1}],
+        #                     "image_url2":[{"value":image_url2}],
+        #                     "image_url3":[{"value":image_url3}],
+        #                     "image_url4":[{"value":image_url4}],
+        #                     # "generated_id":[{"value":"KJY5630-3351"}], # need to generate something here to send it
+        #                     "generated_id":[{"value":entry_number}], 
+        #                     "date_posted":[{"value":1644155025}], # 2022/02/06 13:43:45
+        #                     "case":[],
+        #                     "link": [{
+        #                             "value": {
+        #                                 "label": link,
+        #                                 "url": link
+        #                             }
+        #                         }]
+        #                     }
+        #                 }
 
-                # uploads the new Entity
-                shared_id = uwazi_adapter.entities.upload(entity=entity, language='en')
+        #         # uploads the new Entity
+        #         shared_id = uwazi_adapter.entities.upload(entity=entity, language='en')
 
-                # if successful import then write date to spreadsheet
-                batch_if_valid('date_imported_to_uwazi', True, datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).isoformat())
+        #         # if successful import then write date to spreadsheet
+        #         batch_if_valid('date_imported_to_uwazi', True, datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).isoformat())
 
 
         gw.batch_set_cell(cell_updates)

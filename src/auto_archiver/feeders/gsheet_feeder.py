@@ -7,7 +7,8 @@ from slugify import slugify
 from . import Feeder
 from ..core import Metadata, ArchivingContext
 from ..utils import Gsheets, GWorksheet
-
+from datetime import datetime, timezone
+from ..uwazi_api.UwaziAdapter import UwaziAdapter
 
 class GsheetsFeeder(Gsheets, Feeder):
     name = "gsheet_feeder"
@@ -42,13 +43,28 @@ class GsheetsFeeder(Gsheets, Feeder):
                 } ,
                 "auto_tweet": {
                     "default": False,
-                    "help": "DM",
+                    "help": "DM - if True then auto tweet. see gsheet_feeder",
                 },
                 "uwazi_integration": {
                     "default": False,
-                    "help": "DM",
+                    "help": "DM - if True then send to Uwazi",
+                },
+                "uwazi_user": {
+                    "default": '',
+                    "help": "",
+                },
+                "uwazi_password": {
+                    "default": '',
+                    "help": "",
+                },
+                "uwazi_url": {
+                    "default": '',
+                    "help": "",
+                },
+                "uwazi_content_template_id": {
+                    "default": '',
+                    "help": "",
                 }
-
 
             })
 
@@ -71,6 +87,131 @@ class GsheetsFeeder(Gsheets, Feeder):
                 if not len(url): continue
 
                 original_status = gw.get_cell(row, 'status')
+
+                # special case Uwazi
+                # DM Tue 20th
+                # we need image_url1 etc to be working - see gsheet_db.py - essentially just need column names there are it will auto populate
+                if self.uwazi_integration == True:
+                    keep_going = True
+                    # check uwazi column exists
+                    try:
+                         _ = gw.col_exists('send_to_uwazi')
+                    except: 
+                        keep_going = False
+                        logger.error('Uwazi feature is on but send_to_uwazi column not present')
+                        continue # to next row. todo - throw
+
+                    # we're using keep_going rather than continue as the normal archiver run 
+                    # will go through this code too for Glan
+                    if keep_going:
+                        # has the archiver already been run?
+                        if original_status == '':
+                            logger.debug('Archiver not been run for the first time, so dont send yet to uwazi')
+                            keep_going = False
+
+                     # is send_to_uwazi column 'y'
+                    if keep_going:
+                        stu = gw.get_cell(row, 'send_to_uwazi').lower()
+                        if stu == 'y':
+                            pass
+                        else:
+                            keep_going = False
+
+                    # have we already sent it uwazi?
+                    if keep_going:
+                        di = gw.get_cell(row, 'date_imported_to_uwazi').lower()
+                        if di == '':
+                            pass
+                        else:
+                            # logger.debug('already imported to uwazi so ignore')
+                            keep_going = False
+
+                    # assume that user only presses send to uwazi if a successful archive has taken plan
+                    if keep_going:
+                        logger.debug('sending to Uwazi!')
+
+                        entry_number = gw.get_cell(row, 'folder')
+
+                        uwazi_title = gw.get_cell(row, 'uwazi_title')
+                        if uwazi_title == '':
+                            uwazi_title = entry_number
+
+                        link = gw.get_cell(row, 'url')
+
+                        image_url1= gw.get_cell(row, 'image_url1')
+                        image_url2= gw.get_cell(row, 'image_url2')
+                        image_url3= gw.get_cell(row, 'image_url3')
+                        image_url4= gw.get_cell(row, 'image_url4')
+
+                        video_url1= gw.get_cell(row, 'video_url1')
+                        video_url2= gw.get_cell(row, 'video_url2')
+
+                        # Date Posted - make it Upload Timestamp (of the original image eg Twitter)
+                        # it may be blank
+                        # eg '2022-05-11T10:51:35+00:00'
+                        upload_timestamp = gw.get_cell(row, 'timestamp')
+                        # Convert the string to a datetime object
+                        datetime_obj = datetime.fromisoformat(upload_timestamp)
+                        unix_timestamp = datetime_obj.replace(tzinfo=timezone.utc).timestamp()
+
+                        # a description
+                        upload_title = gw.get_cell(row, 'title')
+
+                        hash = gw.get_cell(row, 'hash')
+
+                        # digital ocean link
+                        archive_location = gw.get_cell(row, 'archive_location')
+
+                        # uwazi_adapter = UwaziAdapter(user='admin', password='change this password now', url='http://pfsense:3000')
+                        uwazi_adapter = UwaziAdapter(user=self.uwazi_user, password=self.uwazi_password, url=self.uwazi_url)
+                        entity = {
+                                # 'title': 'foo30',
+                                'title': uwazi_title,
+                                # 'template': '65c21763b86e4246e7ea57f6', # Content on pfsense
+                                'template': self.uwazi_content_template_id, 
+                                "type": "entity",
+                                "documents": [],
+                                'metadata': {
+                                    "video_url1":[{"value":video_url1}],
+                                    "video_url2":[{"value":video_url2}],
+                                    # "image_url1":[{"value":""}],
+                                    "image_url1":[{"value":image_url1}],
+                                    "image_url2":[{"value":image_url2}],
+                                    "image_url3":[{"value":image_url3}],
+                                    "image_url4":[{"value":image_url4}],
+                                    # "generated_id":[{"value":"KJY5630-3351"}], # need to generate something here to send it
+                                    "generated_id":[{"value":entry_number}], 
+                                    # "date_posted":[{"value":1644155025}], # 2022/02/06 13:43:45
+                                    "date_posted":[{"value":unix_timestamp}], 
+                                    "case":[],
+                                    "upload_title":[{"value":upload_title}], 
+                                    "hash":[{"value":hash}], 
+                                    "link": [{
+                                            "value": {
+                                                "label": link,
+                                                "url": link
+                                            }
+                                        }],
+                                    "archive_location": [{
+                                            "value": {
+                                                "label": archive_location,
+                                                "url": archive_location
+                                            }
+                                        }]
+                                    }
+                                }
+
+                        # uploads the new Entity
+                        shared_id = uwazi_adapter.entities.upload(entity=entity, language='en')
+
+                        if shared_id is None:
+                            logger.error('Problem with uploading to Uwazi')
+                            gw.set_cell(row, 'date_imported_to_uwazi','Problem see logs')
+                        else:
+                            # if successful import then write date to spreadsheet
+                            gw.set_cell(row, 'date_imported_to_uwazi',datetime.utcnow().replace(tzinfo=timezone.utc).isoformat())
+
+                        continue # to next row of the sheet (don't want to run any more code below as have just sent data to Uwazi)
 
                 # special code path for only FB archiver 
                 # as we only want it to feed when facebook.com is in url and wayback in status 

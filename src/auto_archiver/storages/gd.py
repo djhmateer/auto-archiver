@@ -125,7 +125,10 @@ class GDriveStorage(Storage):
     # must be implemented even if unused
     def uploadf(self, file: IO[bytes], key: str, **kwargs: dict) -> bool: pass
 
-    def _get_id_from_parent_and_name(self, parent_id: str, name: str, retries: int = 1, sleep_seconds: int = 10, use_mime_type: bool = False, raise_on_missing: bool = True, use_cache=False):
+    # DM 19th Feb 2024
+    # this does slow down other calls - but lets see if it gets rid of transient google drive errors
+    # problem is that it retries 3 times to see if the folder is there (and it shouldn't be ie we haven't tried to create it yet)
+    def _get_id_from_parent_and_name(self, parent_id: str, name: str, retries: int = 3, sleep_seconds: int = 30, use_mime_type: bool = False, raise_on_missing: bool = True, use_cache=False):
         """
         Retrieves the id of a folder or file from its @name and the @parent_id folder
         Optionally does multiple @retries and sleeps @sleep_seconds between them
@@ -147,6 +150,11 @@ class GDriveStorage(Storage):
         query_string = f"'{parent_id}' in parents and name = '{name}' and trashed = false "
         if use_mime_type:
             query_string += f" and mimeType='application/vnd.google-apps.folder' "
+
+        # aa demo main has overrides so that it is fast
+        # otherwise stick to defaults of 3 and 30
+        retries = self.gd_retries
+        sleep_seconds = self.gd_sleep_seconds
 
         for attempt in range(retries):
             results = self.service.files().list(

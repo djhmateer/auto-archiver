@@ -34,6 +34,14 @@ class Storage(Step):
                 "default": "random",
                 "help": "how to name stored files: 'random' creates a random string; 'static' uses a replicable strategy such as a hash.",
                 "choices": Storage.FILENAME_GENERATOR_CHOICES
+            },
+            "gd_retries": {
+                "default": 3,
+                "help": "asdf"
+            },
+            "gd_sleep_seconds": {
+                "default": 30,
+                "help": "asdf"
             }
         }
 
