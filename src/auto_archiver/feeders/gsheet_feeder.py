@@ -150,9 +150,19 @@ class GsheetsFeeder(Gsheets, Feeder):
                         # it may be blank
                         # eg '2022-05-11T10:51:35+00:00'
                         upload_timestamp = gw.get_cell(row, 'timestamp')
+
                         # Convert the string to a datetime object
-                        datetime_obj = datetime.fromisoformat(upload_timestamp)
-                        unix_timestamp = datetime_obj.replace(tzinfo=timezone.utc).timestamp()
+                        # it can be that it is blank (not sure why)
+                        unix_timestamp = 0
+                        if upload_timestamp == "":
+                            pass
+                        else:
+                            try:
+                                datetime_obj = datetime.fromisoformat(upload_timestamp)
+                                unix_timestamp = datetime_obj.replace(tzinfo=timezone.utc).timestamp()
+                            except:
+                                logger.warning('unkown dateposted timestamp converstion from iso')
+                                pass
 
                         # a description
                         upload_title = gw.get_cell(row, 'title')
