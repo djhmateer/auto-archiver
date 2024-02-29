@@ -172,10 +172,59 @@ class GsheetsFeeder(Gsheets, Feeder):
                         # digital ocean link
                         archive_location = gw.get_cell(row, 'archive_location')
 
-                        # uwazi_adapter = UwaziAdapter(user='admin', password='change this password now', url='http://pfsense:3000')
-                        uwazi_adapter = UwaziAdapter(user=self.uwazi_user, password=self.uwazi_password, url=self.uwazi_url)
-                        entity = {
-                                # 'title': 'foo30',
+                        # geolocation_geolocation
+                        geolocation = gw.get_cell(row, 'geolocation_geolocation')
+
+
+                        # todo - figure out a way to remove geolocation if we don't have it
+                        if geolocation != "":
+                            parts = geolocation.split(",", 1) 
+                            lat = float(parts[0].strip())
+                            long = float(parts[1].strip())
+                            entity = {
+                                'title': uwazi_title,
+                                # 'template': '65c21763b86e4246e7ea57f6', # Content on pfsense
+                                'template': self.uwazi_content_template_id, 
+                                "type": "entity",
+                                "documents": [],
+                                'metadata': {
+                                    "video_url1":[{"value":video_url1}],
+                                    "video_url2":[{"value":video_url2}],
+                                    # "image_url1":[{"value":""}],
+                                    "image_url1":[{"value":image_url1}],
+                                    "image_url2":[{"value":image_url2}],
+                                    "image_url3":[{"value":image_url3}],
+                                    "image_url4":[{"value":image_url4}],
+                                    # "generated_id":[{"value":"KJY5630-3351"}], # need to generate something here to send it
+                                    "generated_id":[{"value":entry_number}], 
+                                    # "date_posted":[{"value":1644155025}], # 2022/02/06 13:43:45
+                                    "date_posted":[{"value":unix_timestamp}], 
+                                    "case":[],
+                                    "upload_title":[{"value":upload_title}], 
+                                    "hash":[{"value":hash}], 
+                                    "link": [{
+                                            "value": {
+                                                "label": link,
+                                                "url": link
+                                            }
+                                        }],
+                                    "geolocation_geolocation": [{
+                                                    "value": {
+                                                        "lat": lat,
+                                                        "lon": long,
+                                                        "label": ""
+                                                    }
+                                                }],
+                                    "archive_location": [{
+                                            "value": {
+                                                "label": archive_location,
+                                                "url": archive_location
+                                            }
+                                        }]
+                                    }
+                                }
+                        else:
+                            entity = {
                                 'title': uwazi_title,
                                 # 'template': '65c21763b86e4246e7ea57f6', # Content on pfsense
                                 'template': self.uwazi_content_template_id, 
@@ -211,6 +260,9 @@ class GsheetsFeeder(Gsheets, Feeder):
                                     }
                                 }
 
+                        # uwazi_adapter = UwaziAdapter(user='admin', password='change this password now', url='http://pfsense:3000')
+                        uwazi_adapter = UwaziAdapter(user=self.uwazi_user, password=self.uwazi_password, url=self.uwazi_url)
+                        
                         # uploads the new Entity
                         shared_id = uwazi_adapter.entities.upload(entity=entity, language='en')
 
