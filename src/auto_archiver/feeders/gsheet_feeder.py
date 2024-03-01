@@ -64,6 +64,10 @@ class GsheetsFeeder(Gsheets, Feeder):
                 "uwazi_content_template_id": {
                     "default": '',
                     "help": "",
+                },
+                "uwazi_case_template_id": {
+                    "default": '',
+                    "help": "",
                 }
 
             })
@@ -175,93 +179,123 @@ class GsheetsFeeder(Gsheets, Feeder):
                         # geolocation_geolocation
                         geolocation = gw.get_cell(row, 'geolocation_geolocation')
 
-
-                        # todo - figure out a way to remove geolocation if we don't have it
                         if geolocation != "":
-                            parts = geolocation.split(",", 1) 
-                            lat = float(parts[0].strip())
-                            long = float(parts[1].strip())
-                            entity = {
-                                'title': uwazi_title,
-                                # 'template': '65c21763b86e4246e7ea57f6', # Content on pfsense
-                                'template': self.uwazi_content_template_id, 
-                                "type": "entity",
-                                "documents": [],
-                                'metadata': {
-                                    "video_url1":[{"value":video_url1}],
-                                    "video_url2":[{"value":video_url2}],
-                                    # "image_url1":[{"value":""}],
-                                    "image_url1":[{"value":image_url1}],
-                                    "image_url2":[{"value":image_url2}],
-                                    "image_url3":[{"value":image_url3}],
-                                    "image_url4":[{"value":image_url4}],
-                                    # "generated_id":[{"value":"KJY5630-3351"}], # need to generate something here to send it
-                                    "generated_id":[{"value":entry_number}], 
-                                    # "date_posted":[{"value":1644155025}], # 2022/02/06 13:43:45
-                                    "date_posted":[{"value":unix_timestamp}], 
-                                    "case":[],
-                                    "upload_title":[{"value":upload_title}], 
-                                    "hash":[{"value":hash}], 
-                                    "link": [{
-                                            "value": {
-                                                "label": link,
-                                                "url": link
-                                            }
-                                        }],
-                                    "geolocation_geolocation": [{
-                                                    "value": {
-                                                        "lat": lat,
-                                                        "lon": long,
-                                                        "label": ""
-                                                    }
-                                                }],
-                                    "archive_location": [{
-                                            "value": {
-                                                "label": archive_location,
-                                                "url": archive_location
-                                            }
-                                        }]
+                            # parts = geolocation.split(",", 1) 
+                            try:
+                                parts = geolocation.split("|", 1) 
+                                lat = float(parts[0].strip())
+                                long = float(parts[1].strip())
+                                geolocation_geolocation = [{
+                                    "value": {
+                                        "lat": lat,
+                                        "lon": long,
+                                        "label": ""
                                     }
-                                }
-                        else:
-                            entity = {
-                                'title': uwazi_title,
-                                # 'template': '65c21763b86e4246e7ea57f6', # Content on pfsense
-                                'template': self.uwazi_content_template_id, 
-                                "type": "entity",
-                                "documents": [],
-                                'metadata': {
-                                    "video_url1":[{"value":video_url1}],
-                                    "video_url2":[{"value":video_url2}],
-                                    # "image_url1":[{"value":""}],
-                                    "image_url1":[{"value":image_url1}],
-                                    "image_url2":[{"value":image_url2}],
-                                    "image_url3":[{"value":image_url3}],
-                                    "image_url4":[{"value":image_url4}],
-                                    # "generated_id":[{"value":"KJY5630-3351"}], # need to generate something here to send it
-                                    "generated_id":[{"value":entry_number}], 
-                                    # "date_posted":[{"value":1644155025}], # 2022/02/06 13:43:45
-                                    "date_posted":[{"value":unix_timestamp}], 
-                                    "case":[],
-                                    "upload_title":[{"value":upload_title}], 
-                                    "hash":[{"value":hash}], 
-                                    "link": [{
-                                            "value": {
-                                                "label": link,
-                                                "url": link
-                                            }
-                                        }],
-                                    "archive_location": [{
-                                            "value": {
-                                                "label": archive_location,
-                                                "url": archive_location
-                                            }
-                                        }]
-                                    }
-                                }
+                                }]
+                            except:
+                                logger.warning(f"geolocation failed to parse {parts}")
+                                geolocation_geolocation = []
+                        else: 
+                             geolocation_geolocation = []
 
+                        # HERE - need to figure out the CASE entity value
+                        # get it from the spreadsheet CASE
+                        # eg GAZ088
+                        case_id = gw.get_cell(row, 'case_id')
+
+                        # Does this CASE exist in Uwazi already?
                         # uwazi_adapter = UwaziAdapter(user='admin', password='change this password now', url='http://pfsense:3000')
-                        uwazi_adapter = UwaziAdapter(user=self.uwazi_user, password=self.uwazi_password, url=self.uwazi_url)
+                        uwazi_adapter = UwaziAdapter(user=self.uwazi_user, password=self.uwazi_password, url=self.uwazi_url) 
+
+                        # foo = uwazi_adapter.entities.upload(entity=entity, language='en')
+
+                        #HERE!!!
+                        # case_template_id: 65c2269c15ed225000686d68
+
+                        # this gets top 30 CASES
+                        # returning the mongo id which is perfect
+                        # 06oxg0tt4m1m is GAZ088
+                        fooxx = uwazi_adapter.entities.get_shared_ids_search_by_case_id('65c2269c15ed225000686d68', 30, case_id)
+
+                        case_id_mongo = ''
+                        if len(fooxx) == 0:
+                            logger.debug('need to create a new CASE')
+                            case_entity = {
+                                # 'title': 'title here',
+                                'title': case_id,
+                                'template': self.uwazi_case_template_id, 
+                                "type": "entity",
+                                "documents": [],
+                                 "metadata": {
+                                    "image": [ { "value": "" } ],
+                                    # "case_code": [ { "value": "GAZ001" } ],
+                                    # from the spreadsheet eg GAZ0088
+                                    "case_code": [ { "value": case_id } ],
+                                    "description": [ { "value": "" } ],
+                                    # "generated_id": [ { "value": "PGT2095-4377" } ],
+                                    # do we really need this parameter?
+                                    "generated_id": [ { "value": case_id} ],
+                                    # "generated_id": [],
+                                    "harm_type": [],
+                                    "case_nature": [ { "value": "" } ],
+                                    "object_affected": [],
+                                    "glan_jr": [ { "value": "" } ],
+                                    "incident_id": [ { "value": "" } ],
+                                    "governorate": [ { "value": "" } ]
+                                }
+                            }
+
+                            case_id_mongo = uwazi_adapter.entities.upload(entity=case_entity, language='en')
+                        else:
+                            # There were CASES found in the search
+                            # if the search for GAZ088 came back with multiple CASES we would be in trouble
+                            if len(fooxx) > 1:
+                                logger.warning(f'Search term {case_id} found multiple CASES ')
+                                # take the last one as it was probably the one we're after
+                                case_id_mongo = fooxx[-1]
+                            else:
+                                case_id_mongo = fooxx[0]
+                            
+                        entity = {
+                                'title': uwazi_title,
+                                # 'template': '65c21763b86e4246e7ea57f6', # Content on pfsense
+                                'template': self.uwazi_content_template_id, 
+                                "type": "entity",
+                                "documents": [],
+                                'metadata': {
+                                    "video_url1":[{"value":video_url1}],
+                                    "video_url2":[{"value":video_url2}],
+                                    # "image_url1":[{"value":""}],
+                                    "image_url1":[{"value":image_url1}],
+                                    "image_url2":[{"value":image_url2}],
+                                    "image_url3":[{"value":image_url3}],
+                                    "image_url4":[{"value":image_url4}],
+                                    # "generated_id":[{"value":"KJY5630-3351"}], # need to generate something here to send it
+                                    "generated_id":[{"value":entry_number}], 
+                                    # "date_posted":[{"value":1644155025}], # 2022/02/06 13:43:45
+                                    "date_posted":[{"value":unix_timestamp}], 
+                                     # "case": [{ "value": "06oxg0tt4m1m" } ],
+                                    "case": [{ "value": case_id_mongo } ],
+                                    # "case":[],
+                                    "geolocation_geolocation": geolocation_geolocation,
+                                    "upload_title":[{"value":upload_title}], 
+                                    "hash":[{"value":hash}], 
+                                    "link": [{
+                                            "value": {
+                                                "label": link,
+                                                "url": link
+                                            }
+                                        }],
+                                    "archive_location": [{
+                                            "value": {
+                                                "label": archive_location,
+                                                "url": archive_location
+                                            }
+                                        }]
+                                    }
+                                }
+                        
+                     
                         
                         # uploads the new Entity
                         shared_id = uwazi_adapter.entities.upload(entity=entity, language='en')

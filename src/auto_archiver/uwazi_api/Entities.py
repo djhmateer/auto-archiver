@@ -45,6 +45,31 @@ class Entities:
 
         return [json_entity['sharedId'] for json_entity in json.loads(response.text)['rows']]
 
+    # DM copy of above with searchterm
+    def get_shared_ids_search_by_case_id(self, to_process_template: str, batch_size: int, case_id: str, unpublished: bool = True):
+        params = {'_types': f'["{to_process_template}"]',
+                  'types': f'["{to_process_template}"]',
+                  'unpublished': 'true' if unpublished else 'false',
+                  'limit': batch_size,
+                  'order': 'desc',
+                  # DM
+                   #   'searchTerm': 'GAZ088',
+                  'searchTerm': case_id,
+                  'sort': 'creationDate'
+                  }
+
+        response = self.uwazi_request.request_adapter.get(f'{self.uwazi_request.url}/api/search',
+                                                          headers=self.uwazi_request.headers,
+                                                          params=params,
+                                                          cookies={'connect.sid': self.uwazi_request.connect_sid,
+                                                                   'locale': 'en'})
+
+        if response.status_code != 200:
+            raise InterruptedError(f'Error getting entities to update')
+
+        return [json_entity['sharedId'] for json_entity in json.loads(response.text)['rows']]
+
+
     def get(self, template_id: str, batch_size: int, language: str = 'en', published: bool = False):
         params = {'types': f'["{template_id}"]',
                   'unpublished': 'false' if published else 'true',
