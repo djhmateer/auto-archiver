@@ -180,9 +180,9 @@ class GsheetsFeeder(Gsheets, Feeder):
                         geolocation = gw.get_cell(row, 'geolocation_geolocation')
 
                         if geolocation != "":
-                            # parts = geolocation.split(",", 1) 
                             try:
-                                parts = geolocation.split("|", 1) 
+                                parts = geolocation.split(",", 1) 
+                                # parts = geolocation.split("|", 1) 
                                 lat = float(parts[0].strip())
                                 long = float(parts[1].strip())
                                 geolocation_geolocation = [{
@@ -203,49 +203,63 @@ class GsheetsFeeder(Gsheets, Feeder):
                         # eg GAZ088
                         case_id = gw.get_cell(row, 'case_id')
 
+                        if len(case_id) == 0:
+                            logger.warning('CASE_ID not found in spreadsheet')
+                            gw.set_cell(row, 'date_imported_to_uwazi','Problem - CASE_ID not found in spreadsheet')
+                            continue
+
+                        description = gw.get_cell(row, 'description')
+
+                        screenshot = gw.get_cell(row, 'screenshot')
+
                         # Does this CASE exist in Uwazi already?
                         # uwazi_adapter = UwaziAdapter(user='admin', password='change this password now', url='http://pfsense:3000')
                         uwazi_adapter = UwaziAdapter(user=self.uwazi_user, password=self.uwazi_password, url=self.uwazi_url) 
 
                         # foo = uwazi_adapter.entities.upload(entity=entity, language='en')
 
-                        #HERE!!!
                         # case_template_id: 65c2269c15ed225000686d68
 
                         # this gets top 30 CASES
                         # returning the mongo id which is perfect
                         # 06oxg0tt4m1m is GAZ088
-                        fooxx = uwazi_adapter.entities.get_shared_ids_search_by_case_id('65c2269c15ed225000686d68', 30, case_id)
+
+                        # fooxx = uwazi_adapter.entities.get_shared_ids_search_by_case_id('65c2269c15ed225000686d68', 30, case_id)
+                        fooxx = uwazi_adapter.entities.get_shared_ids_search_by_case_id(self.uwazi_case_template_id, 30, case_id)
 
                         case_id_mongo = ''
                         if len(fooxx) == 0:
-                            logger.debug('need to create a new CASE')
-                            case_entity = {
-                                # 'title': 'title here',
-                                'title': case_id,
-                                'template': self.uwazi_case_template_id, 
-                                "type": "entity",
-                                "documents": [],
-                                 "metadata": {
-                                    "image": [ { "value": "" } ],
-                                    # "case_code": [ { "value": "GAZ001" } ],
-                                    # from the spreadsheet eg GAZ0088
-                                    "case_code": [ { "value": case_id } ],
-                                    "description": [ { "value": "" } ],
-                                    # "generated_id": [ { "value": "PGT2095-4377" } ],
-                                    # do we really need this parameter?
-                                    "generated_id": [ { "value": case_id} ],
-                                    # "generated_id": [],
-                                    "harm_type": [],
-                                    "case_nature": [ { "value": "" } ],
-                                    "object_affected": [],
-                                    "glan_jr": [ { "value": "" } ],
-                                    "incident_id": [ { "value": "" } ],
-                                    "governorate": [ { "value": "" } ]
-                                }
-                            }
+                            logger.warning('CASE not found - problem. It should be created in Uwazi before doing the auto upload!')
+                            gw.set_cell(row, 'date_imported_to_uwazi','Problem - need to create CASE in Uwazi')
+                            continue
 
-                            case_id_mongo = uwazi_adapter.entities.upload(entity=case_entity, language='en')
+                            # Auto create a new CASE
+                            # case_entity = {
+                            #     # 'title': 'title here',
+                            #     'title': case_id,
+                            #     'template': self.uwazi_case_template_id, 
+                            #     "type": "entity",
+                            #     "documents": [],
+                            #      "metadata": {
+                            #         "image": [ { "value": "" } ],
+                            #         # "case_code": [ { "value": "GAZ001" } ],
+                            #         # from the spreadsheet eg GAZ0088
+                            #         "case_id": [ { "value": case_id } ],
+                            #         "description": [ { "value": "" } ],
+                            #         # "generated_id": [ { "value": "PGT2095-4377" } ],
+                            #         # do we really need this parameter?
+                            #         "generated_id": [ { "value": case_id} ],
+                            #         # "generated_id": [],
+                            #         "harm_type": [],
+                            #         "case_nature": [ { "value": "" } ],
+                            #         "object_affected": [],
+                            #         "glan_jr": [ { "value": "" } ],
+                            #         "incident_id": [ { "value": "" } ],
+                            #         "governorate": [ { "value": "" } ]
+                            #     }
+                            # }
+
+                            # case_id_mongo = uwazi_adapter.entities.upload(entity=case_entity, language='en')
                         else:
                             # There were CASES found in the search
                             # if the search for GAZ088 came back with multiple CASES we would be in trouble
@@ -256,16 +270,25 @@ class GsheetsFeeder(Gsheets, Feeder):
                             else:
                                 case_id_mongo = fooxx[0]
                             
+                        # Content
                         entity = {
                                 'title': uwazi_title,
-                                # 'template': '65c21763b86e4246e7ea57f6', # Content on pfsense
                                 'template': self.uwazi_content_template_id, 
                                 "type": "entity",
                                 "documents": [],
                                 'metadata': {
+                                    "description":[{"value":description}], 
+                                    "screenshot2":[{"value":screenshot}], 
+                                    
+                                    "screenshot": [{
+                                            "value": {
+                                                "label": "screenshot",
+                                                "url": screenshot
+                                            }
+                                        }],
+
                                     "video_url1":[{"value":video_url1}],
                                     "video_url2":[{"value":video_url2}],
-                                    # "image_url1":[{"value":""}],
                                     "image_url1":[{"value":image_url1}],
                                     "image_url2":[{"value":image_url2}],
                                     "image_url3":[{"value":image_url3}],
