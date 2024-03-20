@@ -74,13 +74,186 @@ class GsheetsFeeder(Gsheets, Feeder):
 
     def __iter__(self) -> Metadata:
         sh = self.open_sheet()
-        for ii, wks in enumerate(sh.worksheets()):
-            if not self.should_process_sheet(wks.title):
-                logger.debug(f"SKIPPED worksheet '{wks.title}' due to allow/block rules")
-                continue
+
+        # DM make sure Incidents worksheet is enumerated first if exists
+        def custom_sort(wks):
+            #Prioritize 'Incidents' by giving it a lower sort value
+            return (0 if wks.title == 'Incidents' else 1, wks.title)
+
+        sorted_worksheets = sorted(sh.worksheets(), key=custom_sort)
+
+        # for ii, wks in enumerate(sh.worksheets()):
+        for ii, wks in enumerate(sorted_worksheets):
 
             logger.info(f'Opening worksheet {ii=}: {sh.title} {wks.title=} header={self.header}')
             gw = GWorksheet(wks, header_row=self.header, columns=self.columns)
+
+            # special case for Uwazi integration to process the Incidents tab
+            # both conditions have to be true
+            if self.uwazi_integration == True and wks.title == "Incidents":
+               logger.debug("Found uwazi integration Incidents (CASES) sheet to process - doing this first before Sheet1")
+
+               # insert a new CASES (maybe an Incident)
+               # reading from Incidents tab only
+               for row in range(1 + self.header, gw.count_rows() + 1):
+                    # so row 2 isn't processed, and any blank rows
+                    url = gw.get_cell(row, 'iseed_data').strip()
+                    if not len(url): continue
+ 
+                    ititle = gw.get_cell(row, 'ititle')
+                    icase_id = gw.get_cell(row, 'icase_id')
+                    idescription = gw.get_cell(row, 'idescription')
+                    ineighbourhood = gw.get_cell(row, 'ineighbourhood')
+
+                    # Date_Reported 
+                    idate_reported = gw.get_cell(row, 'idate_reported')
+                    idate_reported_unix = 0
+                    if idate_reported == "": pass
+                    else:
+                        try:
+                            datetime_obj = datetime.fromisoformat(idate_reported)
+                            idate_reported_unix = datetime_obj.replace(tzinfo=timezone.utc).timestamp()
+                        except:
+                            logger.warning('unknown idate_reported timestamp converstion from iso')
+                            pass
+
+                    # Date_Accessed
+                    idate_assessed = gw.get_cell(row, 'idate_assessed')
+                    idate_assessed_unix = 0
+                    if idate_assessed == "": pass
+                    else:
+                        try:
+                            datetime_obj = datetime.fromisoformat(idate_assessed)
+                            idate_assessed_unix = datetime_obj.replace(tzinfo=timezone.utc).timestamp()
+                        except:
+                            logger.warning('unknown idate_assessed timestamp converstion from iso')
+                            pass
+
+
+                    uwazi_adapter = UwaziAdapter(user=self.uwazi_user, password=self.uwazi_password, url=self.uwazi_url) 
+
+                    # HARM_SOURCE - single select
+                    harm_source_from_spreadsheet = gw.get_cell(row, 'iharm_source')
+
+                    harm_source_dictionary_element_id = None
+                    if harm_source_from_spreadsheet == '': 
+                        logger.debug("no harm source from spreadsheet")
+                    else:
+                         harm_source_dictionary_element_id = uwazi_adapter.entities.get_dictionary_element_id_by_dictionary_name_and_element_title("HARM_SOURCE", harm_source_from_spreadsheet)
+
+                         if harm_source_dictionary_element_id is None:
+                            message = f"Dictionary element in HARM_SOURCE not found: {harm_source_from_spreadsheet}"
+                            logger.warning(message)
+
+
+                    # OBJECT_AFFECTED - multi select with groups in the thesauri/dictionary
+                    object_affected_from_spreadsheet = gw.get_cell(row, 'iobject_affected')
+                    objects = object_affected_from_spreadsheet.split(',')
+
+                    object_affected_list = []
+                    if objects == ['']:
+                        logger.debug('no object_affected from spreadsheet')
+                    else:
+                        for o in objects:
+                            object_affected_dictionary_element_id  = uwazi_adapter.entities.get_dictionary_element_id_by_dictionary_name_and_element_title("OBJECT_AFFECTED", o)
+                            if object_affected_dictionary_element_id is None:
+                                logger.debug('couldnt match so not appending - keeping on going for next object affeted')
+                            else:
+                                object_affected_list.append(object_affected_dictionary_element_id)
+
+                    # create json list to send
+                    object_affected_result_list = []
+                    for oa in object_affected_list:
+                        # Create a new dictionary with the current value
+                        new_dict = {"value": oa}
+                        object_affected_result_list.append(new_dict)
+
+
+                    # PEOPLE_HARMED - multi select but no groups 
+                    people_harmed_from_spreadsheet = gw.get_cell(row, 'ipeople_harmed')
+                    objects = people_harmed_from_spreadsheet.split(',')
+
+                    people_harmed_list = []
+
+                    if objects == ['']:
+                        logger.debug('no people_harmed from spreadsheet')
+                    else:
+                        for o in objects:
+                            people_harmed_dictionary_element_id  = uwazi_adapter.entities.get_dictionary_element_id_by_dictionary_name_and_element_title("PEOPLE_HARMED", o)
+                            people_harmed_list.append(people_harmed_dictionary_element_id)
+
+                    # create json list to send
+                    people_harmed_result_list = []
+                    for ph in people_harmed_list:
+                        # Create a new dictionary with the current value
+                        new_dict = {"value": ph}
+                        people_harmed_result_list.append(new_dict)
+
+
+                    # GOVERNORATE - single select
+                    governorate_from_spreadsheet = gw.get_cell(row, 'igovernorate')
+
+                    governorate_dictionary_element_id = None
+                    if governorate_from_spreadsheet == '': 
+                        logger.debug("no governorate from spreadsheet")
+                    else:
+                         governorate_dictionary_element_id = uwazi_adapter.entities.get_dictionary_element_id_by_dictionary_name_and_element_title("GOVERNORATE", governorate_from_spreadsheet)
+
+                         if governorate_dictionary_element_id is None:
+                            message = f"Dictionary element in GOVERNORATE not found: {governorate_from_spreadsheet}"
+                            logger.warning(message)
+
+                        
+                    # CAMP - single select
+                    camp_from_spreadsheet = gw.get_cell(row, 'icamp')
+
+                    camp_dictionary_element_id = None
+                    if camp_from_spreadsheet == '': 
+                        logger.debug("no camp from spreadsheet")
+                    else:
+                         camp_dictionary_element_id = uwazi_adapter.entities.get_dictionary_element_id_by_dictionary_name_and_element_title("CAMP", camp_from_spreadsheet)
+
+                         if camp_dictionary_element_id is None:
+                            message = f"Dictionary element in CAMP not found: {camp_from_spreadsheet}"
+                            logger.warning(message)
+
+
+
+                    # Create a new CASE
+                    case_entity = {
+                            'title': ititle,
+                            'template': self.uwazi_case_template_id, 
+                            "documents": [],
+                            "metadata": {
+                                "generated_id": [ { "value": icase_id} ],
+                                "image": [ { "value": "" } ],
+                                # from the spreadsheet eg GAZ0088
+                                "case_id": [ { "value": icase_id } ],
+                                "description": [ { "value": idescription } ],
+                                "neighbourhood": [ { "value": ineighbourhood } ],
+                                "date_reported": [ { "value": idate_reported_unix } ],
+                                "date_assessed": [ { "value": idate_assessed_unix } ],
+
+                                # "harm_source": [],
+                                # "case_nature": [ { "value": "" } ],
+                                "harm_source": [ { "value": harm_source_dictionary_element_id } ],
+
+                                "object_affected": object_affected_result_list,
+                                "people_harmed": people_harmed_result_list,
+                                # "glan_jr": [ { "value": "" } ],
+                                # "incident_id": [ { "value": "" } ],
+                                "governorate": [ { "value": governorate_dictionary_element_id } ],
+                                "camp": [ { "value": camp_dictionary_element_id } ]
+                            }
+                        }
+
+                    uwazi_adapter = UwaziAdapter(user=self.uwazi_user, password=self.uwazi_password, url=self.uwazi_url) 
+                    case_shared_id = uwazi_adapter.entities.upload(entity=case_entity, language='en')
+
+               continue
+            elif not self.should_process_sheet(wks.title):
+                logger.debug(f"SKIPPED worksheet '{wks.title}' due to allow/block rules")
+                continue
 
             if len(missing_cols := self.missing_required_columns(gw)):
                 logger.warning(f"SKIPPED worksheet '{wks.title}' due to missing required column(s) for {missing_cols}")
@@ -204,8 +377,9 @@ class GsheetsFeeder(Gsheets, Feeder):
                         case_id = gw.get_cell(row, 'case_id')
 
                         if len(case_id) == 0:
-                            logger.warning('CASE_ID not found in spreadsheet')
-                            gw.set_cell(row, 'date_imported_to_uwazi','Problem - CASE_ID not found in spreadsheet')
+                            message = 'CASE_ID not found in spreadsheet - not imported into Uwazi as each Content template entity should have a CASE'
+                            logger.warning(message)
+                            gw.set_cell(row, 'date_imported_to_uwazi',message)
                             continue
 
                         description = gw.get_cell(row, 'description')
@@ -213,53 +387,19 @@ class GsheetsFeeder(Gsheets, Feeder):
                         screenshot = gw.get_cell(row, 'screenshot')
 
                         # Does this CASE exist in Uwazi already?
-                        # uwazi_adapter = UwaziAdapter(user='admin', password='change this password now', url='http://pfsense:3000')
+                        # It should have been created above if new
                         uwazi_adapter = UwaziAdapter(user=self.uwazi_user, password=self.uwazi_password, url=self.uwazi_url) 
 
-                        # foo = uwazi_adapter.entities.upload(entity=entity, language='en')
-
-                        # case_template_id: 65c2269c15ed225000686d68
-
-                        # this gets top 30 CASES
-                        # returning the mongo id which is perfect
-                        # 06oxg0tt4m1m is GAZ088
-
-                        # fooxx = uwazi_adapter.entities.get_shared_ids_search_by_case_id('65c2269c15ed225000686d68', 30, case_id)
-                        fooxx = uwazi_adapter.entities.get_shared_ids_search_by_case_id(self.uwazi_case_template_id, 30, case_id)
+                        # fooxx = uwazi_adapter.entities.get_shared_ids_search_by_case_id(self.uwazi_case_template_id, 30, case_id)
+                        fooxx = uwazi_adapter.entities.get_shared_ids_search_v2_by_case_id(self.uwazi_case_template_id, case_id)
 
                         case_id_mongo = ''
                         if len(fooxx) == 0:
-                            logger.warning('CASE not found - problem. It should be created in Uwazi before doing the auto upload!')
-                            gw.set_cell(row, 'date_imported_to_uwazi','Problem - need to create CASE in Uwazi')
+                            message = 'CASE not found - problem. It should have been created in Uwazi before doing the auto upload!'
+                            logger.warning(message)
+                            gw.set_cell(row, message)
                             continue
 
-                            # Auto create a new CASE
-                            # case_entity = {
-                            #     # 'title': 'title here',
-                            #     'title': case_id,
-                            #     'template': self.uwazi_case_template_id, 
-                            #     "type": "entity",
-                            #     "documents": [],
-                            #      "metadata": {
-                            #         "image": [ { "value": "" } ],
-                            #         # "case_code": [ { "value": "GAZ001" } ],
-                            #         # from the spreadsheet eg GAZ0088
-                            #         "case_id": [ { "value": case_id } ],
-                            #         "description": [ { "value": "" } ],
-                            #         # "generated_id": [ { "value": "PGT2095-4377" } ],
-                            #         # do we really need this parameter?
-                            #         "generated_id": [ { "value": case_id} ],
-                            #         # "generated_id": [],
-                            #         "harm_type": [],
-                            #         "case_nature": [ { "value": "" } ],
-                            #         "object_affected": [],
-                            #         "glan_jr": [ { "value": "" } ],
-                            #         "incident_id": [ { "value": "" } ],
-                            #         "governorate": [ { "value": "" } ]
-                            #     }
-                            # }
-
-                            # case_id_mongo = uwazi_adapter.entities.upload(entity=case_entity, language='en')
                         else:
                             # There were CASES found in the search
                             # if the search for GAZ088 came back with multiple CASES we would be in trouble
@@ -320,7 +460,7 @@ class GsheetsFeeder(Gsheets, Feeder):
                         
                      
                         
-                        # uploads the new Entity
+                        # uploads the new Content Entity
                         shared_id = uwazi_adapter.entities.upload(entity=entity, language='en')
 
                         if shared_id is None:

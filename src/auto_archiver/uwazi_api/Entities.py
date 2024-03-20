@@ -1,5 +1,6 @@
 import json
 from typing import Dict, List
+from loguru import logger
 
 from src.auto_archiver.uwazi_api.UwaziRequest import UwaziRequest
 
@@ -68,6 +69,100 @@ class Entities:
             raise InterruptedError(f'Error getting entities to update')
 
         return [json_entity['sharedId'] for json_entity in json.loads(response.text)['rows']]
+
+    # DM search.v2 
+    # https://github.com/huridocs/uwazi/issues/6601
+    def get_shared_ids_search_v2_by_case_id(self, to_process_template: str, case_id: str):
+
+        # this works but is querying all templates eg CASES and if Content had a case_id it would query this too.
+        # url_and_query = f'{self.uwazi_request.url}/api/v2/search?filter[metadata.case_id]="{case_id}"'
+
+        # filter on the correct template too
+        url_and_query = f'{self.uwazi_request.url}/api/v2/search?filter[metadata.case_id]="{case_id}"&filter[template]={to_process_template}'
+
+        response = self.uwazi_request.request_adapter.get(url_and_query,
+                                                          headers=self.uwazi_request.headers,
+                                                          cookies={'connect.sid': self.uwazi_request.connect_sid,
+                                                                   'locale': 'en'})
+        if response.status_code != 200:
+            raise InterruptedError(f'Error doing search v2')
+
+        return [json_entity['sharedId'] for json_entity in json.loads(response.text)['data']]
+
+    # DM search.v2 - Thesaurus / Dictionaries
+    # https://github.com/huridocs/uwazi/issues/6601
+    # def get_foo(self, to_process_template: str, case_id: str):
+    # def get_foo(self):
+
+    #     # this works but is querying all templates eg CASES and if Content had a case_id it would query this too.
+    #     # url_and_query = f'{self.uwazi_request.url}/api/v2/search?filter[metadata.case_id]="{case_id}"'
+    #     # url_and_query = f'{self.uwazi_request.url}/api/v2/search?filter[metadata.selectPropertyName]="Shooting"'
+    #     url_and_query = f'{self.uwazi_request.url}/api/v2/search'
+
+    #     # filter on the correct template too
+    #     # url_and_query = f'{self.uwazi_request.url}/api/v2/search?filter[metadata.case_id]="{case_id}"&filter[template]={to_process_template}'
+
+    #     response = self.uwazi_request.request_adapter.get(url_and_query,
+    #                                                       headers=self.uwazi_request.headers,
+    #                                                       cookies={'connect.sid': self.uwazi_request.connect_sid,
+    #                                                                'locale': 'en'})
+    #     if response.status_code != 200:
+    #         raise InterruptedError(f'Error getting foo')
+
+    #     return [json_entity['sharedId'] for json_entity in json.loads(response.text)['data']]
+
+    # DM dictionary / thesauri
+    def get_dictionary_element_id_by_dictionary_name_and_element_title(self, dictionary_name: str, dictionary_element: str):
+        response = self.uwazi_request.request_adapter.get(f'{self.uwazi_request.url}/api/dictionaries',
+                                                          headers=self.uwazi_request.headers,
+                                                          cookies={'connect.sid': self.uwazi_request.connect_sid,
+                                                                   'locale': 'en'})
+
+        if response.status_code != 200:
+            raise InterruptedError(f'Error getting dictionaries')
+
+        # don't know how to filter the dictionaries, so just find what I want.. it all seems to be returned
+        foo = json.loads(response.text)['rows']
+        _id = None
+        for row in foo:
+            # eg HARM_SOURCE
+            if row["name"] == dictionary_name:
+                _id = row["_id"]
+                break
+        
+        if _id is None:
+            logger.error(f'Problem finding dictionary name {dictionary_name}')
+            return None
+
+        # now iterate over the values in that id looking for the text from spreadsheet eg Shooting
+        dictionary_element_id =None
+        should_continue = True
+        for row in foo:
+            # eg HARM_SOURCE
+            if row["name"] == dictionary_name:
+                for value in row["values"]:
+                    if value['label'].lower() == dictionary_element.lower().strip():
+                        dictionary_element_id = value['id']
+                        should_continue = False
+                        break
+                        
+                    if should_continue:
+                        # maybe this is a group eg Religious or Spiritual group which has 3 elements under it: Mosque, Church and Cemetery
+                        if 'values' in value:
+                            for foo in value['values']:
+                                if foo['label'].lower() == dictionary_element.lower().strip():
+                                    dictionary_element_id = foo['id']
+                                    should_continue = False
+                                    break
+
+            if should_continue == False: break
+
+        if dictionary_element_id is None:
+            logger.error(f'Problem finding dictionary element {dictionary_element}')
+            return None 
+
+        return dictionary_element_id
+
 
 
     def get(self, template_id: str, batch_size: int, language: str = 'en', published: bool = False):
