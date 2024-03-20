@@ -99,7 +99,22 @@ class GsheetsFeeder(Gsheets, Feeder):
                     # so row 2 isn't processed, and any blank rows
                     url = gw.get_cell(row, 'iseed_data').strip()
                     if not len(url): continue
+
+                    iimport_to_uwazi = gw.get_cell(row, 'iimport_to_uwazi')
+                    if iimport_to_uwazi == 'y': pass
+                    else:
+                        # logger.debug('Skipping incident as not y in import_to_uwazi')
+                        continue
+
+                    idate_imported_to_uwazi = gw.get_cell(row, 'idate_imported_to_uwazi').strip()
+                    if idate_imported_to_uwazi == "": pass
+                    else:
+                        # logger.debug('Incident already imported to Uwazi')
+                        continue
+
  
+                    import_to_uwazi_notes = ''
+
                     ititle = gw.get_cell(row, 'ititle')
                     icase_id = gw.get_cell(row, 'icase_id')
                     idescription = gw.get_cell(row, 'idescription')
@@ -114,8 +129,9 @@ class GsheetsFeeder(Gsheets, Feeder):
                             datetime_obj = datetime.fromisoformat(idate_reported)
                             idate_reported_unix = datetime_obj.replace(tzinfo=timezone.utc).timestamp()
                         except:
-                            logger.warning('unknown idate_reported timestamp converstion from iso')
-                            pass
+                            message = 'unknown idate_reported timestamp converstion from iso.'
+                            logger.warning(message)
+                            import_to_uwazi_notes = message
 
                     # Date_Accessed
                     idate_assessed = gw.get_cell(row, 'idate_assessed')
@@ -126,9 +142,9 @@ class GsheetsFeeder(Gsheets, Feeder):
                             datetime_obj = datetime.fromisoformat(idate_assessed)
                             idate_assessed_unix = datetime_obj.replace(tzinfo=timezone.utc).timestamp()
                         except:
-                            logger.warning('unknown idate_assessed timestamp converstion from iso')
-                            pass
-
+                            message = 'unknown idate_assessed timestamp converstion from iso.'
+                            logger.warning(message)
+                            import_to_uwazi_notes += message
 
                     uwazi_adapter = UwaziAdapter(user=self.uwazi_user, password=self.uwazi_password, url=self.uwazi_url) 
 
@@ -142,8 +158,9 @@ class GsheetsFeeder(Gsheets, Feeder):
                          harm_source_dictionary_element_id = uwazi_adapter.entities.get_dictionary_element_id_by_dictionary_name_and_element_title("HARM_SOURCE", harm_source_from_spreadsheet)
 
                          if harm_source_dictionary_element_id is None:
-                            message = f"Dictionary element in HARM_SOURCE not found: {harm_source_from_spreadsheet}"
+                            message = f"Dictionary element in HARM_SOURCE not found: {harm_source_from_spreadsheet}."
                             logger.warning(message)
+                            import_to_uwazi_notes += message
 
 
                     # OBJECT_AFFECTED - multi select with groups in the thesauri/dictionary
@@ -157,7 +174,9 @@ class GsheetsFeeder(Gsheets, Feeder):
                         for o in objects:
                             object_affected_dictionary_element_id  = uwazi_adapter.entities.get_dictionary_element_id_by_dictionary_name_and_element_title("OBJECT_AFFECTED", o)
                             if object_affected_dictionary_element_id is None:
-                                logger.debug('couldnt match so not appending - keeping on going for next object affeted')
+                                message = f'couldnt find {o} in dictionary for OBJECT AFFECTED so not appending'
+                                logger.debug(message)
+                                import_to_uwazi_notes += message
                             else:
                                 object_affected_list.append(object_affected_dictionary_element_id)
 
@@ -180,7 +199,12 @@ class GsheetsFeeder(Gsheets, Feeder):
                     else:
                         for o in objects:
                             people_harmed_dictionary_element_id  = uwazi_adapter.entities.get_dictionary_element_id_by_dictionary_name_and_element_title("PEOPLE_HARMED", o)
-                            people_harmed_list.append(people_harmed_dictionary_element_id)
+                            if people_harmed_dictionary_element_id is None:
+                                message = f'couldnt find {o} in dictionary for PEOPLE_HARMED so not appending'
+                                logger.debug(message)
+                                import_to_uwazi_notes += message
+                            else:
+                                people_harmed_list.append(people_harmed_dictionary_element_id)
 
                     # create json list to send
                     people_harmed_result_list = []
@@ -200,8 +224,9 @@ class GsheetsFeeder(Gsheets, Feeder):
                          governorate_dictionary_element_id = uwazi_adapter.entities.get_dictionary_element_id_by_dictionary_name_and_element_title("GOVERNORATE", governorate_from_spreadsheet)
 
                          if governorate_dictionary_element_id is None:
-                            message = f"Dictionary element in GOVERNORATE not found: {governorate_from_spreadsheet}"
+                            message = f"Dictionary element in GOVERNORATE not found: {governorate_from_spreadsheet}."
                             logger.warning(message)
+                            import_to_uwazi_notes += message
 
                         
                     # CAMP - single select
@@ -214,10 +239,9 @@ class GsheetsFeeder(Gsheets, Feeder):
                          camp_dictionary_element_id = uwazi_adapter.entities.get_dictionary_element_id_by_dictionary_name_and_element_title("CAMP", camp_from_spreadsheet)
 
                          if camp_dictionary_element_id is None:
-                            message = f"Dictionary element in CAMP not found: {camp_from_spreadsheet}"
+                            message = f"Dictionary element in CAMP not found: {camp_from_spreadsheet}."
                             logger.warning(message)
-
-
+                            import_to_uwazi_notes += message
 
                     # Create a new CASE
                     case_entity = {
@@ -227,21 +251,14 @@ class GsheetsFeeder(Gsheets, Feeder):
                             "metadata": {
                                 "generated_id": [ { "value": icase_id} ],
                                 "image": [ { "value": "" } ],
-                                # from the spreadsheet eg GAZ0088
                                 "case_id": [ { "value": icase_id } ],
                                 "description": [ { "value": idescription } ],
                                 "neighbourhood": [ { "value": ineighbourhood } ],
                                 "date_reported": [ { "value": idate_reported_unix } ],
                                 "date_assessed": [ { "value": idate_assessed_unix } ],
-
-                                # "harm_source": [],
-                                # "case_nature": [ { "value": "" } ],
                                 "harm_source": [ { "value": harm_source_dictionary_element_id } ],
-
                                 "object_affected": object_affected_result_list,
                                 "people_harmed": people_harmed_result_list,
-                                # "glan_jr": [ { "value": "" } ],
-                                # "incident_id": [ { "value": "" } ],
                                 "governorate": [ { "value": governorate_dictionary_element_id } ],
                                 "camp": [ { "value": camp_dictionary_element_id } ]
                             }
@@ -249,6 +266,12 @@ class GsheetsFeeder(Gsheets, Feeder):
 
                     uwazi_adapter = UwaziAdapter(user=self.uwazi_user, password=self.uwazi_password, url=self.uwazi_url) 
                     case_shared_id = uwazi_adapter.entities.upload(entity=case_entity, language='en')
+                    logger.debug(f'Sent new CASE to Uwazi - {ititle}')
+
+                    gw.set_cell(row, 'idate_imported_to_uwazi',datetime.utcnow().replace(tzinfo=timezone.utc).isoformat())
+
+                    if import_to_uwazi_notes == '': import_to_uwazi_notes = "success"
+                    gw.set_cell(row, 'iimport_to_uwazi_notes', import_to_uwazi_notes)
 
                continue
             elif not self.should_process_sheet(wks.title):
@@ -305,7 +328,8 @@ class GsheetsFeeder(Gsheets, Feeder):
 
                     # assume that user only presses send to uwazi if a successful archive has taken plan
                     if keep_going:
-                        logger.debug('sending to Uwazi!')
+                        import_to_uwazi_notes = ''
+                        logger.debug('sending Content to Uwazi!')
 
                         entry_number = gw.get_cell(row, 'folder')
 
@@ -338,8 +362,9 @@ class GsheetsFeeder(Gsheets, Feeder):
                                 datetime_obj = datetime.fromisoformat(upload_timestamp)
                                 unix_timestamp = datetime_obj.replace(tzinfo=timezone.utc).timestamp()
                             except:
-                                logger.warning('unkown dateposted timestamp converstion from iso')
-                                pass
+                                message = 'unkown dateposted timestamp converstion from iso.'
+                                logger.warning(message)
+                                import_to_uwazi_notes += message
 
                         # a description
                         upload_title = gw.get_cell(row, 'title')
@@ -366,7 +391,9 @@ class GsheetsFeeder(Gsheets, Feeder):
                                     }
                                 }]
                             except:
-                                logger.warning(f"geolocation failed to parse {parts}")
+                                message = f"geolocation failed to parse {parts}"
+                                logger.warning(message)
+                                import_to_uwazi_notes +=  message
                                 geolocation_geolocation = []
                         else: 
                              geolocation_geolocation = []
@@ -395,16 +422,19 @@ class GsheetsFeeder(Gsheets, Feeder):
 
                         case_id_mongo = ''
                         if len(fooxx) == 0:
-                            message = 'CASE not found - problem. It should have been created in Uwazi before doing the auto upload!'
+                            message = 'CASE not found - problem. It should have been created in Uwazi before'
                             logger.warning(message)
-                            gw.set_cell(row, message)
+                            import_to_uwazi_notes += message
+                            gw.set_cell(row, 'import_to_uwazi_notes', import_to_uwazi_notes)
                             continue
 
                         else:
                             # There were CASES found in the search
                             # if the search for GAZ088 came back with multiple CASES we would be in trouble
                             if len(fooxx) > 1:
-                                logger.warning(f'Search term {case_id} found multiple CASES ')
+                                message = f'Search term {case_id} found multiple CASES in Uwazi - duplicates in Uwazi? Have taken the last one in search results'
+                                logger.warning(message)
+                                import_to_uwazi_notes += message
                                 # take the last one as it was probably the one we're after
                                 case_id_mongo = fooxx[-1]
                             else:
@@ -458,18 +488,21 @@ class GsheetsFeeder(Gsheets, Feeder):
                                     }
                                 }
                         
-                     
-                        
                         # uploads the new Content Entity
                         shared_id = uwazi_adapter.entities.upload(entity=entity, language='en')
 
                         if shared_id is None:
-                            logger.error('Problem with uploading to Uwazi')
-                            gw.set_cell(row, 'date_imported_to_uwazi','Problem see logs')
+                            message = 'Problem with uploading to Uwazi - see server logs - possible change of Template?'
+                            logger.error(message)
+                            import_to_uwazi_notes += message
                         else:
+                            logger.debug(f'Sent new Content to Uwazi - {uwazi_title}')
                             # if successful import then write date to spreadsheet
                             gw.set_cell(row, 'date_imported_to_uwazi',datetime.utcnow().replace(tzinfo=timezone.utc).isoformat())
+                        
+                        if import_to_uwazi_notes == '': import_to_uwazi_notes = 'success'
 
+                        gw.set_cell(row, 'import_to_uwazi_notes',import_to_uwazi_notes)
                         continue # to next row of the sheet (don't want to run any more code below as have just sent data to Uwazi)
 
                 # special code path for only FB archiver 
