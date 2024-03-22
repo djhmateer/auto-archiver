@@ -271,6 +271,21 @@ class GsheetsFeeder(Gsheets, Feeder):
                             geolocation = []
                     else: 
                         geolocation = []
+
+                    # CASE_NATURE - single select
+                    case_nature_from_spreadsheet = gw.get_cell(row, 'icase_nature').strip()    
+                    case_nature_dictionary_element_id = None
+                    if case_nature_from_spreadsheet == '': 
+                        logger.debug("no case_nature from spreadsheet")
+                    else:
+                         case_nature_dictionary_element_id = uwazi_adapter.entities.get_dictionary_element_id_by_dictionary_name_and_element_title("CASE_NATURE", case_nature_from_spreadsheet)
+
+                         if case_nature_dictionary_element_id is None:
+                            message = f"Dictionary element in CASE_NATURE not found in Uwazi: {case_nature_from_spreadsheet}. "
+                            logger.warning(message)
+                            import_to_uwazi_notes += message
+
+
                     
                     # Create a new CASE
                     case_entity = {
@@ -290,7 +305,9 @@ class GsheetsFeeder(Gsheets, Feeder):
                                 "people_harmed": people_harmed_result_list,
                                 "governorate": [ { "value": governorate_dictionary_element_id } ],
                                 "camp": [ { "value": camp_dictionary_element_id } ],
-                                "geolocation_geolocation": geolocation                            }
+                                "case_nature": [ { "value": case_nature_dictionary_element_id } ],
+                                "geolocation_geolocation": geolocation
+                                }
                         }
 
                     uwazi_adapter = UwaziAdapter(user=self.uwazi_user, password=self.uwazi_password, url=self.uwazi_url) 
