@@ -121,7 +121,7 @@ class Entities:
         if response.status_code != 200:
             raise InterruptedError(f'Error getting dictionaries')
 
-        # don't know how to filter the dictionaries, so just find what I want.. it all seems to be returned
+        # don't know how to filter the dictionaries in v2 or v1, so just find what I want.. it all seems to be returned
         foo = json.loads(response.text)['rows']
         _id = None
         for row in foo:
@@ -131,7 +131,7 @@ class Entities:
                 break
         
         if _id is None:
-            logger.error(f'Problem finding dictionary name {dictionary_name}')
+            logger.warning(f'Problem finding dictionary name {dictionary_name}')
             return None
 
         # now iterate over the values in that id looking for the text from spreadsheet eg Shooting
@@ -158,7 +158,7 @@ class Entities:
             if should_continue == False: break
 
         if dictionary_element_id is None:
-            logger.error(f'Problem finding dictionary element {dictionary_element}')
+            logger.warning(f'Problem finding dictionary element {dictionary_element}')
             return None 
 
         return dictionary_element_id
@@ -205,7 +205,9 @@ class Entities:
         if upload_response.status_code != 200:
             message = f'Error uploading entity {upload_response.status_code} {upload_response.text} {entity}'
             self.uwazi_request.graylog.error(message)
-            return
+            # return
+            # DM - doing a catch on the caller for Error...
+            return message
 
         if '_id' in entity:
             self.uwazi_request.graylog.info(f'Entity uploaded {entity["_id"]}')
