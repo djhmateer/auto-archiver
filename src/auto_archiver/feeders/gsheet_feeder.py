@@ -322,7 +322,7 @@ class GsheetsFeeder(Gsheets, Feeder):
                         logger.warning(message)
                         import_to_uwazi_notes += message
                     else: 
-                        logger.debug(f'Sent new CASE to Uwazi - {ititle}')
+                        logger.success(f'Sent new CASE to Uwazi - {ititle}')
 
                     gw.set_cell(row, 'idate_imported_to_uwazi',datetime.utcnow().replace(tzinfo=timezone.utc).isoformat())
 
@@ -586,7 +586,7 @@ class GsheetsFeeder(Gsheets, Feeder):
                             logger.error(message)
                             import_to_uwazi_notes += message
                         else:
-                            logger.debug(f'Sent new Content to Uwazi - {uwazi_title}')
+                            logger.success(f'Sent new Content to Uwazi - {uwazi_title}')
                             # if successful import then write date to spreadsheet
                             gw.set_cell(row, 'date_imported_to_uwazi',datetime.utcnow().replace(tzinfo=timezone.utc).isoformat())
                         
