@@ -2,6 +2,7 @@ import gspread, os
 
 from loguru import logger
 from slugify import slugify
+import json
 
 # from . import Enricher
 from . import Feeder
@@ -249,12 +250,15 @@ class GsheetsFeeder(Gsheets, Feeder):
                             logger.warning(message)
                             import_to_uwazi_notes += message
 
-                    # GEOLOCATION
+                    # GEOLOCATION with comma or pipe
                     igeolocation = gw.get_cell(row, 'igeolocation').strip()
                     if igeolocation != "":
                         try:
-                            parts = igeolocation.split(",", 1) 
-                            # parts = geolocation.split("|", 1) 
+                            if "," in igeolocation:
+                                parts = igeolocation.split(",", 1)
+                            elif "|" in igeolocation:
+                                parts = igeolocation.split("|", 1) 
+
                             lat = float(parts[0].strip())
                             long = float(parts[1].strip())
                             geolocation = [{
@@ -272,6 +276,7 @@ class GsheetsFeeder(Gsheets, Feeder):
                     else: 
                         geolocation = []
 
+
                     # CASE_NATURE - single select
                     case_nature_from_spreadsheet = gw.get_cell(row, 'icase_nature').strip()    
                     case_nature_dictionary_element_id = None
@@ -284,7 +289,6 @@ class GsheetsFeeder(Gsheets, Feeder):
                             message = f"Dictionary element in CASE_NATURE not found in Uwazi: {case_nature_from_spreadsheet}. "
                             logger.warning(message)
                             import_to_uwazi_notes += message
-
 
                     
                     # Create a new CASE
@@ -490,6 +494,7 @@ class GsheetsFeeder(Gsheets, Feeder):
                             # There were CASES found in the search
                             # if the search for GAZ088 came back with multiple CASES we would be in trouble
                             if len(fooxx) > 1:
+                                # THis should never happen but it might if there are multiples cases in Uwazi
                                 message = f'Search term {case_id} found multiple CASES in Uwazi - duplicates in Uwazi? Have taken the last one in search results'
                                 logger.warning(message)
                                 import_to_uwazi_notes += message
@@ -497,6 +502,25 @@ class GsheetsFeeder(Gsheets, Feeder):
                                 case_id_mongo = fooxx[-1]
                             else:
                                 case_id_mongo = fooxx[0]
+
+                            # get the geolocation of this CASE and copy it onto the new Content entity we are making
+                            # if there isn't a geolocation there already
+                            if geolocation_geolocation == []:
+                                try:
+                                      ggg = uwazi_adapter.entities.get_one(case_id_mongo, "en")
+                                      case_geoloc_from_uwazi_json = ggg['metadata']['geolocation_geolocation'][0]['value']
+                                      lat = case_geoloc_from_uwazi_json['lat']
+                                      lon = case_geoloc_from_uwazi_json['lon']
+                                      geolocation_geolocation = [{
+                                            "value": {
+                                                "lat": lat,
+                                                "lon": lon,
+                                                "label": ""
+                                            }
+                                        }]
+                                except:
+                                      logger.debug('no geolocation in Uwazi for this case')
+                                
                             
                         # Content
                         entity = {
