@@ -354,21 +354,21 @@ class GsheetsFeeder(Gsheets, Feeder):
                     keep_going = True
                     # has the archiver already been run?
                     if original_status == '':
-                        logger.debug('Archiver not been run for the first time, so dont even check if y is in send_to_uwazi')
+                        logger.debug('Archiver not been run for the first time, so dont even check if y is in import_to_uwazi')
                         keep_going = False
 
                     if keep_going:
                         # check uwazi column exists
                         try:
-                            _ = gw.col_exists('send_to_uwazi')
+                            _ = gw.col_exists('import_to_uwazi')
                         except: 
                             keep_going = False
-                            logger.error('Uwazi feature is on but send_to_uwazi column not present')
+                            logger.error('Uwazi feature is on but import_to_uwazi column not present')
                             continue # to next row. 
 
-                     # is send_to_uwazi column 'y'
+                     # is import_to_uwazi column 'y'
                     if keep_going:
-                        stu = gw.get_cell(row, 'send_to_uwazi').lower()
+                        stu = gw.get_cell(row, 'import_to_uwazi').lower()
                         if stu == 'y':
                             pass
                         else:
@@ -434,10 +434,19 @@ class GsheetsFeeder(Gsheets, Feeder):
                         # geolocation_geolocation
                         geolocation = gw.get_cell(row, 'geolocation_geolocation')
 
-                        if geolocation != "":
+                        if geolocation == "case": 
+                            # handle further down as need to copy from the case
+                            pass
+                        elif geolocation == "":
+                            # do nothing and leave blank
+                             geolocation_geolocation = []
+                        else:
                             try:
-                                parts = geolocation.split(",", 1) 
-                                # parts = geolocation.split("|", 1) 
+                                if "," in geolocation:
+                                    parts = geolocation.split(",", 1)
+                                elif "|" in geolocation:
+                                    parts = geolocation.split("|", 1) 
+
                                 lat = float(parts[0].strip())
                                 long = float(parts[1].strip())
                                 geolocation_geolocation = [{
@@ -452,8 +461,6 @@ class GsheetsFeeder(Gsheets, Feeder):
                                 logger.warning(message)
                                 import_to_uwazi_notes +=  message
                                 geolocation_geolocation = []
-                        else: 
-                             geolocation_geolocation = []
 
                         # HERE - need to figure out the CASE entity value
                         # get it from the spreadsheet CASE
@@ -494,7 +501,7 @@ class GsheetsFeeder(Gsheets, Feeder):
                             # There were CASES found in the search
                             # if the search for GAZ088 came back with multiple CASES we would be in trouble
                             if len(fooxx) > 1:
-                                # THis should never happen but it might if there are multiples cases in Uwazi
+                                # This should never happen but it might if there are multiples cases in Uwazi
                                 message = f'Search term {case_id} found multiple CASES in Uwazi - duplicates in Uwazi? Have taken the last one in search results'
                                 logger.warning(message)
                                 import_to_uwazi_notes += message
@@ -503,9 +510,10 @@ class GsheetsFeeder(Gsheets, Feeder):
                             else:
                                 case_id_mongo = fooxx[0]
 
+                            # only if actively set to 'case' in the content spreadsheet should we copy from CASE
                             # get the geolocation of this CASE and copy it onto the new Content entity we are making
                             # if there isn't a geolocation there already
-                            if geolocation_geolocation == []:
+                            if geolocation == 'case':
                                 try:
                                       ggg = uwazi_adapter.entities.get_one(case_id_mongo, "en")
                                       case_geoloc_from_uwazi_json = ggg['metadata']['geolocation_geolocation'][0]['value']
