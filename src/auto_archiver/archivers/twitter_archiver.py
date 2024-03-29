@@ -29,15 +29,20 @@ class TwitterArchiver(Archiver):
         return {}
 
     def sanitize_url(self, url: str) -> str:
+        # DM https://t.co/KxNwn5yJz6
+        # url is causing the whole thing to lock up
+        # 29th march 24
+        # why is it even getting here - should not be using this archiver
+
         # expand URL if t.co and clean tracker GET params
-        if 'https://t.co/' in url:
-            try:
-                r = requests.get(url)
-                logger.debug(f'Expanded url {url} to {r.url}')
-                url = r.url
-            except:
-                logger.error(f'Failed to expand url {url}')
-        # https://twitter.com/MeCookieMonster/status/1617921633456640001?s=20&t=3d0g4ZQis7dCbSDg-mE7-w
+        # if 'https://t.co/' in url:
+        #     try:
+        #         r = requests.get(url)
+        #         logger.debug(f'Expanded url {url} to {r.url}')
+        #         url = r.url
+        #     except:
+        #         logger.error(f'Failed to expand url {url}')
+        # # https://twitter.com/MeCookieMonster/status/1617921633456640001?s=20&t=3d0g4ZQis7dCbSDg-mE7-w
         return self.link_clean_pattern.sub("\\1", url)
 
     def download(self, item: Metadata) -> Metadata:
