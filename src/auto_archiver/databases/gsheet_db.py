@@ -181,53 +181,56 @@ class GsheetsDb(Database):
 
         ## DM hack in auto tweet
         # if item.status =='wacz: success':
-        hash = media.get("hash")
-        logger.info(f'{hash=}')
-        if (hash == None):
-            logger.debug("no hash so write to spreadsheet and continue")
-        elif item.status == 'wayback: success':
-            logger.debug("dont want wayback hashes - may be a normal website or facebook which other archvier will get soon")
-        elif (self.auto_tweet == False):
-            logger.debug("auto_tweet not enabled in config")
-        elif (cred_mssql.server == ''):
-            logger.debug("no db for auto twitter so write to spreadsheet and continue")
-                # elif ('facebook.com' in item.get_url()) and (self.fb_archiver == False):
-            # logger.info('normal archiver doing a wayback archive for facebook, so dont want to write hash as facebook archiver will do that')
+        if item.status == 'nothing archived':
+            logger.debug("nothing archiver - maybe an error in instagram archiving, so no hash to send")
         else:
-            retry_flag = True
-            retry_count = 0
-
-            # DocumentName eg  AA Demo Main
-            document_name = gw.wks.spreadsheet.title
-
-            # TabName eg Sheet1
-            tab_name = gw.wks.title
-
-            # Entry Number eg AA008
-            entry_number = row_values[0]
-
-            while retry_flag and retry_count < 5:
-                try:
-                    cnxn = pyodbc.connect('DRIVER={ODBC Driver 18 for SQL Server};SERVER='+cred_mssql.server+';DATABASE='+cred_mssql.database+';ENCRYPT=yes;UID='+cred_mssql.username+';PWD='+ cred_mssql.password)
-                    cursor = cnxn.cursor()
-
-                    cursor.execute(
-                        'INSERT INTO Hash (HashText, DocumentName, TabName, EntryNumber, HasBeenTweeted) VALUES (?,?,?,?,?)',
-                        hash, document_name, tab_name, entry_number, '0')
-                    cnxn.commit()
-
-                    retry_flag = False
-                except Exception as e:
-                    logger.error(f'Hash problem is {hash}')
-                    logger.error(f"DB Retry after 30 secs as {e}")
-                    retry_count = retry_count + 1
-                    time.sleep(30)
-                
-            if (retry_flag): pass
-                # insert failed into db so alert on sheet
-                # result.status = result.status + " TWEET FAILED"
+            hash = media.get("hash")
+            logger.info(f'{hash=}')
+            if (hash == None):
+                logger.debug("no hash so write to spreadsheet and continue")
+            elif item.status == 'wayback: success':
+                logger.debug("dont want wayback hashes - may be a normal website or facebook which other archvier will get soon")
+            elif (self.auto_tweet == False):
+                logger.debug("auto_tweet not enabled in config")
+            elif (cred_mssql.server == ''):
+                logger.debug("no db for auto twitter so write to spreadsheet and continue")
+                    # elif ('facebook.com' in item.get_url()) and (self.fb_archiver == False):
+                # logger.info('normal archiver doing a wayback archive for facebook, so dont want to write hash as facebook archiver will do that')
             else:
-                logger.success(f"Inserted hash into db {hash}")
+                retry_flag = True
+                retry_count = 0
+
+                # DocumentName eg  AA Demo Main
+                document_name = gw.wks.spreadsheet.title
+
+                # TabName eg Sheet1
+                tab_name = gw.wks.title
+
+                # Entry Number eg AA008
+                entry_number = row_values[0]
+
+                while retry_flag and retry_count < 5:
+                    try:
+                        cnxn = pyodbc.connect('DRIVER={ODBC Driver 18 for SQL Server};SERVER='+cred_mssql.server+';DATABASE='+cred_mssql.database+';ENCRYPT=yes;UID='+cred_mssql.username+';PWD='+ cred_mssql.password)
+                        cursor = cnxn.cursor()
+
+                        cursor.execute(
+                            'INSERT INTO Hash (HashText, DocumentName, TabName, EntryNumber, HasBeenTweeted) VALUES (?,?,?,?,?)',
+                            hash, document_name, tab_name, entry_number, '0')
+                        cnxn.commit()
+
+                        retry_flag = False
+                    except Exception as e:
+                        logger.error(f'Hash problem is {hash}')
+                        logger.error(f"DB Retry after 30 secs as {e}")
+                        retry_count = retry_count + 1
+                        time.sleep(30)
+                
+                if (retry_flag): pass
+                    # insert failed into db so alert on sheet
+                    # result.status = result.status + " TWEET FAILED"
+                else:
+                    logger.success(f"Inserted hash into db {hash}")
 
 
 
