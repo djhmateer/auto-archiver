@@ -66,6 +66,27 @@
 			"args": ["--config","secrets/orchestration-aa-demo-main-facebook.yaml"]
 		},
 		{
+			"name": "DR Demo (davemateer@gmail)",
+			"type": "python",
+			"request": "launch",
+			// "program": "src/auto_archiver",
+            "module": "src.auto_archiver",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","secrets/orchestration-dr-demo.yaml"]
+		},
+		{
+			"name": "DR Demo - Facebook (davemateer@gmail)",
+			"type": "python",
+			"request": "launch",
+			// "program": "src/auto_archiver",
+            "module": "src.auto_archiver",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","secrets/orchestration-dr-demo-facebook.yaml"]
+		},
+
+		{
 			"name": "CIR - DOMAIN - EOR",
 			"type": "python",
 			"request": "launch",
