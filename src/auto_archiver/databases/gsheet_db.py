@@ -39,9 +39,9 @@ class GsheetsDb(Database):
         gw, row = self._retrieve_gsheet(item)
         gw.set_cell(row, 'status', 'Archive in progress')
 
-    def failed(self, item: Metadata) -> None:
+    def failed(self, item: Metadata, reason:str) -> None:
         logger.error(f"FAILED {item}")
-        self._safe_status_update(item, 'Archive failed')
+        self._safe_status_update(item, f'Archive failed {reason}')
 
     def aborted(self, item: Metadata) -> None:
         logger.warning(f"ABORTED {item}")
@@ -51,7 +51,7 @@ class GsheetsDb(Database):
         """check if the given item has been archived already"""
         return False
 
-    def done(self, item: Metadata) -> None:
+    def done(self, item: Metadata, cached: bool=False) -> None:
         """archival result ready - should be saved to DB"""
         logger.success(f"DONE {item.get_url()}")
         gw, row = self._retrieve_gsheet(item)
@@ -70,8 +70,10 @@ class GsheetsDb(Database):
                     cell_updates.append((row, col, final_value))
             except Exception as e:
                 logger.error(f"Unable to batch {col}={final_value} due to {e}")
-
-        cell_updates.append((row, 'status', item.status))
+        status_message = item.status
+        if cached:
+            status_message = f"[cached] {status_message}"
+        cell_updates.append((row, 'status', status_message))
 
         media: Media = item.get_final_media()
         if hasattr(media, "urls"):
@@ -243,6 +245,11 @@ class GsheetsDb(Database):
 
     def _retrieve_gsheet(self, item: Metadata) -> Tuple[GWorksheet, int]:
         # TODO: to make gsheet_db less coupled with gsheet_feeder's "gsheet" parameter, this method could 1st try to fetch "gsheet" from ArchivingContext and, if missing, manage its own singleton - not needed for now
-        gw: GWorksheet = ArchivingContext.get("gsheet").get("worksheet")
-        row: int = ArchivingContext.get("gsheet").get("row")
+        if gsheet := ArchivingContext.get("gsheet"):
+            gw: GWorksheet = gsheet.get("worksheet")
+            row: int = gsheet.get("row")
+        elif self.sheet_id:
+            print(self.sheet_id)
+
+
         return gw, row

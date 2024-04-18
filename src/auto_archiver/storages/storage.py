@@ -1,12 +1,14 @@
 from __future__ import annotations
 from abc import abstractmethod
 from dataclasses import dataclass
-from typing import IO
+from typing import IO, Optional
+import os
 
-from ..core import Media, Step, ArchivingContext
+from ..utils.misc import random_str
+
+from ..core import Media, Step, ArchivingContext, Metadata
 from ..enrichers import HashEnricher
 from loguru import logger
-import os, uuid
 from slugify import slugify
 
 
@@ -49,12 +51,12 @@ class Storage(Step):
         # only for typing...
         return Step.init(name, config, Storage)
 
-    def store(self, media: Media, url: str) -> None:
+    def store(self, media: Media, url: str, metadata: Optional[Metadata]=None) -> None:
         if media.is_stored(): 
             logger.debug(f"{media.key} already stored, skipping")
             return
         self.set_key(media, url)
-        self.upload(media)
+        self.upload(media, metadata=metadata)
         media.add_url(self.get_cdn_url(media))
 
     @abstractmethod
@@ -80,10 +82,10 @@ class Storage(Step):
             filename = slugify(filename)  # in case it comes with os.sep
         elif self.path_generator == "url": path = slugify(url)
         elif self.path_generator == "random":
-            path = ArchivingContext.get("random_path", str(uuid.uuid4())[:16], True)
+            path = ArchivingContext.get("random_path", random_str(24), True)
 
         # filename_generator logic
-        if self.filename_generator == "random": filename = str(uuid.uuid4())[:16]
+        if self.filename_generator == "random": filename = random_str(24)
         elif self.filename_generator == "static":
             he = HashEnricher({"hash_enricher": {"algorithm": ArchivingContext.get("hash_enricher.algorithm"), "chunksize": 1.6e7}})
             hd = he.calculate_hash(media.filename)

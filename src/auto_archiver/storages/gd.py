@@ -52,7 +52,7 @@ class GDriveStorage(Storage):
             else:
                 logger.debug('GD OAuth Token valid')
         else:
-            gd_service_account = config.service_account
+            gd_service_account = self.service_account
             logger.debug(f'Using GD Service Account {gd_service_account}')
             creds = service_account.Credentials.from_service_account_file(gd_service_account, scopes=SCOPES)
 
@@ -88,15 +88,6 @@ class GDriveStorage(Storage):
         return f"https://drive.google.com/file/d/{file_id}/view?usp=sharing"
 
     def upload(self, media: Media, **kwargs) -> bool:
-        # override parent so that we can use shutil.copy2 and keep metadata
-        dest = os.path.join(self.save_to, media.key)
-        os.makedirs(os.path.dirname(dest), exist_ok=True)
-        logger.debug(f'[{self.__class__.name}] storing file {media.filename} with key {media.key} to {dest}')
-        res = shutil.copy2(media.filename, dest)
-        logger.info(res)
-        return True
-
-    def upload(self, media: Media, **kwargs) -> bool:
         logger.debug(f'[{self.__class__.name}] storing file {media.filename} with key {media.key}')
         """
         1. for each sub-folder in the path check if exists or create
@@ -119,7 +110,7 @@ class GDriveStorage(Storage):
             'parents': [upload_to]
         }
         media = MediaFileUpload(media.filename, resumable=True)
-        gd_file = self.service.files().create(supportsAllDrives=True,body=file_metadata, media_body=media, fields='id').execute()
+        gd_file = self.service.files().create(supportsAllDrives=True, body=file_metadata, media_body=media, fields='id').execute()
         logger.debug(f'uploadf: uploaded file {gd_file["id"]} successfully in folder={upload_to}')
 
     # must be implemented even if unused
@@ -193,7 +184,7 @@ class GDriveStorage(Storage):
             'mimeType': 'application/vnd.google-apps.folder',
             'parents': [parent_id]
         }
-        gd_folder = self.service.files().create(supportsAllDrives=True,body=file_metadata, fields='id').execute()
+        gd_folder = self.service.files().create(supportsAllDrives=True, body=file_metadata, fields='id').execute()
         return gd_folder.get('id')
 
     # def exists(self, key):

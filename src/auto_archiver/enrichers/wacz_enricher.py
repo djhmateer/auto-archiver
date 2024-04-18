@@ -1,5 +1,6 @@
+import jsonlines
 import mimetypes
-import os, shutil, subprocess, uuid
+import os, shutil, subprocess
 from zipfile import ZipFile
 from loguru import logger
 from warcio.archiveiterator import ArchiveIterator
@@ -7,7 +8,7 @@ from warcio.archiveiterator import ArchiveIterator
 from ..core import Media, Metadata, ArchivingContext
 from . import Enricher
 from ..archivers import Archiver
-from ..utils import UrlUtil
+from ..utils import UrlUtil, random_str
 
 
 class WaczArchiverEnricher(Enricher, Archiver):
@@ -32,6 +33,26 @@ class WaczArchiverEnricher(Enricher, Archiver):
             "timeout": {"default": 200, "help": "timeout for WACZ generation in seconds"},
             "extract_media": {"default": True, "help": "If enabled all the images/videos/audio present in the WACZ archive will be extracted into separate Media. The .wacz file will be kept untouched."}
         }
+    
+	# DM setup and clenup are new functions
+	# which I'm commenting out for now to make sure everything still works
+    def setup(self) -> None:
+        #self.use_docker = os.environ.get('WACZ_ENABLE_DOCKER') or not os.environ.get('RUNNING_IN_DOCKER')
+        #self.docker_in_docker = os.environ.get('WACZ_ENABLE_DOCKER') and os.environ.get('RUNNING_IN_DOCKER')
+
+        #self.cwd_dind = f"/crawls/crawls{random_str(8)}"
+        #self.browsertrix_home_host = os.environ.get('BROWSERTRIX_HOME_HOST')
+        #self.browsertrix_home_container = os.environ.get('BROWSERTRIX_HOME_CONTAINER') or self.browsertrix_home_host
+        # create crawls folder if not exists, so it can be safely removed in cleanup
+        #if self.docker_in_docker:
+         #   os.makedirs(self.cwd_dind, exist_ok=True)
+        foo = 1
+
+    def cleanup(self) -> None:
+        #if self.docker_in_docker:
+         #   logger.debug(f"Removing {self.cwd_dind=}")
+          #  shutil.rmtree(self.cwd_dind, ignore_errors=True)
+          foo = 1
 
     def download(self, item: Metadata) -> Metadata:
         # this new Metadata object is required to avoid duplication
@@ -47,7 +68,7 @@ class WaczArchiverEnricher(Enricher, Archiver):
 
         url = to_enrich.get_url()
 
-        collection = str(uuid.uuid4())[0:8]
+        collection = random_str(8)
 
         # unknown why it fails on second time
         # only on WSL2 instance - Ubuntu prod is fine.

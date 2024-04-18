@@ -6,8 +6,8 @@ name = "pypi"
 [packages]
 
 # bug in 6.0.0 with returning None as a string. See issues on bellingcat/auto-archiver
-# gspread = "*"
-gspread = "==5.12.4"
+gspread = "*"
+# gspread = "==5.12.4"
 
 boto3 = "*"
 argparse = "*"
@@ -24,7 +24,7 @@ google-auth-httplib2 = "*"
 google-auth-oauthlib = "*"
 oauth2client = "*"
 
-# DM this is causing a problem on Ubuntu 20.04
+# DM this was causing a problem on Ubuntu 20.04
 pdqhash = "*"
 
 pillow = "*"
@@ -40,16 +40,23 @@ dataclasses-json = "*"
 yt-dlp = "*"
 vk-url-scraper = "*"
 
-# DM - Uwazi
-requests = {extras = ["socks"], version = "*"}
-# DM NEW
-urllib3 = "~=1.26.7"
 
-numpy = "*"
-warcio = "*"
+requests = {extras = ["socks"], version = "*"}
+
+# DM Uwazi
+urllib3 = "~=1.26.7"
 
 # for connecting to sql server for auto twitter queue
 pyodbc = "*"
+
+numpy = "*"
+warcio = "*"
+jsonlines = "*"
+pysubs2 = "*"
+minify-html = "*"
+retrying = "*"
+tsp-client = "*"
+certvalidator = "*"
 
 [dev-packages]
 autopep8 = "*"
