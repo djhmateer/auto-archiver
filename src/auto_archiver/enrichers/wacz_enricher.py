@@ -426,7 +426,8 @@ class WaczArchiverEnricher(Enricher, Archiver):
             with open('url.txt', 'w') as file:
                 file.write(url_build)
 
-            collection = str(uuid.uuid4())[0:8]
+            # collection = str(uuid.uuid4())[0:8]
+            collection = random_str(8)
 
             hard_code_directory_for_wsl2 ='/mnt/c/dev/v6-auto-archiver' 
             browsertrix_home = ""
