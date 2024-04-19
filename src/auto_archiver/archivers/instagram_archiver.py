@@ -34,7 +34,8 @@ class InstagramArchiver(Archiver):
         except Exception as e:
             logger.debug(f"Unable to login from session file: {e}\n{traceback.format_exc()}")
             try:
-                self.insta.login(self.username, config.instagram_self.password)
+                # self.insta.login(self.username, config.instagram_self.password)
+                self.insta.login(self.username, self.password)
                 # TODO: wait for this issue to be fixed https://github.com/instaloader/instaloader/issues/1758
                 self.insta.save_session_to_file(self.session_file)
             except Exception as e2:
