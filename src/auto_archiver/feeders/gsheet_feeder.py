@@ -91,7 +91,7 @@ class GsheetsFeeder(Gsheets, Feeder):
             try:
                 gw = GWorksheet(wks, header_row=self.header, columns=self.columns)
             except:
-                logger.warning('exception trying read header - probable block this sheet, but need this for uwazi')
+                logger.debug('exception trying read header - probable block this sheet, but need this for uwazi. This is probably fine.')
 
             # special case for Uwazi integration to process the Incidents tab
             # both conditions have to be true
