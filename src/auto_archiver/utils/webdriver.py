@@ -37,7 +37,7 @@ class Webdriver:
                 # linux server needs a sleep otherwise facebook cookie won't have worked and we'll get a popup on next page
                 time.sleep(2)
             except:
-                logger.warning(f'Failed on fb accept cookies.')
+                logger.debug(f'Failed on fb accept cookies.')
 
         return self.driver
 
