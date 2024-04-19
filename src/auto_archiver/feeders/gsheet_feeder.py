@@ -419,7 +419,7 @@ class GsheetsFeeder(Gsheets, Feeder):
                                 datetime_obj = datetime.fromisoformat(upload_timestamp)
                                 unix_timestamp = datetime_obj.replace(tzinfo=timezone.utc).timestamp()
                             except:
-                                message = 'unkown dateposted timestamp converstion from iso.'
+                                message = 'unknown dateposted timestamp converstion from iso.'
                                 logger.warning(message)
                                 import_to_uwazi_notes += message
 

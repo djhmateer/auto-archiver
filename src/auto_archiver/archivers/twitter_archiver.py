@@ -38,7 +38,8 @@ class TwitterArchiver(Archiver):
         # expand URL if t.co and clean tracker GET params
         if 'https://t.co/' in url:
             try:
-                r = requests.get(url)
+                # dm added timeout for 30s
+                r = requests.get(url, timeout=30)
                 logger.debug(f'Expanded url {url} to {r.url}')
                 url = r.url
             except:

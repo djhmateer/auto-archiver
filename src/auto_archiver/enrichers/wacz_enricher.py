@@ -61,6 +61,10 @@ class WaczArchiverEnricher(Enricher, Archiver):
         if self.enrich(result):
             return result.success("wacz")
 
+    # On WSL2 in Dev I've seen spurior :ERR_NETWORK_CHANGED at 
+    # errors from browsertrix
+    # which fails out of the crawl
+    # It seems to be more solid on Linux production
     def enrich(self, to_enrich: Metadata) -> bool:
         if to_enrich.get_media_by_id("browsertrix"):
             logger.info(f"WACZ enricher had already been executed: {to_enrich.get_media_by_id('browsertrix')}")
