@@ -91,12 +91,14 @@ class WaybackArchiverEnricher(Enricher, Archiver):
 
             # Only seen on 1st Feb 24.
             # Response from wayback: This host has been already captured 50,093.0 times today. Please try again tomorrow.
-            if 'This host has been already captured' in r.text:
-                if 'facebook.com' in url:
-                    logger.warning("Swallowing error so that fb archiver picks up properly")
-                    # swallow the error (wayback: success will show) so that
-                    # the fb archiver will pickup properly 
-                    return True
+            
+            # 19th Apr - wayback throwing job failed error.. so lets just force all facebook links to succeed as the fb archiver will pick them up.
+            # if 'This host has been already captured' in r.text:
+            if 'facebook.com' in url:
+                logger.warning("Swallowing error so that fb archiver picks up properly")
+                # swallow the error (wayback: success will show) so that
+                # the fb archiver will pickup properly 
+                return True
             return False
 
         # waits at most timeout seconds until job is completed, otherwise only enriches the job_id information
