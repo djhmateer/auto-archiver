@@ -87,7 +87,11 @@ class GsheetsFeeder(Gsheets, Feeder):
         for ii, wks in enumerate(sorted_worksheets):
 
             logger.info(f'Opening worksheet {ii=}: {sh.title} {wks.title=} header={self.header}')
-            gw = GWorksheet(wks, header_row=self.header, columns=self.columns)
+
+            try:
+                gw = GWorksheet(wks, header_row=self.header, columns=self.columns)
+            except:
+                logger.warning('exception trying read header - probable block this sheet, but need this for uwazi')
 
             # special case for Uwazi integration to process the Incidents tab
             # both conditions have to be true
