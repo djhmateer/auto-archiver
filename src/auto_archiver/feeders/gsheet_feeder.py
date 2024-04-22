@@ -390,9 +390,10 @@ class GsheetsFeeder(Gsheets, Feeder):
                     # assume that user only presses y to uwazi if a successful archive has taken place
                     if keep_going:
                         import_to_uwazi_notes = ''
-                        logger.debug('sending Content to Uwazi!')
 
                         entry_number = gw.get_cell(row, 'folder')
+
+                        logger.debug(f'sending Content  {entry_number} to Uwazi!')
 
                         uwazi_title = gw.get_cell(row, 'uwazi_title')
                         if uwazi_title == '':
@@ -438,7 +439,7 @@ class GsheetsFeeder(Gsheets, Feeder):
                         # geolocation_geolocation
                         geolocation = gw.get_cell(row, 'geolocation_geolocation')
 
-                        if geolocation == "case": 
+                        if geolocation == "case" or geolocation == "CASE": 
                             # handle further down as need to copy from the case
                             pass
                         elif geolocation == "":
@@ -517,7 +518,7 @@ class GsheetsFeeder(Gsheets, Feeder):
                             # only if actively set to 'case' in the content spreadsheet should we copy from CASE
                             # get the geolocation of this CASE and copy it onto the new Content entity we are making
                             # if there isn't a geolocation there already
-                            if geolocation == 'case':
+                            if geolocation == 'case' or geolocation == "CASE":
                                 try:
                                       ggg = uwazi_adapter.entities.get_one(case_id_mongo, "en")
                                       case_geoloc_from_uwazi_json = ggg['metadata']['geolocation_geolocation'][0]['value']
