@@ -81,7 +81,7 @@ class TwitterApiArchiver(TwitterArchiver, Archiver):
                         logger.info("Twitter API rate limit hit. Wait for 15 minutes")
                         time.sleep(15*60) # Wait for 15 minutes
                 else:
-                    logger.error(f"Could not get tweet: {e}")
+                    logger.warning(f"Could not get tweet: {e}")
                     return False
 
         result = Metadata()

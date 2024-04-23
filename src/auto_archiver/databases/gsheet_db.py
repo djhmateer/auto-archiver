@@ -179,6 +179,9 @@ class GsheetsDb(Database):
             except: pass
 
 
+        # DM trying to catch APIError if Google if offline
+        # gspread.exceptions.APIError: APIError: [503]: The service is currently unavailable.
+        # this is a problem as it will leave the status as Archive in progress
         gw.batch_set_cell(cell_updates)
 
         ## DM hack in auto tweet

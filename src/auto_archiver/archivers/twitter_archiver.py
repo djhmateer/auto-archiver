@@ -43,7 +43,7 @@ class TwitterArchiver(Archiver):
                 logger.debug(f'Expanded url {url} to {r.url}')
                 url = r.url
             except:
-                logger.error(f'Failed to expand url {url}')
+                logger.warning(f'Failed to expand url {url}')
         # https://twitter.com/MeCookieMonster/status/1617921633456640001?s=20&t=3d0g4ZQis7dCbSDg-mE7-w
         return self.link_clean_pattern.sub("\\1", url)
 
