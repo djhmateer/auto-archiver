@@ -74,7 +74,12 @@ class GsheetsFeeder(Gsheets, Feeder):
             })
 
     def __iter__(self) -> Metadata:
-        sh = self.open_sheet()
+        # DM TEST this is where an APIErrpr can happen if google sheets API is offline
+        try:
+            sh = self.open_sheet()
+        except Exception as e:
+            logger.warning(f"**DM caught this in gsheet_feeder and raising again {e}")
+            raise
 
         # DM make sure Incidents worksheet is enumerated first if exists
         def custom_sort(wks):

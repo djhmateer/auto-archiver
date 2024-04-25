@@ -61,6 +61,7 @@ class ArchivingOrchestrator:
             self.cleanup()
             exit()
         except Exception as e:
+            # hopefully this catches API error from google
             logger.error(f'Got unexpected error on item {item}: {e}\n{traceback.format_exc()}')
             for d in self.databases:
                 if type(e) == AssertionError: d.failed(item, str(e))
