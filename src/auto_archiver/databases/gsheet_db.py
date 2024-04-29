@@ -140,6 +140,10 @@ class GsheetsDb(Database):
                 elif 'video' in first_media.mimetype:
                     first_media_url = first_media.urls[0]
                     batch_if_valid('video_url1', first_media_url)
+                # instagram
+                elif 'image/webp' in first_media.mimetype:
+                    first_media_url = first_media.urls[0]
+                    batch_if_valid('image_url1', first_media_url)
                 else:
                     batch_if_valid('image_url1', first_media_url)
                     # image_url1 = first_media_url

@@ -491,6 +491,7 @@ class GsheetsFeeder(Gsheets, Feeder):
 
                         description = gw.get_cell(row, 'description')
 
+                        # we don't do screenshots now if behind an auth wall
                         screenshot = gw.get_cell(row, 'screenshot')
 
                         # Does this CASE exist in Uwazi already?
@@ -541,6 +542,19 @@ class GsheetsFeeder(Gsheets, Feeder):
                                         }]
                                 except:
                                       logger.debug('no geolocation in Uwazi for this case')
+
+                            if screenshot == '':
+                                screenshot_alpha = []
+                                screenshot2_alpha = []
+                            else:
+                                screenshot_alpha = [{
+                                            "value": {
+                                                "label": "screenshot",
+                                                "url": screenshot
+                                            }
+                                        }]
+                                screenshot2_alpha = [{"value":screenshot}]
+
                                 
                             
                         # Content
@@ -551,14 +565,16 @@ class GsheetsFeeder(Gsheets, Feeder):
                                 "documents": [],
                                 'metadata': {
                                     "description":[{"value":description}], 
-                                    "screenshot2":[{"value":screenshot}], 
+                                    # "screenshot2":[{"value":screenshot}], 
+                                    "screenshot2":screenshot2_alpha,
                                     
-                                    "screenshot": [{
-                                            "value": {
-                                                "label": "screenshot",
-                                                "url": screenshot
-                                            }
-                                        }],
+                                    # "screenshot": [{
+                                    #         "value": {
+                                    #             "label": "screenshot",
+                                    #             "url": screenshot
+                                    #         }
+                                    #     }],
+                                    "screenshot": screenshot_alpha,
 
                                     "video_url1":[{"value":video_url1}],
                                     "video_url2":[{"value":video_url2}],
