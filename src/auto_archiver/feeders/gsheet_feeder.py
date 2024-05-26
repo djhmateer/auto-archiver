@@ -109,8 +109,13 @@ class GsheetsFeeder(Gsheets, Feeder):
                # New CASES (maybe an Incident)
                # reading from Incidents tab only
                for row in range(1 + self.header, gw.count_rows() + 1):
+                    try:
+                        url = gw.get_cell(row, 'icase_id').strip()
+                    except Exception as e:
+                        logger.error('Cant find case_id column in Incidents tab')
+                        raise
+
                     # has to have a case_id ie not blank rows
-                    url = gw.get_cell(row, 'icase_id').strip()
                     if not len(url): continue
 
                     iimport_to_uwazi = gw.get_cell(row, 'iimport_to_uwazi')
