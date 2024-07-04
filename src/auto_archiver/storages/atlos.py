@@ -39,6 +39,8 @@ class AtlosStorage(Storage):
         return sha256.hexdigest()
 
     def upload(self, media: Media, metadata: Optional[Metadata]=None, **_kwargs) -> bool:
+
+        logger.debug(f"Uploading to Atlos")
         atlos_id = metadata.get("atlos_id")
         if atlos_id is None:
             logger.error(f"No Atlos ID found in metadata; can't store {media.filename} on Atlos")
@@ -57,16 +59,18 @@ class AtlosStorage(Storage):
             return True
         
         # Upload the media to the Atlos API
-        requests.post(
+        # DM put in a
+        # got a 524 server error on rick astley 98MB, then worked 2nd time
+        a = requests.post(
             f"{self.atlos_url}/api/v2/source_material/upload/{atlos_id}",
             headers={"Authorization": f"Bearer {self.api_token}"},
             params={
                 "title": media.properties
             },
             files={"file": (os.path.basename(media.filename), open(media.filename, "rb"))},
-        ).raise_for_status()
+        )#.raise_for_status()
 
-        logger.info(f"Uploaded {media.filename} to Atlos with ID {atlos_id} and title {media.key}")
+        logger.info(f"  Uploaded {media.filename} to Atlos with ID {atlos_id} and title {media.key}")
         
         return True
 

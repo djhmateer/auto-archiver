@@ -34,21 +34,42 @@ class AtlosFeeder(Feeder):
             cursor = data["next"]
 
             for item in data["results"]:
-                if (
-                    item["source_url"] not in [None, ""]
-                    and (
-                        item["metadata"]
-                        .get("auto_archiver", {})
-                        .get("processed", False)
-                        != True
-                    )
-                    and item["visibility"] == "visible"
-                    and item["status"] not in ["processing", "pending"]
-                ):
+                # a is always {} - auto_archiver key not found
+                # a = item["metadata"].get("auto_archiver", {})
+                should_process = True
+                if item["source_url"] in [None, ""]: should_process = False
+                
+                # ie has it already been done by the auto archiver as the auto_archiver metadata is there
+                foo = item["metadata"].get("auto_archiver", {}).get("processed", False)
+                if foo == True: should_process = False
+
+                if (item["visibility"] != "visible"): should_process = False
+                if (item["status"] in ["processing", "pending"]): should_process = False
+
+                # if should_process == False:
+                #     logger.debug(f"Skipping {item['source_url']}")
+
+                if should_process:
                     yield Metadata().set_url(item["source_url"]).set(
                         "atlos_id", item["id"]
                     )
                     count += 1
+
+                # if (
+                #     item["source_url"] not in [None, ""]
+                #     and (
+                #         item["metadata"]
+                #         .get("auto_archiver", {})
+                #         .get("processed", False)
+                #         != True
+                #     )
+                #     and item["visibility"] == "visible"
+                #     and item["status"] not in ["processing", "pending"]
+                # ):
+                #     yield Metadata().set_url(item["source_url"]).set(
+                #         "atlos_id", item["id"]
+                #     )
+                #     count += 1
 
             if len(data["results"]) == 0 or cursor is None:
                 break

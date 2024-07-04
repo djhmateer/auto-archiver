@@ -62,7 +62,9 @@ class AtlosDb(Database):
             logger.info(f"Item {item.get_url()} has no Atlos ID, skipping")
             return
 
-        requests.post(
+        # DM put in foo
+        # foo = requests.post(
+        foo = requests.post(
             f"{self.atlos_url}/api/v2/source_material/metadata/{item.metadata['atlos_id']}/auto_archiver",
             headers={"Authorization": f"Bearer {self.api_token}"},
             json={
@@ -72,7 +74,10 @@ class AtlosDb(Database):
                     results=self._process_metadata(item),
                 )
             },
-        ).raise_for_status()
+        # )#.raise_for_status()  **DM commented out for testing
+        # this does raise an error which stops the whole application 
+        #  which is what we want as this is a critical error ie not being able to upload the output
+        ).raise_for_status() 
 
         logger.info(
             f"Stored success for {item.get_url()} (ID {item.metadata['atlos_id']}) on Atlos"
