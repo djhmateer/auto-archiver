@@ -67,8 +67,15 @@ class Storage(Step):
 
     def upload(self, media: Media, **kwargs) -> bool:
         logger.debug(f'[{self.__class__.name}] storing file {media.filename} with key {media.key}')
-        with open(media.filename, 'rb') as f:
-            return self.uploadf(f, media, **kwargs)
+        try:
+            with open(media.filename, 'rb') as f:
+                return self.uploadf(f, media, **kwargs)
+        except:
+            logger.exception(f"Failed to upload {media.filename} with key {media.key}")
+            logger.debug(f"I've seen this happen for some YT videos where the outfiles are not available.")
+            logger.debug(f"This catches the condition and allows the process to continue.")
+
+            return
 
     def set_key(self, media: Media, url) -> None:
         """takes the media and optionally item info and generates a key"""
