@@ -49,7 +49,10 @@ urllib3 = "~=1.26.7"
 # for connecting to sql server for auto twitter queue
 pyodbc = "*"
 
-numpy = "*"
+# DM getting error about version 2 
+# numpy = "*"
+numpy = "<2"
+
 warcio = "*"
 jsonlines = "*"
 pysubs2 = "*"
