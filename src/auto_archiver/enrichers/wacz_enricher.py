@@ -119,10 +119,10 @@ class WaczArchiverEnricher(Enricher, Archiver):
             if self.docker_commands:
                 cmd = self.docker_commands + cmd
             else:
-                # 0.11.2 works - otherwise the test case OS4892 on AA Demo Main doesn't seem to crawl proplery
+                # 0.11.2 works - otherwise the test case OS4892 on AA Demo Main doesn't seem to crawl proplery (it was multiple screenshots)
                 # note there is another part further down the code which needs to be changed too.
-                # cmd = ["docker", "run", "--rm", "-v", f"{browsertrix_home_host}:/crawls/", "webrecorder/browsertrix-crawler"] + cmd
-                cmd = ["docker", "run", "--rm", "-v", f"{browsertrix_home_host}:/crawls/", "webrecorder/browsertrix-crawler:0.11.2"] + cmd
+                cmd = ["docker", "run", "--rm", "-v", f"{browsertrix_home_host}:/crawls/", "webrecorder/browsertrix-crawler"] + cmd
+                # cmd = ["docker", "run", "--rm", "-v", f"{browsertrix_home_host}:/crawls/", "webrecorder/browsertrix-crawler:0.11.2"] + cmd
 
             if self.profile:
                 profile_fn = os.path.join(browsertrix_home_container, "profile.tar.gz")
@@ -205,7 +205,14 @@ class WaczArchiverEnricher(Enricher, Archiver):
                         fn = os.path.join(tmp_dir, f"warc-file-{counter}.png")
                         with open(fn, "wb") as outf: outf.write(record.raw_stream.read())
                         m = Media(filename=fn)
-                        to_enrich.add_media(m, "browsertrix-screenshot")
+                        # DM there are 2 screenshots
+                        # the first one is bonkers and seems to be a png but isn't.
+                        # ignore it as it is always there
+                        if (counter == 0):
+                            logger.debug(f'ignoring the first screenshot as it is always a png but isn\'t')
+                        else:
+                            to_enrich.add_media(m, f"browsertrix-screenshot-{counter}")
+
                         counter += 1
                         # DM added as want to go to next record from here
                         continue
@@ -446,8 +453,8 @@ class WaczArchiverEnricher(Enricher, Archiver):
                 foo = tmp_dir[1:]
                 browsertrix_home = f'{hard_code_directory_for_wsl2}{foo}'
 
-            # docker_commands = ["docker", "run", "--rm", "-v", f"{browsertrix_home}:/crawls/", "webrecorder/browsertrix-crawler"]
-            docker_commands = ["docker", "run", "--rm", "-v", f"{browsertrix_home}:/crawls/", "webrecorder/browsertrix-crawler:0.11.2"]
+            docker_commands = ["docker", "run", "--rm", "-v", f"{browsertrix_home}:/crawls/", "webrecorder/browsertrix-crawler"]
+            # docker_commands = ["docker", "run", "--rm", "-v", f"{browsertrix_home}:/crawls/", "webrecorder/browsertrix-crawler:0.11.2"]
             cmd = docker_commands + [
                 "crawl",
                 "--url", url_build,
