@@ -26,8 +26,8 @@ class YoutubeDLArchiver(Archiver):
     def configs() -> dict:
         return {
             "facebook_cookie": {"default": None, "help": "optional facebook cookie to have more access to content, from browser, looks like 'cookie: datr= xxxx'"},
-            "subtitles": {"default": True, "help": "download subtitles if available"},
-            "comments": {"default": False, "help": "download all comments if available, may lead to large metadata"},
+            "subtitles": {"default": False, "help": "download subtitles if available"},
+            "comments": {"default": True, "help": "download all comments if available, may lead to large metadata"},
             "livestreams": {"default": False, "help": "if set, will download live streams, otherwise will skip them; see --max-filesize for more control"},
             "live_from_start": {"default": False, "help": "if set, will download live streams from their earliest available moment, otherwise starts now."},
             "proxy": {"default": "", "help": "http/socks (https seems to not work atm) proxy to use for the webdriver, eg https://proxy-user:password@proxy-ip:port"},
@@ -150,7 +150,7 @@ class YoutubeDLArchiver(Archiver):
         if screen1 == "y":
             logger.info("Found screen1 column so Running c21playwright_ads.py")
 
-            # *****HERE - use xvfb to run the browser - pass the temp directory********
+            # ***** use xvfb to run the browser - pass the temp directory********
 
             # pipenv run xvfb-run python3 c21playwright_ads.py
 

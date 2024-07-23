@@ -126,16 +126,20 @@ class GsheetsDb(Database):
                     # =IMAGE("./tmp4lzmqs7x/1.png")
                     # 'pl029/efcdc26649e24290800ebe12.png'
                     foo = "https://pluro.nyc3.cdn.digitaloceanspaces.com/" + m.key
-                    batch_if_valid('screen1', f'=IMAGE("{foo}")')
+                    # batch_if_valid('screen1', f'=IMAGE("{foo}")')
+                    batch_if_valid('screen1', f'{foo}')
                 if m.filename.endswith('2.png'):
                     foo = "https://pluro.nyc3.cdn.digitaloceanspaces.com/" + m.key
-                    batch_if_valid('screen2', f'=IMAGE("{foo}")')
+                    # batch_if_valid('screen2', f'=IMAGE("{foo}")')
+                    batch_if_valid('screen2', f'{foo}')
                 if m.filename.endswith('3.png'):
                     foo = "https://pluro.nyc3.cdn.digitaloceanspaces.com/" + m.key
-                    batch_if_valid('screen3', f'=IMAGE("{foo}")')
+                    # batch_if_valid('screen3', f'=IMAGE("{foo}")')
+                    batch_if_valid('screen3', f'{foo}')
                 if m.filename.endswith('4.png'):
                     foo = "https://pluro.nyc3.cdn.digitaloceanspaces.com/" + m.key
-                    batch_if_valid('screen4', f'=IMAGE("{foo}")')
+                    # batch_if_valid('screen4', f'=IMAGE("{foo}")')
+                    batch_if_valid('screen4', f'{foo}')
 
 
         # DM - if Archive status is wayback, then don't write hash to spreadsheet

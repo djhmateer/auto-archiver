@@ -156,6 +156,8 @@ done
 # telegram (telethon_archiver)
 scp -o StrictHostKeyChecking=no ../secrets/anon.session dave@${dnsname}.eastus.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 
+scp -o StrictHostKeyChecking=no ../src/auto_archiver/cred_mssql.py dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/src/auto_archiver/
+
 # orchestrations
 scp -o StrictHostKeyChecking=no ../secrets/orchestration-pluro-demo.yaml dave@${dnsname}.eastus.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 

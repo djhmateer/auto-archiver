@@ -9,7 +9,8 @@ def run(playwright):
     print("tmp_dir: ", tmp_dir)
 
     # Launch the browser
-    browser = playwright.chromium.launch(headless=False)
+    # browser = playwright.chromium.launch(headless=False)
+    browser = playwright.firefox.launch(headless=False)
 
 
     context = browser.new_context(
@@ -65,7 +66,7 @@ def run(playwright):
     page.wait_for_timeout(1000)
     page.screenshot(path=tmp_dir + '/4.png', full_page=True)
 
-    # page.wait_for_timeout(25000)  # Wait for 5 seconds
+    # page.wait_for_timeout(60000)  # Wait for x seconds
 
     # Close the browser
     browser.close()

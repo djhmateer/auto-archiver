@@ -141,6 +141,7 @@ rm geckodriver*
 # so the cron job can execute the shell script (running as user dave)
 # sudo chmod +x /home/dave/auto-archiver/infra/cron.sh
 sudo chmod +x /home/dave/auto-archiver/infra/cron_fb.sh
+sudo chmod +x /home/dave/auto-archiver/infra/cron_pluro.sh
 
 # don't want service to run until a reboot
 # otherwise problems with Gecko driver
@@ -203,14 +204,14 @@ sudo pip install pytest-playwright
 # for playwright (screenshotter) to run in headed mode
 sudo apt install xvfb -y
 
-# **need to run playwright install to download chrome**
-# **NOT TESTED**
-##sudo playwright install-deps
-#sudo apt-get install libgbm1
+sudo playwright install-deps -y
+sudo apt-get install libvpx7 -y
 
+#sudo apt-get install libgbm1
 
 sudo reboot now
 
+# **need to run playwright install to download chrome**
 
 
 
