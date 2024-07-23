@@ -41,9 +41,14 @@ class HashEnricher(Enricher):
         elif self.algorithm == "SHA3-512":
             hash = hashlib.sha3_512()
         else: return ""
-        with open(filename, "rb") as f:
-            while True:
-                buf = f.read(self.chunksize)
-                if not buf: break
-                hash.update(buf)
-        return hash.hexdigest()
+        # DM July added as may not have downloaded the file
+        try:
+            with open(filename, "rb") as f:
+                while True:
+                    buf = f.read(self.chunksize)
+                    if not buf: break
+                    hash.update(buf)
+            return hash.hexdigest()
+        except Exception as e:
+            logger.debug(f"Error calculating hash for {filename}: {e}")
+            return ""

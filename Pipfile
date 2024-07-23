@@ -61,6 +61,9 @@ retrying = "*"
 tsp-client = "*"
 certvalidator = "*"
 
+# DM July yt
+playwright = "*"
+
 [dev-packages]
 autopep8 = "*"
 setuptools-pipfile = "*"

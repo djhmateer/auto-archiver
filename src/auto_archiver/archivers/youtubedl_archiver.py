@@ -4,6 +4,10 @@ from loguru import logger
 from . import Archiver
 from ..core import Metadata, Media, ArchivingContext
 
+# from playwright.sync_api import sync_playwright
+import subprocess
+import os
+
 
 class YoutubeDLArchiver(Archiver):
     name = "youtubedl_archiver"
@@ -58,7 +62,14 @@ class YoutubeDLArchiver(Archiver):
         # this time download
         ydl = yt_dlp.YoutubeDL({**ydl_options, "getcomments": self.comments})
         #TODO: for playlist or long lists of videos, how to download one at a time so they can be stored before the next one is downloaded?
-        info = ydl.extract_info(url, download=True)
+
+        # DM July - special feature to allow for not downloading the file if the column is set to n
+        # if column not there then download as normal
+        should_download = item.get("should_download")
+        if should_download == "n":
+            info = ydl.extract_info(url, download=False)
+        else:
+            info = ydl.extract_info(url, download=True)
 
         if "entries" in info:
             entries = info.get("entries", [])
@@ -70,6 +81,27 @@ class YoutubeDLArchiver(Archiver):
         result = Metadata()
         result.set_title(info.get("title"))
         if "description" in info: result.set_content(info["description"])
+
+        # DM July.. assume all videos have a view_count
+        view_count = info.get("view_count")
+        result.set_view_count(view_count)
+
+        location = info.get("location", "")
+        result.set_location(location)
+
+        comment_count = info.get("comment_count")
+        result.set_comment_count(comment_count)
+
+        like_count = info.get("like_count")
+        result.set_like_count(like_count)
+
+        channel = info.get("channel")
+        result.set_channel(channel) 
+
+        channel_follower_count = info.get("channel_follower_count")
+        result.set_channel_follower_count(channel_follower_count)
+
+
         for entry in entries:
             try:
                 filename = ydl.prepare_filename(entry)
@@ -88,7 +120,8 @@ class YoutubeDLArchiver(Archiver):
                             text = " ".join([line.text for line in subs])
                             new_media.set(f"subtitles_{lang}", text)
                         except Exception as e:
-                            logger.error(f"Error loading subtitle file {val.get('filepath')}: {e}")
+                            logger.info(f"Error loading subtitle file {val.get('filepath')}: {e}")
+                            logger.info(f"Normal code path if should_download is n")
                 result.add_media(new_media)
             except Exception as e:
                 logger.error(f"Error processing entry {entry}: {e}")
@@ -107,6 +140,53 @@ class YoutubeDLArchiver(Archiver):
         if (upload_date := info.get("upload_date")):
             upload_date = datetime.datetime.strptime(upload_date, '%Y%m%d').replace(tzinfo=datetime.timezone.utc)
             result.set("upload_date", upload_date)
+
+        # DM July
+        # run external tool to get screenshots
+        # featured off the should_download flag.. so has to be set to y
+        # if should_download == "y":
+        # asdf = item.get("screen1_column_present")
+        screen1 = item.screen1_column_present
+        if screen1 == "y":
+            logger.info("Found screen1 column so Running c21playwright_ads.py")
+
+            # *****HERE - use xvfb to run the browser - pass the temp directory********
+
+            # pipenv run xvfb-run python3 c21playwright_ads.py
+
+            # Define the command as a list of arguments
+
+            # '/mnt/c/dev/v6-auto-archiver' - where the c21.py file is called
+            working_directory = os.getcwd()
+
+            # where 1.png etc are saved
+            tmp_dir = ArchivingContext.get_tmp_dir()
+            command = ["pipenv", "run", "xvfb-run", "python3", "c21playwright_ads.py", url, tmp_dir]
+            
+            # Use subprocess.run to execute the command with the specified working directory
+            sub_result = subprocess.run(command, cwd=working_directory, capture_output=True, text=True)
+
+            # Print the output and error (if any)
+            print("Output:")
+            print(sub_result.stdout)
+            print("Error:")
+            print(sub_result.stderr)
+
+            # make sure file is saved as 1.png  in the temp directory
+            # filename = '1.png'
+
+            new_media = Media(tmp_dir + '/1.png')
+            result.add_media(new_media)
+
+            new_media = Media(tmp_dir + '/2.png')
+            result.add_media(new_media)
+
+            new_media = Media(tmp_dir + '/3.png')
+            result.add_media(new_media)
+
+            new_media = Media(tmp_dir + '/4.png')
+            result.add_media(new_media)
+
 
         if self.end_means_success: result.success("yt-dlp")
         else: result.status = "yt-dlp"

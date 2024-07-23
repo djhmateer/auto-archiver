@@ -152,14 +152,17 @@ sudo service cron stop
 # #*/2 * * * * dave /home/dave/auto-archiver/infra/cron.sh
 # EOT
 
-cat <<EOT >> run-auto-archive
-#*/2 * * * * dave /home/dave/auto-archiver/infra/cron_fb.sh
-EOT
+##
+# DM TODO UNCOMMENT!!!!!!!!!!!!!!!!!!!!!!!!
+##
+# cat <<EOT >> run-auto-archive
+# #*/2 * * * * dave /home/dave/auto-archiver/infra/cron_fb.sh
+# EOT
 
-sudo mv run-auto-archive /etc/cron.d
+# sudo mv run-auto-archive /etc/cron.d
 
-sudo chown root /etc/cron.d/run-auto-archive
-sudo chmod 600 /etc/cron.d/run-auto-archive
+# sudo chown root /etc/cron.d/run-auto-archive
+# sudo chmod 600 /etc/cron.d/run-auto-archive
 
 # install fonts eg burmese, chinese for rendering in selenium firefox
 # https://stackoverflow.com/questions/72015245/firefox-unicode-boxes-in-selenium-screenshot-instead-of-characters/72015719#72015719
@@ -167,20 +170,46 @@ sudo apt install fonts-noto -y
 
 sudo apt install libimage-exiftool-perl -y
 
-## Comment out for FB
+## DM JULY comment back in
+## Comment out for FB or Pluro
+##
 ## don't need these bits for main aa
+# sudo reboot now
+
+
+
+
+
+
+
+##
+## PLURO from here down!!!!
+##
+
+
+cat <<EOT >> run-auto-archive
+#*/2 * * * * dave /home/dave/auto-archiver/infra/cron_pluro.sh
+EOT
+
+sudo mv run-auto-archive /etc/cron.d
+
+sudo chown root /etc/cron.d/run-auto-archive
+sudo chmod 600 /etc/cron.d/run-auto-archive
+
+
+sudo pip install pytest-playwright
+
+# x virtual frame buffer
+# for playwright (screenshotter) to run in headed mode
+sudo apt install xvfb -y
+
+# **need to run playwright install to download chrome**
+# **NOT TESTED**
+##sudo playwright install-deps
+#sudo apt-get install libgbm1
+
+
 sudo reboot now
-
-
-
-
-
-
-
-
-
-
-
 
 
 

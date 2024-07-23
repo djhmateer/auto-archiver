@@ -95,6 +95,31 @@ class Metadata:
         assert type(url) is str and len(url) > 0, "invalid URL"
         return url
 
+    #  DM July
+    def set_should_download(self, should_download: str) -> Metadata:
+        # assert type(url) is str and len(url) > 0, "invalid URL"
+        return self.set("should_download", should_download)
+
+    def should_download(self) -> str:
+        foo = self.get("should_download")
+        # assert type(url) is str and len(url) > 0, "invalid URL"
+        return foo
+
+    def set_screen1_column_present(self, foo: str) -> Metadata:
+        # assert type(url) is str and len(url) > 0, "invalid URL"
+        return self.set("screen1_column_present", foo)
+    
+    def get_screen1_column_present(self) -> str:
+        foo = self.get("screen1_column_present")
+        # assert type(url) is str and len(url) > 0, "invalid URL"
+        return foo
+
+
+
+
+    
+
+
     def set_content(self, content: str) -> Metadata:
         # a dump with all the relevant content
         append_content = (self.get("content", "") + content + "\n").strip()
@@ -102,6 +127,27 @@ class Metadata:
 
     def set_title(self, title: str) -> Metadata:
         return self.set("title", title)
+
+    # DM July
+    def set_view_count(self, view_count: str) -> Metadata:
+        return self.set("view_count", view_count)
+
+    def set_location(self, location: str) -> Metadata:
+        return self.set("location", location)
+
+    def set_comment_count(self, comment_count: str) -> Metadata:
+        return self.set("comment_count", comment_count)
+
+    def set_like_count(self, like_count: str) -> Metadata:
+        return self.set("like_count", like_count)
+
+    def set_channel(self, channel: str) -> Metadata:
+        return self.set("channel", channel)     
+    
+    def set_channel_follower_count(self, channel_follower_count: str) -> Metadata:
+        return self.set("channel_follower_count", channel_follower_count)
+
+
 
     def get_title(self) -> str:
         return self.get("title")
@@ -143,12 +189,17 @@ class Metadata:
         # iterates all media, calculates a hash if it's missing and deletes duplicates
         def calculate_hash_in_chunks(hash_algo, chunksize, filename) -> str:
             # taken from hash_enricher, cannot be isolated to misc due to circular imports
-            with open(filename, "rb") as f:
-                while True:
-                    buf = f.read(chunksize)
-                    if not buf: break
-                    hash_algo.update(buf)
-            return hash_algo.hexdigest()
+            # DM July as may not have downloaded the file 
+            try:
+                with open(filename, "rb") as f:
+                    while True:
+                        buf = f.read(chunksize)
+                        if not buf: break
+                        hash_algo.update(buf)
+                return hash_algo.hexdigest()
+            except Exception as e:
+                logger.debug(f"Error calculating hash for {filename}: {e}")
+                return ""
 
         media_hashes = set()
         new_media = []

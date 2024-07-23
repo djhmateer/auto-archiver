@@ -83,6 +83,61 @@ class GsheetsDb(Database):
         batch_if_valid('text', item.get("content", ""))
         batch_if_valid('timestamp', item.get_timestamp())
 
+        # DM July add for youtube extra data
+        youtube_extra = False
+        try:
+            _ = gw.col_exists('view_count')
+            youtube_extra = True
+        except: pass
+
+        if youtube_extra:
+            all_media = item.get_all_media()
+            duration = 0
+            for m in all_media:
+                foo = m.get('duration')
+                if foo != None:
+                    duration = foo
+            batch_if_valid('duration', duration)
+
+            # DM July - maybe better to have view_count on the media, but lets see
+            view_count = item.get("view_count")
+            batch_if_valid('view_count', view_count)
+
+            location = item.get("location")
+            batch_if_valid('location', location)
+
+            comment_count = item.get("comment_count")
+            batch_if_valid('comment_count', comment_count)
+
+            like_count = item.get("like_count")
+            batch_if_valid('like_count', like_count)
+
+            channel = item.get("channel")
+            batch_if_valid('channel', channel)
+
+            channel_follower_count = item.get("channel_follower_count")
+            batch_if_valid('channel_follower_count', channel_follower_count)
+
+            # set the screen1, screen2, screen3, screen4
+            # there may be a raw video downloaded or not
+            # first_media = all_media[0]
+            for m in all_media[0:]:
+                if m.filename.endswith('1.png'):
+                    # =IMAGE("./tmp4lzmqs7x/1.png")
+                    # 'pl029/efcdc26649e24290800ebe12.png'
+                    foo = "https://pluro.nyc3.cdn.digitaloceanspaces.com/" + m.key
+                    batch_if_valid('screen1', f'=IMAGE("{foo}")')
+                if m.filename.endswith('2.png'):
+                    foo = "https://pluro.nyc3.cdn.digitaloceanspaces.com/" + m.key
+                    batch_if_valid('screen2', f'=IMAGE("{foo}")')
+                if m.filename.endswith('3.png'):
+                    foo = "https://pluro.nyc3.cdn.digitaloceanspaces.com/" + m.key
+                    batch_if_valid('screen3', f'=IMAGE("{foo}")')
+                if m.filename.endswith('4.png'):
+                    foo = "https://pluro.nyc3.cdn.digitaloceanspaces.com/" + m.key
+                    batch_if_valid('screen4', f'=IMAGE("{foo}")')
+
+
         # DM - if Archive status is wayback, then don't write hash to spreadsheet
         # or no archiver we don't want hash in spreadsheet
         if item.status == 'wayback: success':

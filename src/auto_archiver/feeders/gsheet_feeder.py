@@ -358,6 +358,7 @@ class GsheetsFeeder(Gsheets, Feeder):
             # Normal archiving loop including Content to Uwazi
             for row in range(1 + self.header, gw.count_rows() + 1):
                 url = gw.get_cell(row, 'url').strip()
+
                 if not len(url): continue
 
                 original_status = gw.get_cell(row, 'status')
@@ -664,6 +665,21 @@ class GsheetsFeeder(Gsheets, Feeder):
 
                 # All checks done - archival process starts here
                 m = Metadata().set_url(url)
+
+                # DM July
+                try:
+                    should_download = gw.get_cell(row, 'should_download').strip() 
+                    m.set_should_download(should_download)
+                except:
+                    logger.debug('normal code path if should_download not present in yaml file')
+
+                # DM July
+                try:
+                    screen1_present = gw.get_cell(row, 'screen1')
+                    m.screen1_column_present = "y"
+                except: 
+                    m.screen1_column_present = "n"
+
                 ArchivingContext.set("gsheet", {"row": row, "worksheet": gw}, keep_on_reset=True)
                 if gw.get_cell_or_default(row, 'folder', "") is None:
                     folder = ''

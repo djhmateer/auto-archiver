@@ -71,10 +71,10 @@ class Storage(Step):
             with open(media.filename, 'rb') as f:
                 return self.uploadf(f, media, **kwargs)
         except:
-            logger.exception(f"Failed to upload {media.filename} with key {media.key}")
+            logger.info(f"Failed to upload {media.filename} with key {media.key}")
             logger.debug(f"I've seen this happen for some YT videos where the outfiles are not available.")
             logger.debug(f"This catches the condition and allows the process to continue.")
-
+            logger.debug(f"Also could be that the file should not be downloaded eg youtube code path feature DM July 2024")
             return
 
     def set_key(self, media: Media, url) -> None:

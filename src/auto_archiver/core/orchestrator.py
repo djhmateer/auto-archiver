@@ -81,6 +81,9 @@ class ArchivingOrchestrator:
         original_url = result.get_url().strip()
         self.assert_valid_url(original_url)
 
+        # DM July
+        # should_download = result.should_download()
+
         # 1 - sanitize - each archiver is responsible for cleaning/expanding its own URLs
         url = original_url
         for a in self.archivers: url = a.sanitize_url(url)
