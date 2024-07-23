@@ -95,7 +95,7 @@ az vm create \
     --location ${region} \
     --nics ${nicName} \
     --image ${image} \
-    --size Standard_B1ms \
+    --size Standard_B2s \
     --admin-username dave \
     --ssh-key-values ../secrets/sshkey-rgb.pub ../secrets/sshkey-homelenovo-2024.pub
 else
@@ -156,7 +156,7 @@ done
 # telegram (telethon_archiver)
 scp -o StrictHostKeyChecking=no ../secrets/anon.session dave@${dnsname}.eastus.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 
-scp -o StrictHostKeyChecking=no ../src/auto_archiver/cred_mssql.py dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/src/auto_archiver/
+scp -o StrictHostKeyChecking=no ../src/auto_archiver/cred_mssql.py dave@${dnsname}.eastus.cloudapp.azure.com:/home/dave/auto-archiver/src/auto_archiver/
 
 # orchestrations
 scp -o StrictHostKeyChecking=no ../secrets/orchestration-pluro-demo.yaml dave@${dnsname}.eastus.cloudapp.azure.com:/home/dave/auto-archiver/secrets/

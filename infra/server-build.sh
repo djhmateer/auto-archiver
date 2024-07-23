@@ -189,7 +189,7 @@ sudo apt install libimage-exiftool-perl -y
 
 
 cat <<EOT >> run-auto-archive
-#*/2 * * * * dave /home/dave/auto-archiver/infra/cron_pluro.sh
+*/2 * * * * dave /home/dave/auto-archiver/infra/cron_pluro.sh
 EOT
 
 sudo mv run-auto-archive /etc/cron.d
@@ -208,7 +208,7 @@ sudo playwright install-deps
 
 sudo apt-get install libvpx7 -y
 
-sudo playwright install 
+playwright install 
 
 #sudo apt-get install libgbm1
 
