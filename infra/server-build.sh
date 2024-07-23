@@ -204,14 +204,22 @@ sudo pip install pytest-playwright
 # for playwright (screenshotter) to run in headed mode
 sudo apt install xvfb -y
 
-sudo playwright install-deps -y
+sudo playwright install-deps
+
 sudo apt-get install libvpx7 -y
+
+sudo playwright install 
 
 #sudo apt-get install libgbm1
 
 sudo reboot now
 
-# **need to run playwright install to download chrome**
+
+# get errors 
+# Host system is missing dependencies to run browsers. ║
+# ║ Missing libraries:                                   ║
+# ║     libwoff2dec.so.1.0.2                             ║
+# ║     libevent-2.1.so.7                                ║
 
 
 
