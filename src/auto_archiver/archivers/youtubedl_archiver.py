@@ -168,9 +168,13 @@ class YoutubeDLArchiver(Archiver):
 
             # Print the output and error (if any)
             print("Output:")
+             
             print(sub_result.stdout)
+            logger.debug(f"Playwright Output: {sub_result.stdout}")
+
             print("Error:")
             print(sub_result.stderr)
+            logger.error(f"Playwright Error: {sub_result.stderr}")
 
             # make sure file is saved as 1.png  in the temp directory
             # filename = '1.png'
