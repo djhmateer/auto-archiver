@@ -139,37 +139,36 @@ rm geckodriver*
 ## CRON RUN EVERY MINUTE
 
 # so the cron job can execute the shell script (running as user dave)
-# sudo chmod +x /home/dave/auto-archiver/infra/cron.sh
+sudo chmod +x /home/dave/auto-archiver/infra/cron.sh
 sudo chmod +x /home/dave/auto-archiver/infra/cron_fb.sh
 sudo chmod +x /home/dave/auto-archiver/infra/cron_pluro.sh
 
-# don't want service to run until a reboot
-# otherwise problems with Gecko driver
-sudo service cron stop
-
-# runs the script every minute
-# notice put in a # to disable so will have to manually start it.
-# cat <<EOT >> run-auto-archive
-# #*/2 * * * * dave /home/dave/auto-archiver/infra/cron.sh
-# EOT
-
-##
-# DM TODO UNCOMMENT!!!!!!!!!!!!!!!!!!!!!!!!
-##
-# cat <<EOT >> run-auto-archive
-# #*/2 * * * * dave /home/dave/auto-archiver/infra/cron_fb.sh
-# EOT
-
-# sudo mv run-auto-archive /etc/cron.d
-
-# sudo chown root /etc/cron.d/run-auto-archive
-# sudo chmod 600 /etc/cron.d/run-auto-archive
 
 # install fonts eg burmese, chinese for rendering in selenium firefox
 # https://stackoverflow.com/questions/72015245/firefox-unicode-boxes-in-selenium-screenshot-instead-of-characters/72015719#72015719
 sudo apt install fonts-noto -y
 
 sudo apt install libimage-exiftool-perl -y
+
+# don't want service to run until a reboot
+# otherwise problems with Gecko driver
+sudo service cron stop
+
+##
+# DM TODO UNCOMMENT!!!!!!!!!!!!!!!!!!!!!!!!
+##
+#
+# runs the script every minute
+# notice put in a # to disable so will have to manually start it.
+# cat <<EOT >> run-auto-archive
+# #*/2 * * * * dave /home/dave/auto-archiver/infra/cron.sh
+# EOT
+
+
+# sudo mv run-auto-archive /etc/cron.d
+
+# sudo chown root /etc/cron.d/run-auto-archive
+# sudo chmod 600 /etc/cron.d/run-auto-archive
 
 ## DM JULY comment back in
 ## Comment out for FB or Pluro
@@ -179,24 +178,9 @@ sudo apt install libimage-exiftool-perl -y
 
 
 
-
-
-
-
 ##
 ## PLURO from here down!!!!
 ##
-
-
-cat <<EOT >> run-auto-archive
-*/2 * * * * dave /home/dave/auto-archiver/infra/cron_pluro.sh
-EOT
-
-sudo mv run-auto-archive /etc/cron.d
-
-sudo chown root /etc/cron.d/run-auto-archive
-sudo chmod 600 /etc/cron.d/run-auto-archive
-
 
 sudo pip install pytest-playwright
 
@@ -208,18 +192,25 @@ sudo playwright install-deps
 
 sudo apt-get install libvpx7 -y
 
+TARGET_USER="dave"
+sudo -i -u $TARGET_USER bash << EOF
 playwright install 
+EOF
 
 #sudo apt-get install libgbm1
 
+cat <<EOT >> run-auto-archive
+*/2 * * * * dave /home/dave/auto-archiver/infra/cron_pluro.sh
+EOT
+
+sudo mv run-auto-archive /etc/cron.d
+
+sudo chown root /etc/cron.d/run-auto-archive
+sudo chmod 600 /etc/cron.d/run-auto-archive
+
+
 sudo reboot now
 
-
-# get errors 
-# Host system is missing dependencies to run browsers. ║
-# ║ Missing libraries:                                   ║
-# ║     libwoff2dec.so.1.0.2                             ║
-# ║     libevent-2.1.so.7                                ║
 
 
 
