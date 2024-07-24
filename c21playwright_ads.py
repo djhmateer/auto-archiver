@@ -46,7 +46,14 @@ def run(playwright):
     page.wait_for_timeout(10000)
 
     # Reload the page
-    page.reload()
+    # have seen this fail after 30 seconds
+    try:
+        page.reload()
+    except Exception as e:
+        sys.stderr.write(f"Reload failed after 30 seconds\n {e}")
+        sys.stderr.write(f"Trying again")
+
+        page.reload()
 
     page.wait_for_timeout(1000)
 

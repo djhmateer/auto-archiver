@@ -95,7 +95,7 @@ az vm create \
     --location ${region} \
     --nics ${nicName} \
     --image ${image} \
-    --size Standard_B2s \
+    --size Standard_B2ms \
     --admin-username dave \
     --ssh-key-values ../secrets/sshkey-rgb.pub ../secrets/sshkey-homelenovo-2024.pub
 else

@@ -75,6 +75,8 @@ class Storage(Step):
             logger.debug(f"I've seen this happen for some YT videos where the outfiles are not available.")
             logger.debug(f"This catches the condition and allows the process to continue.")
             logger.debug(f"Also could be that the file should not be downloaded eg youtube code path feature DM July 2024")
+
+            logger.debug(f"Could also be that the screenshot failed to be taken - see errors from playwright file")
             return
 
     def set_key(self, media: Media, url) -> None:
