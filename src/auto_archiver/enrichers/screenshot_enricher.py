@@ -1,6 +1,7 @@
 from loguru import logger
 import time, os
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from selenium.webdriver.common.by import By
 
 from . import Enricher
 from ..utils import Webdriver, UrlUtil, random_str  
@@ -29,6 +30,17 @@ class ScreenshotEnricher(Enricher):
         with Webdriver(self.width, self.height, self.timeout, 'facebook.com' in url, http_proxy=self.http_proxy) as driver:
             try:
                 driver.get(url)
+                time.sleep(int(self.sleep_before_screenshot))
+
+                # youtube cookie popup
+                if 'youtube.com' in url:
+                    try:
+                        reject_button = driver.find_element(By.CSS_SELECTOR, 'button[aria-label="Reject the use of cookies and other data for the purposes described"]')
+                        reject_button.click()
+                    except Exception as e:
+                        # logger.warning(e)
+                        logger.debug("No cookies popup which may be fine")
+
                 time.sleep(int(self.sleep_before_screenshot))
                 screenshot_file = os.path.join(ArchivingContext.get_tmp_dir(), f"screenshot_{random_str(8)}.png")
                 driver.save_screenshot(screenshot_file)
