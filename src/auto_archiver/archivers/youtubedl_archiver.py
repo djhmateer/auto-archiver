@@ -167,14 +167,15 @@ class YoutubeDLArchiver(Archiver):
             sub_result = subprocess.run(command, cwd=working_directory, capture_output=True, text=True)
 
             # Print the output and error (if any)
-            print("Output:")
-             
-            print(sub_result.stdout)
             logger.debug(f"Playwright Output: {sub_result.stdout}")
 
-            print("Error:")
-            print(sub_result.stderr)
-            logger.error(f"Playwright Error: {sub_result.stderr}")
+            stderr_output = sub_result.stderr.strip()  # Remove leading and trailing whitespace
+
+            # Check if there is something in the stderr_output
+            if stderr_output:
+                logger.error(f"Playwright Error: {stderr_output}")
+            else:
+                logger.debug("No playwright stderr output.")
 
             # make sure file is saved as 1.png  in the temp directory
             # filename = '1.png'
