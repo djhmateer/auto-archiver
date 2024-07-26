@@ -65,8 +65,8 @@ class YoutubeDLArchiver(Archiver):
 
         # DM July - special feature to allow for not downloading the file if the column is set to n
         # if column not there then download as normal
-        should_download = item.get("should_download")
-        if should_download == "n":
+        should_download = item.get("should_download").lower()
+        if should_download in ["n", "no"]:
             info = ydl.extract_info(url, download=False)
         else:
             info = ydl.extract_info(url, download=True)

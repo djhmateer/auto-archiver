@@ -1,6 +1,7 @@
 from playwright.sync_api import sync_playwright
 import sys
 
+# for development I've got a yt-test project in cdl
 def run(playwright):
     url = sys.argv[1]
     print("url: ", url)
@@ -58,7 +59,8 @@ def run(playwright):
     page.wait_for_timeout(1000)
 
     page.screenshot(path=tmp_dir + '/1.png', full_page=True)
-    # read more click button
+
+    # read more click button - this expands the comments
     page.wait_for_selector('tp-yt-paper-button#expand')
     page.click('tp-yt-paper-button#expand')
 
@@ -71,9 +73,23 @@ def run(playwright):
     page.screenshot(path=tmp_dir + '/3.png', full_page=True)
 
     page.wait_for_timeout(1000)
+    # page.screenshot(path=tmp_dir + '/4.png', full_page=True)
+
+
+    # Sort by newest first
+    # Click the dropdown to open the sort menu
+    page.click('#trigger')
+
+    # Wait for the dropdown to be visible
+    page.wait_for_selector('tp-yt-paper-item .item:has-text("Newest first")')
+
+    # Click the "Newest first" option
+    page.click('tp-yt-paper-item .item:has-text("Newest first")')
+
+    page.wait_for_timeout(2000)
+
     page.screenshot(path=tmp_dir + '/4.png', full_page=True)
 
-    # page.wait_for_timeout(60000)  # Wait for x seconds
 
     # Close the browser
     browser.close()

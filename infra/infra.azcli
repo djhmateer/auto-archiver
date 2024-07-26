@@ -97,7 +97,7 @@ az vm create \
     --image ${image} \
     --size Standard_B2ms \
     --admin-username dave \
-    --ssh-key-values ../secrets/sshkey-rgb.pub ../secrets/sshkey-homelenovo-2024.pub
+    --ssh-key-values ../secrets/sshkey-rgb.pub ../secrets/sshkey-lenovo-jul24.pub
 else
 
     # --ssh-key-value ../secrets/id_rsa.pub
