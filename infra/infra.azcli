@@ -167,6 +167,7 @@ scp -o StrictHostKeyChecking=no ../secrets/orchestration-cir-domain-cir-sudan.ya
 scp -o StrictHostKeyChecking=no ../secrets/orchestration-cir-domain-aw.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 scp -o StrictHostKeyChecking=no ../secrets/orchestration-cir-domain-eor-grc.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 scp -o StrictHostKeyChecking=no ../secrets/orchestration-cir-domain-mw.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
+scp -o StrictHostKeyChecking=no ../secrets/orchestration-cir-projects.yaml dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 
 # tokens and service accounts
 scp -o StrictHostKeyChecking=no ../secrets/token-davemateer-gmail.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
@@ -175,6 +176,7 @@ scp -o StrictHostKeyChecking=no ../secrets/token-cir-domain-aw.json dave@${dnsna
 scp -o StrictHostKeyChecking=no ../secrets/token-cir-domain-cir.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 scp -o StrictHostKeyChecking=no ../secrets/token-cir-domain-eor.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 scp -o StrictHostKeyChecking=no ../secrets/token-cir-domain-mw.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
+scp -o StrictHostKeyChecking=no ../secrets/token-dataac.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 
 
 scp -o StrictHostKeyChecking=no ../secrets/service_account_davemateer_gmail.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
@@ -183,6 +185,7 @@ scp -o StrictHostKeyChecking=no ../secrets/service_account_cir_domain_aw.json da
 scp -o StrictHostKeyChecking=no ../secrets/service_account_cir_domain_cir.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 scp -o StrictHostKeyChecking=no ../secrets/service_account_cir_domain_eor.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 scp -o StrictHostKeyChecking=no ../secrets/service_account_cir_domain_mw.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
+scp -o StrictHostKeyChecking=no ../secrets/service_account.json dave@${dnsname}.westeurope.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 
 
 # delete old resource groups
