@@ -53,7 +53,12 @@ class YoutubeDLArchiver(Archiver):
                 logger.warning("Livestream detected, skipping due to 'livestreams' configuration setting")
                 return False
         except yt_dlp.utils.DownloadError as e:
+            # DM Aug 24 - this error is caught.
+            # Sign in to confirm you’re not a bot. This helps protect our community. Learn more
             logger.debug(f'No video - Youtube normal control flow: {e}')
+            # DM added this to track
+            if "Sign in to confirm" in str(e):
+                logger.error("Sign in to confirm you’re not a bot. This helps protect our community. Learn more")
             return False
         except Exception as e:
             logger.debug(f'ytdlp exception which is normal for example a facebook page with images only will cause a IndexError: list index out of range. Exception is: \n  {e}')
