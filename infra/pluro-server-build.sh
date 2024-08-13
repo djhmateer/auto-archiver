@@ -200,7 +200,7 @@ EOF
 #sudo apt-get install libgbm1
 
 cat <<EOT >> run-auto-archive
-*/2 * * * * dave /home/dave/auto-archiver/infra/cron_pluro.sh
+#*/2 * * * * dave /home/dave/auto-archiver/infra/cron_pluro.sh
 EOT
 
 sudo mv run-auto-archive /etc/cron.d
@@ -208,6 +208,8 @@ sudo mv run-auto-archive /etc/cron.d
 sudo chown root /etc/cron.d/run-auto-archive
 sudo chmod 600 /etc/cron.d/run-auto-archive
 
+
+# sudo python3 -m pip install -U https://github.com/coletdjnz/yt-dlp-youtube-oauth2/archive/refs/heads/master.zip
 
 sudo reboot now
 
