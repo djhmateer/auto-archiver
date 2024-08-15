@@ -10,19 +10,15 @@ def run(playwright):
     tmp_dir = sys.argv[2]
     print("tmp_dir: ", tmp_dir)
 
-    # Launch the browser
-
-    # browser = playwright.chromium.launch(
-    # browser = playwright.firefox.launch(
-    #     headless=False,
-    #     proxy={
-    #         "server": "http://172.23.16.1:24002",  # Replace with your proxy server
-    #     }
-    # )
-
     # need an installed SSL cert to communicate with the residential proxy
     # so have to use a personal context ie a profile with the cert installed
-    context = playwright.firefox.launch_persistent_context('/home/dave/.mozilla/firefox/raogzvo8.my-playwright-profile',
+
+    # DEV
+    # context = playwright.firefox.launch_persistent_context('/home/dave/.mozilla/firefox/raogzvo8.my-playwright-profile',
+
+    # SERVER
+    # context = playwright.firefox.launch_persistent_context('/home/dave/.mozilla/firefox/yi60tqmq.my-playwright-profile2',
+    context = playwright.firefox.launch_persistent_context('/home/dave/my-playwright-profile3',
         headless=False,
         proxy={
             "server": os.getenv('SERVER'),  # Replace with your proxy server
@@ -53,19 +49,17 @@ def run(playwright):
 
     page = context.new_page()
 
-    # page.goto('https://www.youtube.com/watch?v=8zpqJtSf2fM')
-
-    # timeout 0 means wait forever
-    # todo - this may be a problem
-    page.goto(url, timout=0)
+    print("go to youtube")
+    page.goto(url, wait_until='domcontentloaded')
+    print("end goto")
 
 
-    #dm added this - get rid of cookies popup
+    # get rid of cookies popup and also a handy timeout to let page load
     # try:
-    #    page.wait_for_selector('button[aria-label="Reject the use of cookies and other data for the purposes described"]')
-    #    page.click('button[aria-label="Reject the use of cookies and other data for the purposes described"]')
+    #     page.wait_for_selector('button[aria-label="Reject the use of cookies and other data for the purposes described"]')
+    #     page.click('button[aria-label="Reject the use of cookies and other data for the purposes described"]')
     # except Exception as e:
-    #    print("no cookies popup which may be fine")
+    #     print("no cookies popup which may be fine")
 
 
     # want the video to play!
@@ -74,53 +68,41 @@ def run(playwright):
     # Reload the page
     # page.reload()
 
-    page.wait_for_timeout(3000)
+    # sometimes there is an ad quite quickly
+    # page.wait_for_timeout(1000)
 
-    print("screenshot 1")
-    page.screenshot(path=tmp_dir + '/1.png', full_page=True)
+    for i in range(1, 19):
+        print(i)
+        page.screenshot(path=tmp_dir + f'/{i}.png', full_page=True)
+        page.wait_for_timeout(1000)
+
     # read more click button
-    page.wait_for_selector('tp-yt-paper-button#expand')
-    page.click('tp-yt-paper-button#expand')
+    try:
+        page.wait_for_selector('tp-yt-paper-button#expand', timeout=2000)
+        page.click('tp-yt-paper-button#expand')
+    except Exception as e:
+        print("no read more button - probably not good")
 
-    page.wait_for_timeout(3000)
-    print("screenshot 2")
-    # Take a full page screenshot with the ad hopefully
-    page.screenshot(path=tmp_dir + '/2.png', full_page=True)
-
-    page.wait_for_timeout(1000)
-
-    print("screenshot 3")
-    page.screenshot(path=tmp_dir + '/3.png', full_page=True)
-
-    page.wait_for_timeout(1000)
-    print("screenshot 4")
-    page.screenshot(path=tmp_dir + '/4.png', full_page=True)
-
-    # I have seen it not render the comments as still loading
-    print("wait for coments to load")
-    page.wait_for_timeout(9000)
-
-
-    # Sort by newest first
+    # Sort by newest first comments
     # Click the dropdown to open the sort menu
-    page.click('#trigger')
+    try:
+        page.click('#trigger')
+        # Wait for the dropdown to be visible
+        page.wait_for_selector('tp-yt-paper-item .item:has-text("Newest first")')
 
-    # Wait for the dropdown to be visible
-    page.wait_for_selector('tp-yt-paper-item .item:has-text("Newest first")')
-
-    # Click the "Newest first" option
-    page.click('tp-yt-paper-item .item:has-text("Newest first")')
-
-    page.wait_for_timeout(4000)
-    print("screenshot 5")
-    page.screenshot(path=tmp_dir + '/5.png', full_page=True)
+        # Click the "Newest first" option
+        page.click('tp-yt-paper-item .item:has-text("Newest first")')
+    except:
+        print("no newest first comments - not good")
+        exit()
 
 
-    page.wait_for_timeout(4000)
-    print("screenshot 6")
-    page.screenshot(path=tmp_dir + '/6.png', full_page=True)
+    # do lots of screenshots
+    for i in range(20, 40):
+        print(i)
+        page.screenshot(path=tmp_dir + f'/{i}.png', full_page=True)
+        page.wait_for_timeout(1000)
 
-    # page.wait_for_timeout(25000)  # Wait for 5 seconds
     exit()
 
 def main():

@@ -170,8 +170,10 @@ scp -o StrictHostKeyChecking=no ../secrets/service_account_davemateer_gmail.json
 scp -o StrictHostKeyChecking=no ../.env dave@${dnsname}.eastus.cloudapp.azure.com:/home/dave/auto-archiver/
 
 # firefox profile copy
-scp -o StrictHostKeyChecking=no -r /home/dave/.mozilla/firefox/raogzvo8.my-playwright-profile dave@${dnsname}.eastus.cloudapp.azure.com:/home/dave/.mozilla/firefox/raogzvo8.my-playwright-profile
+# scp -o StrictHostKeyChecking=no -r /home/dave/.mozilla/firefox/raogzvo8.my-playwright-profile dave@${dnsname}.eastus.cloudapp.azure.com:/home/dave/.mozilla/firefox/raogzvo8.my-playwright-profile
 
+# firefox cert for making profile
+scp -o StrictHostKeyChecking=no ../secrets/ca.crt dave@${dnsname}.eastus.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 
 
 # delete old resource groups

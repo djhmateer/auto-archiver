@@ -156,7 +156,7 @@ class YoutubeDLArchiver(Archiver):
         # asdf = item.get("screen1_column_present")
         screen1 = item.screen1_column_present
         if screen1 == "y":
-            logger.info("Found screen1 column so Running c21playwright_ads.py")
+            logger.info("Found screen1 column so Running playwright")
 
             # ***** use xvfb to run the browser - pass the temp directory********
 
@@ -189,17 +189,27 @@ class YoutubeDLArchiver(Archiver):
             # make sure file is saved as 1.png  in the temp directory
             # filename = '1.png'
 
-            new_media = Media(tmp_dir + '/1.png')
-            result.add_media(new_media)
+            contents = os.listdir(tmp_dir)
 
-            new_media = Media(tmp_dir + '/2.png')
-            result.add_media(new_media)
+            def extract_number(file_name):
+                # Extract the number from the filename
+                return int(file_name.split('.')[0])
 
-            new_media = Media(tmp_dir + '/3.png')
-            result.add_media(new_media)
+            # Make sure files are sorted by filename but I want 1,2,3,4 etc...
+            contents.sort(key=extract_number)
 
-            new_media = Media(tmp_dir + '/4.png')
-            result.add_media(new_media)
+            logger.debug(f'contents of temp directory sorted: {contents}')
+
+            for file_name in contents:
+                if file_name.endswith('.png'):
+                    # Process the PNG file
+                    foo = tmp_dir + '/' + file_name
+
+                    # why is file_name being stored in the root and not in dmtest004/1.png
+                    # don't know how to get it to save as 1.png as it just saves in the root on s3.
+                    new_media = Media(filename=foo)
+                    # id is useful as that is the orig filename
+                    result.add_media(new_media, id=file_name)
 
 
         if self.end_means_success: result.success("yt-dlp")

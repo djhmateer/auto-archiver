@@ -213,14 +213,14 @@ sudo chmod 600 /etc/cron.d/run-auto-archive
 # to work around youtube Sign in to confirm you’re not a bot. This helps protect our community. Learn more
 # https://github.com/coletdjnz/yt-dlp-youtube-oauth2
 
-# pipenv shell
-# python3 -m pip install -U https://github.com/coletdjnz/yt-dlp-youtube-oauth2/archive/refs/heads/master.zip
 
-pipenv run python3 -m pip install -U https://github.com/coletdjnz/yt-dlp-youtube-oauth2/archive/refs/heads/master.zip
+# ***HERE*****
+# pipenv run python3 -m pip install -U https://github.com/coletdjnz/yt-dlp-youtube-oauth2/archive/refs/heads/master.zip
 
 
 # check oauth plugin is installed
 # yt-dlp --verbose 
+# pipenv run python3 yt-dlp --verbose 
 
 
 
@@ -231,6 +231,8 @@ pipenv run python3 -m pip install -U https://github.com/coletdjnz/yt-dlp-youtube
 # pipenv run yt-dlp https://www.youtube.com/watch?v=ouwWg4NU5xs --username oauth2 --password ''
 
 
+# for manually creating firefox profile so can connect to proxy
+sudo apt-get install libnss3-tools -y
 
 # manually run the script
 # pipenv run python -m src.auto_archiver --config secrets/orchestration-pluro-demo.yaml   
