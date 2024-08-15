@@ -210,19 +210,27 @@ sudo chmod 600 /etc/cron.d/run-auto-archive
 
 
 # DM Aug OAuth
+# to work around youtube Sign in to confirm you’re not a bot. This helps protect our community. Learn more
 # https://github.com/coletdjnz/yt-dlp-youtube-oauth2
 
 # pipenv shell
 # python3 -m pip install -U https://github.com/coletdjnz/yt-dlp-youtube-oauth2/archive/refs/heads/master.zip
 
+pipenv run python3 -m pip install -U https://github.com/coletdjnz/yt-dlp-youtube-oauth2/archive/refs/heads/master.zip
+
+
 # check oauth plugin is installed
 # yt-dlp --verbose 
 
-# run through oauth flow
-# yt-dlp https://www.youtube.com/watch?v=ouwWg4NU5xs --username oauth2 --password ''
 
+
+## ***MANUAL STEP***
 # put in code
 # https://www.google.com/device  
+
+# pipenv run yt-dlp https://www.youtube.com/watch?v=ouwWg4NU5xs --username oauth2 --password ''
+
+
 
 # manually run the script
 # pipenv run python -m src.auto_archiver --config secrets/orchestration-pluro-demo.yaml   

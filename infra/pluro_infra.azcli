@@ -166,6 +166,13 @@ scp -o StrictHostKeyChecking=no ../secrets/token-davemateer-gmail.json dave@${dn
 
 scp -o StrictHostKeyChecking=no ../secrets/service_account_davemateer_gmail.json dave@${dnsname}.eastus.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 
+# env for c31playwright
+scp -o StrictHostKeyChecking=no ../.env dave@${dnsname}.eastus.cloudapp.azure.com:/home/dave/auto-archiver/
+
+# firefox profile copy
+scp -o StrictHostKeyChecking=no -r /home/dave/.mozilla/firefox/raogzvo8.my-playwright-profile dave@${dnsname}.eastus.cloudapp.azure.com:/home/dave/.mozilla/firefox/raogzvo8.my-playwright-profile
+
+
 
 # delete old resource groups
 groupstodel=$(az group list --query "[?contains(name, '${rgprefix}')]".name --output tsv)

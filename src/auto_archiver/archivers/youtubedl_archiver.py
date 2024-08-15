@@ -169,7 +169,8 @@ class YoutubeDLArchiver(Archiver):
 
             # where 1.png etc are saved
             tmp_dir = ArchivingContext.get_tmp_dir()
-            command = ["pipenv", "run", "xvfb-run", "python3", "c21playwright_ads.py", url, tmp_dir]
+            # command = ["pipenv", "run", "xvfb-run", "python3", "c21playwright_ads.py", url, tmp_dir]
+            command = ["pipenv", "run", "xvfb-run", "python3", "c31playwright_proxy_fire_env.py", url, tmp_dir]
             
             # Use subprocess.run to execute the command with the specified working directory
             sub_result = subprocess.run(command, cwd=working_directory, capture_output=True, text=True)

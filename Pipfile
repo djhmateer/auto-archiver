@@ -63,6 +63,7 @@ certvalidator = "*"
 
 # DM July yt
 playwright = "*"
+python-dotenv = "*"
 
 [dev-packages]
 autopep8 = "*"
