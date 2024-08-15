@@ -209,7 +209,29 @@ sudo chown root /etc/cron.d/run-auto-archive
 sudo chmod 600 /etc/cron.d/run-auto-archive
 
 
-# sudo python3 -m pip install -U https://github.com/coletdjnz/yt-dlp-youtube-oauth2/archive/refs/heads/master.zip
+# DM Aug OAuth
+# https://github.com/coletdjnz/yt-dlp-youtube-oauth2
+
+# pipenv shell
+# python3 -m pip install -U https://github.com/coletdjnz/yt-dlp-youtube-oauth2/archive/refs/heads/master.zip
+
+# check oauth plugin is installed
+# yt-dlp --verbose 
+
+# run through oauth flow
+# yt-dlp https://www.youtube.com/watch?v=ouwWg4NU5xs --username oauth2 --password ''
+
+# put in code
+# https://www.google.com/device  
+
+# manually run the script
+# pipenv run python -m src.auto_archiver --config secrets/orchestration-pluro-demo.yaml   
+
+# I had issues with playwright and firefox version
+
+# chmod +x /home/dave/.cache/ms-playwright/firefox-1458/firefox
+
+# pipenv run xvfb-run python3 c21playwright_ads.py https://www.youtube.com/watch?v=ouwWg4NU5xs /tmp
 
 sudo reboot now
 

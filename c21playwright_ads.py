@@ -11,7 +11,10 @@ def run(playwright):
 
     # Launch the browser
     # browser = playwright.chromium.launch(headless=False)
-    browser = playwright.firefox.launch(headless=False)
+    # browser = playwright.firefox.launch(headless=False)
+
+    # Aug 24 - DM - server install pointing to 1454 instead of 1458
+    browser = playwright.firefox.launch(headless=False, executable_path='/home/dave/.cache/ms-playwright/firefox-1458/firefox/firefox')
 
 
     context = browser.new_context(
