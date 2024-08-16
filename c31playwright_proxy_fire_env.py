@@ -54,6 +54,8 @@ def run(playwright):
     print("end goto")
 
 
+
+
     # get rid of cookies popup and also a handy timeout to let page load
     # try:
     #     page.wait_for_selector('button[aria-label="Reject the use of cookies and other data for the purposes described"]')
@@ -66,22 +68,27 @@ def run(playwright):
     # page.wait_for_timeout(120000)
 
     # Reload the page
+    # print("reload")
     # page.reload()
+    # print("end reload")
 
     # sometimes there is an ad quite quickly
     # page.wait_for_timeout(1000)
 
-    for i in range(1, 19):
+    try_read_more = True
+    for i in range(1, 9):
         print(i)
         page.screenshot(path=tmp_dir + f'/{i}.png', full_page=True)
         page.wait_for_timeout(1000)
 
-    # read more click button
-    try:
-        page.wait_for_selector('tp-yt-paper-button#expand', timeout=2000)
-        page.click('tp-yt-paper-button#expand')
-    except Exception as e:
-        print("no read more button - probably not good")
+        # read more click button
+        if try_read_more:
+            try:
+                page.wait_for_selector('tp-yt-paper-button#expand', timeout=2000)
+                page.click('tp-yt-paper-button#expand')
+                try_read_more = False
+            except Exception as e:
+                print("no read more button - probably not good")
 
     # Sort by newest first comments
     # Click the dropdown to open the sort menu
@@ -98,7 +105,7 @@ def run(playwright):
 
 
     # do lots of screenshots
-    for i in range(20, 40):
+    for i in range(20, 50):
         print(i)
         page.screenshot(path=tmp_dir + f'/{i}.png', full_page=True)
         page.wait_for_timeout(1000)

@@ -37,10 +37,11 @@ adminpassword=${password}
 
 # to see all the locations
 # https://github.com/Azure/azure-cli/issues/1520
-# region=westeurope
+
+region=westeurope
 # region=centralindia
 # region=northcentralus
-region=eastus
+# region=eastus
 
 vmname=${dnsname}vm
 vnet=vnet${int}
@@ -149,31 +150,31 @@ az vm run-command invoke \
 n=0
 until [ "$n" -ge 20 ]
 do
-   scp -o StrictHostKeyChecking=no ../src/auto_archiver/cred_mssql.py dave@${dnsname}.eastus.cloudapp.azure.com:/home/dave/auto-archiver/ && break
+   scp -o StrictHostKeyChecking=no ../src/auto_archiver/cred_mssql.py dave@${dnsname}.${region}.cloudapp.azure.com:/home/dave/auto-archiver/ && break
    n=$((n+1)) 
    sleep 15
 done
 # telegram (telethon_archiver)
-scp -o StrictHostKeyChecking=no ../secrets/anon.session dave@${dnsname}.eastus.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
+scp -o StrictHostKeyChecking=no ../secrets/anon.session dave@${dnsname}.${region}.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 
-scp -o StrictHostKeyChecking=no ../src/auto_archiver/cred_mssql.py dave@${dnsname}.eastus.cloudapp.azure.com:/home/dave/auto-archiver/src/auto_archiver/
+scp -o StrictHostKeyChecking=no ../src/auto_archiver/cred_mssql.py dave@${dnsname}.${region}.cloudapp.azure.com:/home/dave/auto-archiver/src/auto_archiver/
 
 # orchestrations
-scp -o StrictHostKeyChecking=no ../secrets/orchestration-pluro-demo.yaml dave@${dnsname}.eastus.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
+scp -o StrictHostKeyChecking=no ../secrets/orchestration-pluro-demo.yaml dave@${dnsname}.${region}.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 
 # tokens and service accounts
-scp -o StrictHostKeyChecking=no ../secrets/token-davemateer-gmail.json dave@${dnsname}.eastus.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
+scp -o StrictHostKeyChecking=no ../secrets/token-davemateer-gmail.json dave@${dnsname}.${region}.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 
-scp -o StrictHostKeyChecking=no ../secrets/service_account_davemateer_gmail.json dave@${dnsname}.eastus.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
+scp -o StrictHostKeyChecking=no ../secrets/service_account_davemateer_gmail.json dave@${dnsname}.${region}.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 
 # env for c31playwright
-scp -o StrictHostKeyChecking=no ../.env dave@${dnsname}.eastus.cloudapp.azure.com:/home/dave/auto-archiver/
+scp -o StrictHostKeyChecking=no ../.env dave@${dnsname}.${region}.cloudapp.azure.com:/home/dave/auto-archiver/
 
 # firefox profile copy
-# scp -o StrictHostKeyChecking=no -r /home/dave/.mozilla/firefox/raogzvo8.my-playwright-profile dave@${dnsname}.eastus.cloudapp.azure.com:/home/dave/.mozilla/firefox/raogzvo8.my-playwright-profile
+# scp -o StrictHostKeyChecking=no -r /home/dave/.mozilla/firefox/raogzvo8.my-playwright-profile dave@${dnsname}.${region}.cloudapp.azure.com:/home/dave/.mozilla/firefox/raogzvo8.my-playwright-profile
 
 # firefox cert for making profile
-scp -o StrictHostKeyChecking=no ../secrets/ca.crt dave@${dnsname}.eastus.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
+scp -o StrictHostKeyChecking=no ../secrets/ca.crt dave@${dnsname}.${region}.cloudapp.azure.com:/home/dave/auto-archiver/secrets/
 
 
 # delete old resource groups
@@ -192,8 +193,8 @@ do
     fi
 done
 
-echo -e "\nssh -o StrictHostKeyChecking=no dave@${dnsname}.eastus.cloudapp.azure.com\n" > psshCurrentVm.sh
+echo -e "\nssh -o StrictHostKeyChecking=no dave@${dnsname}.${region}.cloudapp.azure.com\n" > psshCurrentVm.sh
 
 # echo -e "password is ${adminpassword}" > password.txt
 
-echo -e "http://${dnsname}.eastus.cloudapp.azure.com"
+echo -e "http://${dnsname}.${region}.cloudapp.azure.com"
