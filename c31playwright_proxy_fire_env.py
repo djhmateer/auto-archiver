@@ -14,11 +14,11 @@ def run(playwright):
     # so have to use a personal context ie a profile with the cert installed
 
     # DEV
-    # context = playwright.firefox.launch_persistent_context('/home/dave/.mozilla/firefox/raogzvo8.my-playwright-profile',
+    context = playwright.firefox.launch_persistent_context('/home/dave/.mozilla/firefox/raogzvo8.my-playwright-profile',
 
     # SERVER
     # context = playwright.firefox.launch_persistent_context('/home/dave/.mozilla/firefox/yi60tqmq.my-playwright-profile2',
-    context = playwright.firefox.launch_persistent_context('/home/dave/my-playwright-profile3',
+    # context = playwright.firefox.launch_persistent_context('/home/dave/my-playwright-profile3',
         headless=False,
         proxy={
             "server": os.getenv('SERVER'),  # Replace with your proxy server
@@ -94,7 +94,7 @@ def run(playwright):
         page.click('tp-yt-paper-item .item:has-text("Newest first")')
     except:
         print("no newest first comments - not good")
-        exit()
+        # exit()
 
 
     # do lots of screenshots

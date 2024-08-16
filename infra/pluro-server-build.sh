@@ -215,6 +215,7 @@ sudo chmod 600 /etc/cron.d/run-auto-archive
 
 
 # ***HERE*****
+cd /home/dave/auto-archiver
 # pipenv run python3 -m pip install -U https://github.com/coletdjnz/yt-dlp-youtube-oauth2/archive/refs/heads/master.zip
 
 
@@ -233,6 +234,8 @@ sudo chmod 600 /etc/cron.d/run-auto-archive
 
 # for manually creating firefox profile so can connect to proxy
 sudo apt-get install libnss3-tools -y
+
+pipenv run xvfb-run firefox -CreateProfile "my-playwright-profile3 /home/dave"
 
 # manually run the script
 # pipenv run python -m src.auto_archiver --config secrets/orchestration-pluro-demo.yaml   

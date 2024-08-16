@@ -169,7 +169,6 @@ class YoutubeDLArchiver(Archiver):
 
             # where 1.png etc are saved
             tmp_dir = ArchivingContext.get_tmp_dir()
-            # command = ["pipenv", "run", "xvfb-run", "python3", "c21playwright_ads.py", url, tmp_dir]
             command = ["pipenv", "run", "xvfb-run", "python3", "c31playwright_proxy_fire_env.py", url, tmp_dir]
             
             # Use subprocess.run to execute the command with the specified working directory
@@ -191,25 +190,26 @@ class YoutubeDLArchiver(Archiver):
 
             contents = os.listdir(tmp_dir)
 
+            png_files = [file for file in contents if file.endswith('.png')]
+
             def extract_number(file_name):
                 # Extract the number from the filename
                 return int(file_name.split('.')[0])
 
             # Make sure files are sorted by filename but I want 1,2,3,4 etc...
-            contents.sort(key=extract_number)
+            png_files.sort(key=extract_number)
 
             logger.debug(f'contents of temp directory sorted: {contents}')
 
-            for file_name in contents:
-                if file_name.endswith('.png'):
-                    # Process the PNG file
-                    foo = tmp_dir + '/' + file_name
+            for file_name in png_files: 
+                # Process the PNG file
+                foo = tmp_dir + '/' + file_name
 
-                    # why is file_name being stored in the root and not in dmtest004/1.png
-                    # don't know how to get it to save as 1.png as it just saves in the root on s3.
-                    new_media = Media(filename=foo)
-                    # id is useful as that is the orig filename
-                    result.add_media(new_media, id=file_name)
+                # why is file_name being stored in the root and not in dmtest004/1.png
+                # don't know how to get it to save as 1.png as it just saves in the root on s3.
+                new_media = Media(filename=foo)
+                # id is useful as that is the orig filename
+                result.add_media(new_media, id=file_name)
 
 
         if self.end_means_success: result.success("yt-dlp")
