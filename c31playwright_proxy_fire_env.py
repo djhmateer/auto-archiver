@@ -17,8 +17,7 @@ def run(playwright):
     context = playwright.firefox.launch_persistent_context('/home/dave/.mozilla/firefox/raogzvo8.my-playwright-profile',
 
     # SERVER
-    # context = playwright.firefox.launch_persistent_context('/home/dave/.mozilla/firefox/yi60tqmq.my-playwright-profile2',
-    # context = playwright.firefox.launch_persistent_context('/home/dave/my-playwright-profile3',
+    # context = playwright.firefox.launch_persistent_context('/home/dave/profile9',
         headless=False,
         proxy={
             "server": os.getenv('SERVER'),  # Replace with your proxy server
