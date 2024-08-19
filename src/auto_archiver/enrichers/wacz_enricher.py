@@ -153,6 +153,7 @@ class WaczArchiverEnricher(Enricher, Archiver):
             return False
 
         to_enrich.add_media(Media(wacz_fn), "browsertrix")
+
         if self.extract_media:
             self.extract_media_from_wacz(to_enrich, wacz_fn)
         return True
@@ -208,6 +209,9 @@ class WaczArchiverEnricher(Enricher, Archiver):
                         # DM there are 2 screenshots
                         # the first one is bonkers and seems to be a png but isn't.
                         # ignore it as it is always there
+
+                        # DMAug 18 2024
+                        # testing screenshots
                         if (counter == 0):
                             logger.debug(f'ignoring the first screenshot as it is always a png but isn\'t')
                         else:
