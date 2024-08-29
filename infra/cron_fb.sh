@@ -57,17 +57,17 @@ fi
 
 TIME=5
 
-# pipenv run python -m src.auto_archiver --config secrets/orchestration-aa-demo-main.yaml
 
 # TEST - make sure that the FB profile is working
 #pipenv run python -m src.auto_archiver --config secrets/orchestration-aa-demo-main-facebook.yaml
 # sleep $TIME
 
+## HERE - TRY bringing azure server to proxmox to see about youtube issues
 
-# TODO - get this working...need to patch in other ones (just have aa demo main working)
-# run this after all FB archivers have ran
-# launch a new shell with different virtual environment
-# bash /home/dave/auto-archiver/infra/cir-deduplication.sh 
+# pipenv run python -m src.auto_archiver --config secrets/orchestration-aa-demo-main.yaml
+
+
+
 
 
 # PROD
@@ -124,3 +124,10 @@ sleep $TIME
 # to stop cron job comment out in /etc/cron.d
 # then reload
 # sudo service cron reload
+
+
+
+# TODO - get this working...need to patch in other ones (just have aa demo main working)
+# run this after all FB archivers have ran
+# launch a new shell with different virtual environment
+# bash /home/dave/auto-archiver/infra/cir-deduplication.sh 
