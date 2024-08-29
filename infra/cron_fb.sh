@@ -68,6 +68,28 @@ TIME=5
 
 
 
+pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-eor.yaml
+sleep $TIME
+
+pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-cir-sahel.yaml
+sleep $TIME
+
+pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-cir-sudan.yaml
+sleep $TIME
+
+pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-aw.yaml
+sleep $TIME
+
+pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-eor-grc.yaml
+sleep $TIME
+
+pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-mw.yaml
+sleep $TIME
+
+pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-projects.yaml
+sleep $TIME
+
+
 
 
 # PROD
