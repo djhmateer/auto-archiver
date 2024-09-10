@@ -44,7 +44,26 @@
 			"justMyCode": true,
 			"args": ["--config","secrets/orchestration-glan-facebook.yaml"]
 		},
-
+		{
+			"name": "GLAN-YTBM (davemateer@gmail)",
+			"type": "python",
+			"request": "launch",
+			// "program": "src/auto_archiver",
+            "module": "src.auto_archiver",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","secrets/orchestration-glan-ytbm.yaml"]
+		},
+		{
+			"name": "GLAN-YTBM - Facebook (davemateer@gmail)",
+			"type": "python",
+			"request": "launch",
+			// "program": "src/auto_archiver",
+            "module": "src.auto_archiver",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","secrets/orchestration-glan-ytbm-facebook.yaml"]
+		},
 		{
 			"name": "AA Demo Main (davemateer@gmail)",
 			"type": "python",
