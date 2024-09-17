@@ -49,6 +49,7 @@ def run(playwright):
     page = context.new_page()
 
     print("go to youtube")
+    # have seen this fail with a timeout of 30s
     page.goto(url, wait_until='domcontentloaded')
     print("end goto")
 

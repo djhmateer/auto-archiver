@@ -103,7 +103,8 @@ class WaczArchiverEnricher(Enricher, Archiver):
             "--saveState", "never",
             "--behaviors", "autoscroll,autoplay,autofetch,siteSpecific",
             "--behaviorTimeout", str(self.timeout),
-            "--timeout", str(self.timeout)]
+            "--timeout", str(self.timeout),
+            "--postLoadDelay", "160"]
 
         # call docker if explicitly enabled or we are running on the host (not in docker)
         use_docker = os.environ.get('WACZ_ENABLE_DOCKER') or not os.environ.get('RUNNING_IN_DOCKER')
@@ -119,7 +120,7 @@ class WaczArchiverEnricher(Enricher, Archiver):
             if self.docker_commands:
                 cmd = self.docker_commands + cmd
             else:
-                # 0.11.2 works - otherwise the test case OS4892 on AA Demo Main doesn't seem to crawl proplery (it was multiple screenshots)
+                # 0.11.2 works - otherwise the test case OS4892 on AA Demo Main doesn't seem to crawl properly (it was multiple screenshots)
                 # note there is another part further down the code which needs to be changed too.
                 cmd = ["docker", "run", "--rm", "-v", f"{browsertrix_home_host}:/crawls/", "webrecorder/browsertrix-crawler"] + cmd
                 # cmd = ["docker", "run", "--rm", "-v", f"{browsertrix_home_host}:/crawls/", "webrecorder/browsertrix-crawler:0.11.2"] + cmd
