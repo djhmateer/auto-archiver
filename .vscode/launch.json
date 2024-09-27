@@ -94,7 +94,26 @@
 			"justMyCode": true,
 			"args": ["--config","secrets/orchestration-pluro-demo.yaml"]
 		},
-
+		{
+			"name": "Carlos Demo (davemateer@gmail)",
+			"type": "python",
+			"request": "launch",
+			// "program": "src/auto_archiver",
+            "module": "src.auto_archiver",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","secrets/orchestration-carlos-demo.yaml"]
+		},
+		{
+			"name": "Carlos Demo - Facebook (davemateer@gmail)",
+			"type": "python",
+			"request": "launch",
+			// "program": "src/auto_archiver",
+            "module": "src.auto_archiver",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","secrets/orchestration-carlos-demo-facebook.yaml"]
+		},
 		{
 			"name": "DR Demo (davemateer@gmail)",
 			"type": "python",

@@ -289,7 +289,7 @@ class GsheetsDb(Database):
 
                         retry_flag = False
                     except Exception as e:
-                        logger.error(f'Hash problem is {hash}')
+                        logger.error(f'Hash is {hash}, DocumentName: {document_name}, TabName: {tab_name}, EntryNumber: {entry_number}')
                         logger.error(f"DB Retry after 30 secs as {e}")
                         retry_count = retry_count + 1
                         time.sleep(30)
