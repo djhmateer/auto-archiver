@@ -81,7 +81,6 @@ pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-projec
 sleep $TIME
 
 
-
 ## cron job output is in 
 ## vim /home/dave/log.txt
 
