@@ -1,5 +1,6 @@
 from playwright.sync_api import sync_playwright
 import sys
+import os
 
 def run(playwright):
     url = sys.argv[1]
@@ -9,12 +10,25 @@ def run(playwright):
     # ./chrome from:
     # /home/dave/.cache/ms-playwright/chromium-1076/chrome-linux/
     data_dir = '/home/dave/.config/chromium'
+
+    # dev
+    dev_executable_path = '/home/dave/.cache/ms-playwright/chromium-1076/chrome-linux/chrome'
+    prod_executable_path = '/home/dave/.cache/ms-playwright/chromium-1091/chrome-linux/chrome'
+    if os.path.exists(dev_executable_path):
+        print('1076 found')
+        executable_path = dev_executable_path
+    elif os.path.exists(prod_executable_path):
+        print('1091 found')
+        executable_path = prod_executable_path
+    else:
+        print('problem - no chromium found')
+        exit()
+
+
+
     browser = playwright.chromium.launch_persistent_context(data_dir,
                                         headless=False,
-                                        # dev
-                                        # executable_path = '/home/dave/.cache/ms-playwright/chromium-1076/chrome-linux/chrome'
-                                        # prod
-                                        executable_path = '/home/dave/.cache/ms-playwright/chromium-1091/chrome-linux/chrome'
+                                        executable_path = executable_path 
                                         )
     page = browser.new_page()
 
