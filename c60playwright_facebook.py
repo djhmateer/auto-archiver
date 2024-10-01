@@ -11,7 +11,10 @@ def run(playwright):
     data_dir = '/home/dave/.config/chromium'
     browser = playwright.chromium.launch_persistent_context(data_dir,
                                         headless=False,
-                                        executable_path = '/home/dave/.cache/ms-playwright/chromium-1076/chrome-linux/chrome'
+                                        # dev
+                                        # executable_path = '/home/dave/.cache/ms-playwright/chromium-1076/chrome-linux/chrome'
+                                        # prod
+                                        executable_path = '/home/dave/.cache/ms-playwright/chromium-1091/chrome-linux/chrome'
                                         )
     page = browser.new_page()
 
