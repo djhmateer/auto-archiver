@@ -64,12 +64,32 @@ class WaczArchiverEnricher(Enricher, Archiver):
     # On WSL2 in Dev I've seen spurious :ERR_NETWORK_CHANGED at 
     # errors from browsertrix which fails out of the crawl
     # It seems to be more solid on Linux production
-    def enrich(self, to_enrich: Metadata) -> bool:
+    def enrich(self, to_enrich: Metadata) -> bool: 
+        url = to_enrich.get_url()
+        if "facebook.com" in to_enrich.netloc:
+            logger.debug("Special codepath using playwright with a logged in facebook profile to do a screenshot")
+            # where 1.png etc are saved
+            tmp_dir = ArchivingContext.get_tmp_dir()
+            command = ["pipenv", "run", "xvfb-run", "python3", "c60playwright_facebook.py", url, tmp_dir]
+                
+            # '/mnt/c/dev/v6-auto-archiver' - where the c21.py file is called
+            working_directory = os.getcwd()
+            # Use subprocess.run to execute the command with the specified working directory
+            sub_result = subprocess.run(command, cwd=working_directory, capture_output=True, text=True)
+
+            # Print the output and error (if any)
+            logger.debug(f"Playwright Output: {sub_result.stdout}")
+
+            fn = os.path.join(tmp_dir, f"1.png")
+            m = Media(filename=fn)
+            to_enrich.add_media(m, f"playwright-screenshot")
+    
+
+
         if to_enrich.get_media_by_id("browsertrix"):
             logger.info(f"WACZ enricher had already been executed: {to_enrich.get_media_by_id('browsertrix')}")
             return True
 
-        url = to_enrich.get_url()
 
         collection = random_str(8)
 
@@ -104,7 +124,7 @@ class WaczArchiverEnricher(Enricher, Archiver):
             "--behaviors", "autoscroll,autoplay,autofetch,siteSpecific",
             "--behaviorTimeout", str(self.timeout),
             "--timeout", str(self.timeout),
-            "--postLoadDelay", "160"]
+            "--postLoadDelay", "20"]
 
         # call docker if explicitly enabled or we are running on the host (not in docker)
         use_docker = os.environ.get('WACZ_ENABLE_DOCKER') or not os.environ.get('RUNNING_IN_DOCKER')
