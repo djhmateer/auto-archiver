@@ -652,7 +652,14 @@ class GsheetsFeeder(Gsheets, Feeder):
                     # normal code path - non fb archiver
                     # archive status has to be blank for it to work
 
-                    status = gw.get_cell(row, 'status', fresh=original_status in ['', None])
+                    status = None
+                    # 4th Oct 24 - no idea why am getting  a fail sometimes here.
+                    try:
+                        status = gw.get_cell(row, 'status', fresh=original_status in ['', None])
+                    except Exception as e:
+                        logger.error(f'***Error getting status {e}')
+                        continue
+
 
                     # 30th Jan - when refreshed cell comes back, it is now a string 'None'
                     # I had just done a pipenv update to gspread 6.0.0

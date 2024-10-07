@@ -43,15 +43,25 @@ class WaybackArchiverEnricher(Enricher, Archiver):
         if self.proxy_http: proxies["http"] = self.proxy_http
         if self.proxy_https: proxies["https"] = self.proxy_https
 
+        # DM 2nd OCt 24 - adding new column in spreadseheet, and add to bottom on html metadata the wayback status
+        wayback_status_from_enricher = ""
         url = to_enrich.get_url()
-        if UrlUtil.is_auth_wall(url):
-            logger.debug(f"[SKIP] WAYBACK since url is behind AUTH WALL: {url=}")
-            return
+
+        # DM 4th Oct - instagram seems to be able to be archived.. but archive.org is overloaded message (well from instagram)
+        #if UrlUtil.is_auth_wall(url):
+            #message = f"[SKIP] WAYBACK since url is behind AUTH WALL: {url=}"
+            #logger.debug(message)
+            #wayback_status_from_enricher = message
+            #to_enrich.set("wayback_status_from_enricher", wayback_status_from_enricher)
+            #return
 
         logger.debug(f"calling wayback for {url=}")
 
         if to_enrich.get("wayback"):
-            logger.info(f"Wayback enricher had already been executed: {to_enrich.get('wayback')}")
+            message = f"[SKIP] WAYBACK since already enriched: {to_enrich.get('wayback')}"
+            logger.info(message)
+            wayback_status_from_enricher = message
+            to_enrich.set("wayback_status_from_enricher", wayback_status_from_enricher)
             return True
 
         ia_headers = {
@@ -72,22 +82,32 @@ class WaybackArchiverEnricher(Enricher, Archiver):
                 try_again = False
             except Exception as e:
                 if i == 50:
-                    logger.error('couldnt contact wayback after 50 minutes so giving up')
+                    message = f"couldnt contact wayback after 50 minutes so giving up"
+                    logger.error(message)
+                    wayback_status_from_enricher = message
+                    to_enrich.set("wayback_status_from_enricher", wayback_status_from_enricher)
                     return False
                 else:
-                    logger.debug("wayback error sleeping for 1 min")        
+                    logger.debug("wayback post error sleeping for 1 min")        
                     time.sleep(1*60)
                     i = i + 1
 
         if r.status_code != 200:
-            logger.error(em := f"Internet archive failed with status of {r.status_code}: {r.json()}")
-            to_enrich.set("wayback", em)
+            message = f"Internet archive failed with status of {r.status_code}: {r.json()}"
+            logger.error(message)
+            to_enrich.set("wayback", message)
+            wayback_status_from_enricher = message 
+            to_enrich.set("wayback_status_from_enricher", wayback_status_from_enricher)
             return False
 
         # check job status
         job_id = r.json().get('job_id')
         if not job_id:
-            logger.info(f"Wayback failed with {r.json()}")
+            message = f"Wayback failed with {r.json()}"
+            logger.info(message)
+            wayback_status_from_enricher = message
+
+            # ******TODO - fix facebook logic here **************
 
             # Only seen on 1st Feb 24.
             # Response from wayback: This host has been already captured 50,093.0 times today. Please try again tomorrow.
@@ -98,33 +118,76 @@ class WaybackArchiverEnricher(Enricher, Archiver):
                 logger.debug("Swallowing error so that fb archiver picks up properly")
                 # swallow the error (wayback: success will show) so that
                 # the fb archiver will pickup properly 
+                to_enrich.set("wayback_status_from_enricher", wayback_status_from_enricher)
                 return True
+            to_enrich.set("wayback_status_from_enricher", wayback_status_from_enricher)
             return False
 
         # waits at most timeout seconds until job is completed, otherwise only enriches the job_id information
         start_time = time.time()
         wayback_url = False
         attempt = 1
-        while not wayback_url and time.time() - start_time <= self.timeout:
+        keep_going = True
+        # while not wayback_url and time.time() - start_time <= self.timeout:
+        while keep_going:
+            # if time.time() - start_time <= self.timeout:
+            #     logger.debug(f"Timeout reached")
+            #     break
+            if attempt > 3:
+                messageb = f"Wayback get status failed after 3 attempts - last attempt {r_status.json()}"
+                logger.info(messageb)
+                to_enrich.set("wayback_status_from_enricher", messageb)
+                keep_going = False
+
             try:
                 logger.debug(f"GETting status for {job_id=} on {url=} ({attempt=})")
                 r_status = requests.get(f'https://web.archive.org/save/status/{job_id}', headers=ia_headers, proxies=proxies)
                 r_json = r_status.json()
+
+                # happy path
                 if r_status.status_code == 200 and r_json['status'] == 'success':
+                    logger.success(f"Wayback get success for {r_json['original_url']} at {r_json['timestamp']}")
                     wayback_url = f"https://web.archive.org/web/{r_json['timestamp']}/{r_json['original_url']}"
-                elif r_status.status_code != 200 or r_json['status'] != 'pending':
-                    logger.error(f"Wayback failed with {r_json}")
-                    return False
+                    wayback_status_from_enricher = "success"
+                    keep_going = False
+
+                # pending so try again
+                elif r_json['status'] == 'pending':
+                    message = f"Wayback get is pending {r_json}"
+                    logger.debug(message)
+                    wayback_status_from_enricher = message
+                    to_enrich.set("wayback_status_from_enricher", wayback_status_from_enricher)
+
+
+                # non 200 on the get status - try again
+                elif r_status.status_code != 200:
+                    message = f"Wayback get failed with non 200 {r_json}"
+                    logger.info(message)
+                    wayback_status_from_enricher = message
+                    to_enrich.set("wayback_status_from_enricher", wayback_status_from_enricher)
+
+                # not happy path and not pending so try again
+                elif r_json['status'] != 'pending':
+                    message = f"Non pending status {r_json}"
+                    logger.info(message)
+                    wayback_status_from_enricher = message
+                    to_enrich.set("wayback_status_from_enricher", message)
 
             except Exception as e:
-                logger.debug(f"error fetching status for {url=} due to: {e}")
-            if not wayback_url:
+                message = f"Error getting wayback job status for {url=} due to: {e}"
+                logger.debug(message)
+                wayback_status_from_enricher = message
+                to_enrich.set("wayback_status_from_enricher", message)
+                keep_going = False
+
+            if keep_going:
                 attempt += 1
-                time.sleep(1)  # TODO: can be improved with exponential backoff
+                time.sleep(3)  # TODO: can be improved with exponential backoff
 
         if wayback_url:
             to_enrich.set("wayback", wayback_url)
         else:
             to_enrich.set("wayback", {"job_id": job_id, "check_status": f'https://web.archive.org/save/status/{job_id}'})
         to_enrich.set("check wayback", f"https://web.archive.org/web/*/{url}")
+        to_enrich.set("wayback_status_from_enricher", wayback_status_from_enricher)
         return True

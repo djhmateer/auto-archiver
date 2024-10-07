@@ -231,12 +231,17 @@ class WaczArchiverEnricher(Enricher, Archiver):
                         # the first one is bonkers and seems to be a png but isn't.
                         # ignore it as it is always there
 
+                        # I've seen the 4th be bonkers too
+                        # DM 3rd Oct 24 - using playwrite to get a screenshot so lets comment this out
+                        # was getting too much green in the screenshots
+
                         # DMAug 18 2024
                         # testing screenshots
                         if (counter == 0):
                             logger.debug(f'ignoring the first screenshot as it is always a png but isn\'t')
                         else:
-                            to_enrich.add_media(m, f"browsertrix-screenshot-{counter}")
+                            logger.debug('Ignoring screenshots inside wacz for now')
+                            # to_enrich.add_media(m, f"browsertrix-screenshot-{counter}")
 
                         counter += 1
                         # DM added as want to go to next record from here
@@ -395,15 +400,19 @@ class WaczArchiverEnricher(Enricher, Archiver):
             logger.info(f"special case FB WACZ extract_media finished, found {counter} relevant media file(s)")
 
         ## normal non FB media extraction
+        # this is for archiver (if all else fails) - but I dont use this.
+        # and for enricher - where I just want the wacz
         else:
             with open(warc_filename, 'rb') as warc_stream:
+                counter = 0
                 for record in ArchiveIterator(warc_stream):
                     # only include fetched resources
                     if record.rec_type == "resource":  # screenshots
                         fn = os.path.join(tmp_dir, f"warc-file-{counter}.png")
                         with open(fn, "wb") as outf: outf.write(record.raw_stream.read())
                         m = Media(filename=fn)
-                        to_enrich.add_media(m, "browsertrix-screenshot")
+                        # DM 4th Oct - don't want screenshot from wacz for non fb
+                        # to_enrich.add_media(m, f"browsertrix-screenshot-{counter}")
                         counter += 1
 
                     if record.rec_type != 'response': continue
