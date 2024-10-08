@@ -67,28 +67,41 @@ TIME=5
 # pipenv run python -m src.auto_archiver --config secrets/orchestration-aa-demo-main.yaml
 
 
-# PROD
-pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-eor-facebook.yaml
+
+pipenv run python -m src.auto_archiver --config secrets/orchestration-glan.yaml                
+sleep $TIME
+pipenv run python -m src.auto_archiver --config secrets/orchestration-glan-facebook.yaml
 sleep $TIME
 
-pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-cir-sahel-facebook.yaml
+pipenv run python -m src.auto_archiver --config secrets/orchestration-glan-ytbm.yaml                
+sleep $TIME
+pipenv run python -m src.auto_archiver --config secrets/orchestration-glan-ytbm-facebook.yaml
 sleep $TIME
 
-pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-cir-sudan-facebook.yaml
-sleep $TIME
 
-pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-aw-facebook.yaml
-sleep $TIME
 
-pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-eor-grc-facebook.yaml
-sleep $TIME
 
-pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-mw-facebook.yaml
-sleep $TIME
 
-pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-projects-facebook.yaml
-sleep $TIME
 
+
+
+
+# pipenv run python -m src.auto_archiver --config secrets/orchestration-carlos-demo.yaml                
+# sleep $TIME
+# pipenv run python -m src.auto_archiver --config secrets/orchestration-carlos-demo-facebook.yaml
+# sleep $TIME
+
+
+# pipenv run python -m src.auto_archiver --config secrets/orchestration-dr-demo.yaml                
+# sleep $TIME
+# pipenv run python -m src.auto_archiver --config secrets/orchestration-dr-demo-facebook.yaml
+# sleep $TIME
+
+
+# pipenv run python -m src.auto_archiver --config secrets/orchestration-pluro-demo.yaml                
+
+
+# sleep $TIME
 
 
 
