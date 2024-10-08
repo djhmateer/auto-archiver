@@ -2,6 +2,7 @@ from playwright.sync_api import sync_playwright
 import sys
 from dotenv import load_dotenv
 import os
+import subprocess
 
 def run(playwright):
     url = sys.argv[1]
@@ -36,13 +37,28 @@ def run(playwright):
     data_dir = '/home/dave/.cache/ms-playwright'
     dev_executable_path = '/home/dave/.cache/ms-playwright/firefox-1458/firefox/firefox'
     prod_executable_path = '/home/dave/.cache/ms-playwright/firefox-1429/firefox/firefox'
+    prod = True
     if os.path.exists(dev_executable_path):
         executable_path = dev_executable_path
+        prod = False
     elif os.path.exists(prod_executable_path):
         executable_path = prod_executable_path
     else:
         print('problem - no firefox found')
         exit()
+
+
+    ## SPIN UP VPN if on PROD so that I get fast down and uploads of raw video 
+    # which don't need the vpn
+    if prod:
+        try:
+            result = subprocess.run(['expressvpn', 'connect', 'usho'], capture_output=True, text=True, check=True)
+            print(result.stdout)
+        except subprocess.CalledProcessError as e:
+            print(f"Error occurred: {e}")
+            print(e.stderr)
+            exit()
+
 
     browser = playwright.firefox.launch(headless=False, executable_path=executable_path) 
 
@@ -149,6 +165,14 @@ def run(playwright):
         if i % 5 == 0:
             pop_up_dismiss()
 
+    if prod:
+        try:
+            result = subprocess.run(['expressvpn', 'disconnect'], capture_output=True, text=True, check=True)
+            print(result.stdout)
+        except subprocess.CalledProcessError as e:
+            print(f"Error occurred: {e}")
+            print(e.stderr)
+            exit()
     exit()
 
 def main():
