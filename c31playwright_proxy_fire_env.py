@@ -5,10 +5,7 @@ import os
 
 def run(playwright):
     url = sys.argv[1]
-    print("url: ", url)
-
     tmp_dir = sys.argv[2]
-    print("tmp_dir: ", tmp_dir)
 
     # need an installed SSL cert to communicate with the residential proxy
     # so have to use a personal context ie a profile with the cert installed
@@ -33,8 +30,22 @@ def run(playwright):
     # )
 
     # 2. DEV for no VPN 
-    browser = playwright.firefox.launch(headless=False) 
-    # browser = playwright.chromium.launch(headless=False) 
+    # browser = playwright.firefox.launch(headless=False) 
+
+    # dev and prod pointinto to differnt versions of firefox via playwright install
+    data_dir = '/home/dave/.cache/ms-playwright'
+    dev_executable_path = '/home/dave/.cache/ms-playwright/firefox-1458/firefox/firefox'
+    prod_executable_path = '/home/dave/.cache/ms-playwright/firefox-1429/firefox/firefox'
+    if os.path.exists(dev_executable_path):
+        executable_path = dev_executable_path
+    elif os.path.exists(prod_executable_path):
+        executable_path = prod_executable_path
+    else:
+        print('problem - no firefox found')
+        exit()
+
+    browser = playwright.firefox.launch(headless=False, executable_path=executable_path) 
+
     context = browser.new_context(
         #  user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
     #     # viewport={"width": 1920, "height": 3000}  # Set the viewport to a longer screen size

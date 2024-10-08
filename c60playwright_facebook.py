@@ -11,7 +11,6 @@ def run(playwright):
     # /home/dave/.cache/ms-playwright/chromium-1076/chrome-linux/
     data_dir = '/home/dave/.config/chromium'
 
-    # dev
     dev_executable_path = '/home/dave/.cache/ms-playwright/chromium-1076/chrome-linux/chrome'
     prod_executable_path = '/home/dave/.cache/ms-playwright/chromium-1091/chrome-linux/chrome'
     if os.path.exists(dev_executable_path):
