@@ -38,6 +38,10 @@ class GsheetsDb(Database):
         logger.info(f"STARTED {item}")
         gw, row = self._retrieve_gsheet(item)
         gw.set_cell(row, 'status', 'Archive in progress')
+        spreadsheet = gw.wks.spreadsheet.title
+        worksheet = gw.wks.title
+        logger.info(f" row: {row} on {spreadsheet} : {worksheet}")
+
 
     def failed(self, item: Metadata, reason:str) -> None:
         logger.error(f"FAILED {item}")
@@ -54,8 +58,13 @@ class GsheetsDb(Database):
     def done(self, item: Metadata, cached: bool=False) -> None:
         """archival result ready - should be saved to DB"""
         logger.success(f"DONE {item.get_url()}")
+
         gw, row = self._retrieve_gsheet(item)
         # self._safe_status_update(item, 'done')
+
+        spreadsheet = gw.wks.spreadsheet.title
+        worksheet = gw.wks.title
+        logger.success(f" row {row} on {spreadsheet} : {worksheet}")
 
         cell_updates = []
         row_values = gw.get_row(row)

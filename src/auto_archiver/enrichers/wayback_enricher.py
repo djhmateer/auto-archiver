@@ -47,13 +47,12 @@ class WaybackArchiverEnricher(Enricher, Archiver):
         wayback_status_from_enricher = ""
         url = to_enrich.get_url()
 
-        # DM 4th Oct - instagram seems to be able to be archived.. but archive.org is overloaded message (well from instagram)
-        #if UrlUtil.is_auth_wall(url):
-            #message = f"[SKIP] WAYBACK since url is behind AUTH WALL: {url=}"
-            #logger.debug(message)
-            #wayback_status_from_enricher = message
-            #to_enrich.set("wayback_status_from_enricher", wayback_status_from_enricher)
-            #return
+        if UrlUtil.is_auth_wall(url):
+            message = f"[SKIP] WAYBACK since url is behind AUTH WALL: {url=}"
+            logger.debug(message)
+            wayback_status_from_enricher = message
+            to_enrich.set("wayback_status_from_enricher", wayback_status_from_enricher)
+            return
 
         logger.debug(f"calling wayback for {url=}")
 
