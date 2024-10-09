@@ -8,31 +8,6 @@ def run(playwright):
     url = sys.argv[1]
     tmp_dir = sys.argv[2]
 
-    # need an installed SSL cert to communicate with the residential proxy
-    # so have to use a personal context ie a profile with the cert installed
-
-    # 1. DEV for VPN SSL
-    # context = playwright.firefox.launch_persistent_context('/home/dave/.mozilla/firefox/raogzvo8.my-playwright-profile',
-
-    # # SERVER
-    # # context = playwright.firefox.launch_persistent_context('/home/dave/profile9',
-    #     headless=False,
-    #     #proxy={
-    #         #"server": os.getenv('SERVER'),  # Replace with your proxy server
-    #         #"username": os.getenv('USERNAME'),
-    #         #"password": os.getenv("PASSWORD") 
-    #     #},
-    #     viewport={"width": 1224, "height": 3000} 
-    # )
-
-     # Set a user-agent to mimic a real user in the browser context
-    # context = browser.new_context(
-    #     user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-    # )
-
-    # 2. DEV for no VPN 
-    # browser = playwright.firefox.launch(headless=False) 
-
     # dev and prod pointinto to differnt versions of firefox via playwright install
     data_dir = '/home/dave/.cache/ms-playwright'
     dev_executable_path = '/home/dave/.cache/ms-playwright/firefox-1458/firefox/firefox'
