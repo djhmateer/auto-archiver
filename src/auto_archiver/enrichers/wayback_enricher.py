@@ -74,14 +74,14 @@ class WaybackArchiverEnricher(Enricher, Archiver):
         # get Max retries exceeded with url: when too much
 
         try_again = True
-        i = 0
+        i = 1
         while try_again:
             try:
                 r = requests.post('https://web.archive.org/save/', headers=ia_headers, data=post_data, proxies=proxies,  timeout=60)
                 try_again = False
             except Exception as e:
-                if i == 3:
-                    message = f"couldnt contact wayback after {i} minutes so giving up"
+                if i == 2:
+                    message = f"couldnt contact wayback after {i} tries"
                     logger.error(message)
                     wayback_status_from_enricher = message
                     to_enrich.set("wayback_status_from_enricher", wayback_status_from_enricher)
