@@ -82,7 +82,7 @@ class WaybackArchiverEnricher(Enricher, Archiver):
             except Exception as e:
                 if i == 2:
                     message = f"couldnt contact wayback after {i} tries"
-                    logger.error(message)
+                    logger.info(message)
                     wayback_status_from_enricher = message
                     to_enrich.set("wayback_status_from_enricher", wayback_status_from_enricher)
                     return False
