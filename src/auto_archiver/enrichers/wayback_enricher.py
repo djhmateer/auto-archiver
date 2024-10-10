@@ -80,14 +80,14 @@ class WaybackArchiverEnricher(Enricher, Archiver):
                 r = requests.post('https://web.archive.org/save/', headers=ia_headers, data=post_data, proxies=proxies)
                 try_again = False
             except Exception as e:
-                if i == 50:
-                    message = f"couldnt contact wayback after 50 minutes so giving up"
+                if i == 3:
+                    message = f"couldnt contact wayback after {i} minutes so giving up"
                     logger.error(message)
                     wayback_status_from_enricher = message
                     to_enrich.set("wayback_status_from_enricher", wayback_status_from_enricher)
                     return False
                 else:
-                    logger.debug("wayback post error sleeping for 1 min")        
+                    logger.debug(f"wayback post error sleeping for 1 min {e}")        
                     time.sleep(1*60)
                     i = i + 1
 
