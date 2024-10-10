@@ -77,7 +77,7 @@ class WaybackArchiverEnricher(Enricher, Archiver):
         i = 0
         while try_again:
             try:
-                r = requests.post('https://web.archive.org/save/', headers=ia_headers, data=post_data, proxies=proxies)
+                r = requests.post('https://web.archive.org/save/', headers=ia_headers, data=post_data, proxies=proxies,  timeout=60)
                 try_again = False
             except Exception as e:
                 if i == 3:
@@ -87,8 +87,8 @@ class WaybackArchiverEnricher(Enricher, Archiver):
                     to_enrich.set("wayback_status_from_enricher", wayback_status_from_enricher)
                     return False
                 else:
-                    logger.debug(f"wayback post error sleeping for 1 min {e}")        
-                    time.sleep(1*60)
+                    logger.debug(f"wayback post error trying again {e}")        
+                    # time.sleep(1*60)
                     i = i + 1
 
         if r.status_code != 200:
