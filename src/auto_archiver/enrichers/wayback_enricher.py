@@ -101,8 +101,13 @@ class WaybackArchiverEnricher(Enricher, Archiver):
             to_enrich.set("wayback", message)
             wayback_status_from_enricher = message 
             to_enrich.set("wayback_status_from_enricher", wayback_status_from_enricher)
-            return False
 
+            if 'facebook.com' in url:
+                # DM 14th oct - set to true so that the fb archiver can pick up the slack
+                return True
+            else:
+                return False
+                
         # check job status
         job_id = r.json().get('job_id')
         if not job_id:
