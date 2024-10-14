@@ -27,7 +27,8 @@ def run(playwright):
 
     browser = playwright.chromium.launch_persistent_context(data_dir,
                                         headless=False,
-                                        executable_path = executable_path 
+                                        executable_path = executable_path,
+                                        viewport={"width": 1224, "height": 3000}
                                         )
     page = browser.new_page()
 
