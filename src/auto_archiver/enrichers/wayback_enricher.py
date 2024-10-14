@@ -81,19 +81,23 @@ class WaybackArchiverEnricher(Enricher, Archiver):
                 try_again = False
             except Exception as e:
                 if i == 2:
-                    message = f"couldnt contact wayback after {i} tries"
+                    message = f"couldnt contact wayback after {i} tries last error was {e}"
                     logger.info(message)
                     wayback_status_from_enricher = message
                     to_enrich.set("wayback_status_from_enricher", wayback_status_from_enricher)
                     return False
                 else:
-                    logger.debug(f"wayback post error trying again {e}")        
+                    logger.debug(f"wayback post try {i} error trying again {e}")        
                     time.sleep(30)
                     i = i + 1
 
         if r.status_code != 200:
             message = f"Internet archive failed with status of {r.status_code}: {r.json()}"
-            logger.error(message)
+
+            # DM 14th Oct - while IA is coming back up. so failed to submit to wayback doesn't pollute my logs
+            # logger.error(message)
+            logger.info(message)
+
             to_enrich.set("wayback", message)
             wayback_status_from_enricher = message 
             to_enrich.set("wayback_status_from_enricher", wayback_status_from_enricher)
