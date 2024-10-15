@@ -122,7 +122,6 @@ sudo apt install firefox -y
 # check version numbers for new ones
 # https://github.com/mozilla/geckodriver/releases/
 cd ~
-# wget https://github.com/mozilla/geckodriver/releases/download/v0.33.0/geckodriver-v0.33.0-linux64.tar.gz
 wget https://github.com/mozilla/geckodriver/releases/download/v0.35.0/geckodriver-v0.35.0-linux64.tar.gz
 tar -xvzf geckodriver*
 chmod +x geckodriver
