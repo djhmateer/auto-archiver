@@ -213,6 +213,18 @@ sudo chmod 600 /etc/cron.d/run-auto-archive
 sudo reboot now
 
 
+## DM 16th Oct 2024
+# am using playwright as a general screenshotter
+# so need to install the dependencies for that
+
+sudo pip install pytest-playwright
+
+sudo apt install xvfb -y
+
+# playwright install
+
+
+
 
 
 

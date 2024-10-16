@@ -28,12 +28,6 @@ class TwitterArchiver(Archiver):
         return {}
 
     def sanitize_url(self, url: str) -> str:
-        # DM https://t.co/KxNwn5yJz6
-        # url is causing the whole thing to lock up
-        # 29th march 24
-        # why is it even getting here - should not be using this archiver
-		
-		# DM 14th April 24 - lets see it it is fixed
 
         # expand URL if t.co and clean tracker GET params
         if 'https://t.co/' in url:
@@ -59,15 +53,16 @@ class TwitterArchiver(Archiver):
 
         result = Metadata()
 
-        scr = TwitterTweetScraper(tweet_id)
-        do_alternative = False
-        try:
-            tweet = next(scr.get_items())
-        except Exception as ex:
-            logger.debug(f"can't get tweet: {type(ex).__name__} occurred. args: {ex.args}")
-            logger.info("trying alternative in twitter_archiver ie ytdlp")
-            do_alternative = True
-            # return self.download_alternative(item, url, tweet_id)
+        # DM 16th Oct 2024 - turned off Snscrape as it's not working and project is stale
+        # scr = TwitterTweetScraper(tweet_id)
+        # do_alternative = False
+        # try:
+        #     tweet = next(scr.get_items())
+        # except Exception as ex:
+        #     logger.debug(f"can't get tweet: {type(ex).__name__} occurred. args: {ex.args}")
+        #     logger.info("trying alternative in twitter_archiver ie ytdlp")
+        #     do_alternative = True
+        do_alternative = True
 
         # DM wrapping in another try except as we want to catch this and not throw an error 
         # in our log files
@@ -79,34 +74,34 @@ class TwitterArchiver(Archiver):
                 logger.info("download alternative didn't work")
                 return False
 
-        result.set_title(tweet.content).set_content(tweet.json()).set_timestamp(tweet.date)
-        if tweet.media is None:
-            logger.debug(f'No media found, archiving tweet text only')
-            return result
+        # result.set_title(tweet.content).set_content(tweet.json()).set_timestamp(tweet.date)
+        # if tweet.media is None:
+        #     logger.debug(f'No media found, archiving tweet text only')
+        #     return result
 
-        for i, tweet_media in enumerate(tweet.media):
-            media = Media(filename="")
-            mimetype = ""
-            if type(tweet_media) == Video:
-                variant = max(
-                    [v for v in tweet_media.variants if v.bitrate], key=lambda v: v.bitrate)
-                media.set("src", variant.url).set("duration", tweet_media.duration)
-                mimetype = variant.contentType
-            elif type(tweet_media) == Gif:
-                variant = tweet_media.variants[0]
-                media.set("src", variant.url)
-                mimetype = variant.contentType
-            elif type(tweet_media) == Photo:
-                media.set("src", UrlUtil.twitter_best_quality_url(tweet_media.fullUrl))
-                mimetype = "image/jpeg"
-            else:
-                logger.warning(f"Could not get media URL of {tweet_media}")
-                continue
-            ext = mimetypes.guess_extension(mimetype)
-            media.filename = self.download_from_url(media.get("src"), f'{slugify(url)}_{i}{ext}')
-            result.add_media(media)
+        # for i, tweet_media in enumerate(tweet.media):
+        #     media = Media(filename="")
+        #     mimetype = ""
+        #     if type(tweet_media) == Video:
+        #         variant = max(
+        #             [v for v in tweet_media.variants if v.bitrate], key=lambda v: v.bitrate)
+        #         media.set("src", variant.url).set("duration", tweet_media.duration)
+        #         mimetype = variant.contentType
+        #     elif type(tweet_media) == Gif:
+        #         variant = tweet_media.variants[0]
+        #         media.set("src", variant.url)
+        #         mimetype = variant.contentType
+        #     elif type(tweet_media) == Photo:
+        #         media.set("src", UrlUtil.twitter_best_quality_url(tweet_media.fullUrl))
+        #         mimetype = "image/jpeg"
+        #     else:
+        #         logger.warning(f"Could not get media URL of {tweet_media}")
+        #         continue
+        #     ext = mimetypes.guess_extension(mimetype)
+        #     media.filename = self.download_from_url(media.get("src"), f'{slugify(url)}_{i}{ext}')
+        #     result.add_media(media)
 
-        return result.success("twitter-snscrape")
+        # return result.success("twitter-snscrape")
 
     def download_alternative(self, item: Metadata, url: str, tweet_id: str) -> Metadata:
         """
@@ -114,10 +109,17 @@ class TwitterArchiver(Archiver):
         https://stackoverflow.com/a/71867055/6196010 (OUTDATED URL)
         https://github.com/JustAnotherArchivist/snscrape/issues/996#issuecomment-1615937362
         next to test: https://cdn.embedly.com/widgets/media.html?&schema=twitter&url=https://twitter.com/bellingcat/status/1674700676612386816
+
+
+        DM 16th Oct 2024
+        https://github.com/JustAnotherArchivist/snscrape/issues/996
+        Have turned off the hack alternative as ytdlp is working and this is not.
         """
 
-        logger.debug(f"Trying twitter hack for {url=}")
         result = Metadata()
+        return self.download_ytdl(item, url, tweet_id)
+
+        # logger.debug(f"Trying twitter hack for {url=}")
 
         hack_url = f"https://cdn.syndication.twimg.com/tweet-result?id={tweet_id}"
         r = requests.get(hack_url)

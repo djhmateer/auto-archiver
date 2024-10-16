@@ -81,6 +81,7 @@ class TwitterApiArchiver(TwitterArchiver, Archiver):
                         logger.info("Twitter API rate limit hit. Wait for 15 minutes")
                         time.sleep(15*60) # Wait for 15 minutes
                 else:
+                    # DM 16th Oct - can I pass a message back to Wayback_Status column ie Tweet probably deleted or e.detail - Could not find tweet with id 1234
                     logger.warning(f"Could not get tweet: {e}")
                     return False
 

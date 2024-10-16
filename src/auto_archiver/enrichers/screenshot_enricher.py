@@ -1,5 +1,7 @@
 from loguru import logger
 import time, os
+import os, shutil, subprocess
+
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.common.by import By
 
@@ -26,6 +28,30 @@ class ScreenshotEnricher(Enricher):
             logger.debug(f"[SKIP] SCREENSHOT since url is behind AUTH WALL: {url=}")
             return
 
+        # DM 16th Oct 2024 - see AA Demo Main for use cases - not significantly better at all.
+        # maybe for specifc sites.
+        
+        # logger.debug("Special codepath using playwright to do a screenshot")
+        # # where 1.png etc are saved
+        # tmp_dir = ArchivingContext.get_tmp_dir()
+        # # command = ["pipenv", "run", "xvfb-run", "python3", "c70playwright_general.py", url, tmp_dir]
+        # command = ["pipenv", "run", "xvfb-run", "python3", "c71playwright_general_firefox.py", url, tmp_dir]
+                
+        # # '/mnt/c/dev/v6-auto-archiver' - where the c21.py file is called
+        # working_directory = os.getcwd()
+        # # Use subprocess.run to execute the command with the specified working directory
+        # sub_result = subprocess.run(command, cwd=working_directory, capture_output=True, text=True)
+
+        # # Print the output and error (if any)
+        # logger.debug(f"Playwright Output: {sub_result.stdout}")
+
+        # fn = os.path.join(tmp_dir, f"1.png")
+        # m = Media(filename=fn)
+        # to_enrich.add_media(m, f"playwright-screenshot")
+
+
+
+        # DM keep in old screenshotter for now.
         logger.debug(f"Enriching screenshot for {url=}")
         with Webdriver(self.width, self.height, self.timeout, 'facebook.com' in url, http_proxy=self.http_proxy) as driver:
             try:
