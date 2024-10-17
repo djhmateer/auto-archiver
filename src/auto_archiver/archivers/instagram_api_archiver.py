@@ -153,7 +153,14 @@ class InstagramAPIArchiver(Archiver):
         if caption_text := post.get("caption_text"):
             result.set_title(caption_text)
 
-        post = self.scrape_item(result, post, context)
+        # DM 17th Oct - if instagram post has been deleted this will fail
+        try:
+            post = self.scrape_item(result, post, context)
+        except Exception as e:
+            message = f'Instagram_api - has the post been deleted? {e}'
+            result.set("archive_detail", message)
+            return False
+            
 
         if post.get("taken_at"): result.set_timestamp(post.get("taken_at"))
         return result.success(f"insta {context or 'post'}")

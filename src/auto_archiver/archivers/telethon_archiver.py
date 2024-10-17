@@ -135,7 +135,9 @@ class TelethonArchiver(Archiver):
                 return False
 
             logger.debug(f"TELETHON GOT POST {post=}")
-            if post is None: return False
+            if post is None: 
+                item.set("archive_detail", "telethon (Telegram): Could not get post - None. Check context link?")
+                return False
 
             media_posts = self._get_media_posts_in_group(chat, post)
             logger.debug(f'got {len(media_posts)=} for {url=}')

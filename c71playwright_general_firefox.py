@@ -52,11 +52,23 @@ def run(playwright):
     # print('wait_for_timeout')
     page.wait_for_timeout(2000)
 
+    # Instagram
+    # Search for the button with the text 'Allow all cookies' and click it
+    # page.locator('button:has-text("Allow all cookies")').click()
+    page.locator('button:has-text("Decline optional cookies")').click(timeout=5000)
+
+    page.wait_for_timeout(2000)
+
+    # Instagram - see more from bug_girld etx.. need to click outside modal to close it
+    page.mouse.click(x=500, y=300)
+
 
     # telegram needs a wait for media to load
 
     # print('take screenshot')
     page.screenshot(path=tmp_dir + f'/1.png', full_page=True)
+
+    # page.wait_for_timeout(112000)
 
     exit()
 
