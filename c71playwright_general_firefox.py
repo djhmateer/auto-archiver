@@ -28,6 +28,7 @@ def run(playwright):
     context = browser.new_context(
         #  user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
     #     # viewport={"width": 1920, "height": 3000}  # Set the viewport to a longer screen size
+
          viewport={"width": 1224, "height": 2500}  # Set the viewport to a longer screen size
     )
 
@@ -52,20 +53,27 @@ def run(playwright):
     # print('wait_for_timeout')
     page.wait_for_timeout(2000)
 
-    # Instagram
-    # Search for the button with the text 'Allow all cookies' and click it
-    # page.locator('button:has-text("Allow all cookies")').click()
-    page.locator('button:has-text("Decline optional cookies")').click(timeout=5000)
+    if 'instagram' in url:
+        # Instagram
+        # Search for the button with the text 'Allow all cookies' and click it
+        # page.locator('button:has-text("Allow all cookies")').click()
+        page.locator('button:has-text("Decline optional cookies")').click(timeout=5000)
 
-    page.wait_for_timeout(2000)
+        page.wait_for_timeout(2000)
 
-    # Instagram - see more from bug_girld etx.. need to click outside modal to close it
-    page.mouse.click(x=500, y=300)
+        # Instagram - see more from bug_girld etx.. need to click outside modal to close it
+        page.mouse.click(x=500, y=300)
+
+    # getting slider.. todo find a workaround.
+    if 'tiktok' in url:
+        page.wait_for_timeout(1000)
 
 
+
+    # tiktok needs a wait for media to load
     # telegram needs a wait for media to load
-
-    # print('take screenshot')
+    page.wait_for_timeout(8000)
+    
     page.screenshot(path=tmp_dir + f'/1.png', full_page=True)
 
     # page.wait_for_timeout(112000)

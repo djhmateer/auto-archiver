@@ -84,6 +84,7 @@ class TwitterApiArchiver(TwitterArchiver, Archiver):
                     # DM 16th Oct - can I pass a message back to Wayback_Status column ie Tweet probably deleted or e.detail - Could not find tweet with id 1234
                     message = f"twitter_api: Could not get tweet. Is it deleted?: {e}"
                     logger.warning(message)
+
                     item.set("archive_detail", message)
                     return False
 

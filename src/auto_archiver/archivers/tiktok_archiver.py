@@ -8,6 +8,8 @@ from ..core import Metadata, Media, ArchivingContext
 from ..utils.misc import random_str
 
 
+# DM 18th Oct 2024 - can't get this to work
+# https://github.com/krypton-byte/tiktok-downloader/tree/master
 class TiktokArchiver(Archiver):
     name = "tiktok_archiver"
 
@@ -25,6 +27,7 @@ class TiktokArchiver(Archiver):
 
         result = Metadata()
         try:
+            foo = tiktok_downloader
             info = tiktok_downloader.info_post(url)
             result.set_title(info.desc)
             result.set_timestamp(info.create_time)
