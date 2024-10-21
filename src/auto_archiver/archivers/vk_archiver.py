@@ -17,7 +17,13 @@ class VkArchiver(Archiver):
         super().__init__(config)
         self.assert_valid_string("username")
         self.assert_valid_string("password")
+
+        # 18th Oct 24
+        # have seen it throw here with AUTH: no sid (as account had been blocked)
+        # try:
         self.vks = VkScraper(self.username, self.password, session_file=self.session_file)
+        # except Exception as e:
+            # logger.error(f"VK: failed to init scraper: {e}")
 
     @staticmethod
     def configs() -> dict:

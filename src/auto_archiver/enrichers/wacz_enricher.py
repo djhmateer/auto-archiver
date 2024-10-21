@@ -82,7 +82,7 @@ class WaczArchiverEnricher(Enricher, Archiver):
 
             fn = os.path.join(tmp_dir, f"1.png")
             m = Media(filename=fn)
-            to_enrich.add_media(m, f"playwright-screenshot")
+            to_enrich.add_media(m, f"c60playwright-screenshot")
     
 
 

@@ -93,7 +93,8 @@ class GsheetsDb(Database):
         batch_if_valid('timestamp', item.get_timestamp())
 
         # DM 2nd oct 24 - add wayback status to spreadsheet
-        batch_if_valid('wayback_status', item.get("wayback_status_from_enricher", ""))
+        # batch_if_valid('wayback_status', item.get("wayback_status_from_enricher", ""))
+        batch_if_valid('wayback_status', item.get("wayback_status", ""))
         batch_if_valid('archive_detail', item.get("archive_detail", ""))
 
         # DM July add for youtube extra data

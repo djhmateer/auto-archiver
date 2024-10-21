@@ -44,14 +44,13 @@ class WaybackArchiverEnricher(Enricher, Archiver):
         if self.proxy_https: proxies["https"] = self.proxy_https
 
         # DM 2nd OCt 24 - adding new column in spreadseheet, and add to bottom on html metadata the wayback status
-        wayback_status_from_enricher = ""
+        wayback_status = ""
         url = to_enrich.get_url()
 
         if UrlUtil.is_auth_wall(url):
             message = f"[SKIP] WAYBACK since url is behind AUTH WALL: {url=}"
             logger.debug(message)
-            wayback_status_from_enricher = message
-            to_enrich.set("wayback_status_from_enricher", wayback_status_from_enricher)
+            to_enrich.set("wayback_status", message)
             return
 
         logger.debug(f"calling wayback for {url=}")
@@ -59,8 +58,7 @@ class WaybackArchiverEnricher(Enricher, Archiver):
         if to_enrich.get("wayback"):
             message = f"[SKIP] WAYBACK since already enriched: {to_enrich.get('wayback')}"
             logger.info(message)
-            wayback_status_from_enricher = message
-            to_enrich.set("wayback_status_from_enricher", wayback_status_from_enricher)
+            to_enrich.set("wayback_status", message)
             return True
 
         ia_headers = {
@@ -83,8 +81,7 @@ class WaybackArchiverEnricher(Enricher, Archiver):
                 if i == 2:
                     message = f"couldnt contact wayback after {i} tries last error was {e}"
                     logger.info(message)
-                    wayback_status_from_enricher = message
-                    to_enrich.set("wayback_status_from_enricher", wayback_status_from_enricher)
+                    to_enrich.set("wayback_status", message)
                     return False
                 else:
                     logger.debug(f"wayback post try {i} error trying again {e}")        
@@ -95,12 +92,12 @@ class WaybackArchiverEnricher(Enricher, Archiver):
             message = f"Internet archive failed with status of {r.status_code}: {r.json()}"
 
             # DM 14th Oct - while IA is coming back up. so failed to submit to wayback doesn't pollute my logs
-            # logger.error(message)
             logger.info(message)
 
-            to_enrich.set("wayback", message)
-            wayback_status_from_enricher = message 
-            to_enrich.set("wayback_status_from_enricher", wayback_status_from_enricher)
+            # DM what is this?
+            # to_enrich.set("wayback", message)
+
+            to_enrich.set("wayback_status", message)
 
             if 'facebook.com' in url:
                 # DM 14th oct - set to true so that the fb archiver can pick up the slack
@@ -113,7 +110,6 @@ class WaybackArchiverEnricher(Enricher, Archiver):
         if not job_id:
             message = f"Wayback failed with {r.json()}"
             logger.info(message)
-            wayback_status_from_enricher = message
 
             # ******TODO - fix facebook logic here **************
 
@@ -126,9 +122,9 @@ class WaybackArchiverEnricher(Enricher, Archiver):
                 logger.debug("Swallowing error so that fb archiver picks up properly")
                 # swallow the error (wayback: success will show) so that
                 # the fb archiver will pickup properly 
-                to_enrich.set("wayback_status_from_enricher", wayback_status_from_enricher)
+                to_enrich.set("wayback_status", message)
                 return True
-            to_enrich.set("wayback_status_from_enricher", wayback_status_from_enricher)
+            to_enrich.set("wayback_status", message)
             return False
 
         # waits at most timeout seconds until job is completed, otherwise only enriches the job_id information
@@ -142,9 +138,9 @@ class WaybackArchiverEnricher(Enricher, Archiver):
             #     logger.debug(f"Timeout reached")
             #     break
             if attempt > 3:
-                messageb = f"Wayback get status failed after 3 attempts - last attempt {r_status.json()}"
-                logger.info(messageb)
-                to_enrich.set("wayback_status_from_enricher", messageb)
+                message = f"Wayback get status failed after 3 attempts - last attempt {r_status.json()}"
+                logger.info(message)
+                wayback_status = message
                 keep_going = False
 
             try:
@@ -156,36 +152,31 @@ class WaybackArchiverEnricher(Enricher, Archiver):
                 if r_status.status_code == 200 and r_json['status'] == 'success':
                     logger.success(f"Wayback get success for {r_json['original_url']} at {r_json['timestamp']}")
                     wayback_url = f"https://web.archive.org/web/{r_json['timestamp']}/{r_json['original_url']}"
-                    wayback_status_from_enricher = "success"
+                    wayback_status = "success"
                     keep_going = False
 
                 # pending so try again
                 elif r_json['status'] == 'pending':
                     message = f"Wayback get is pending {r_json}"
                     logger.debug(message)
-                    wayback_status_from_enricher = message
-                    to_enrich.set("wayback_status_from_enricher", wayback_status_from_enricher)
-
+                    wayback_status = message
 
                 # non 200 on the get status - try again
                 elif r_status.status_code != 200:
                     message = f"Wayback get failed with non 200 {r_json}"
                     logger.info(message)
-                    wayback_status_from_enricher = message
-                    to_enrich.set("wayback_status_from_enricher", wayback_status_from_enricher)
+                    wayback_status = message
 
                 # not happy path and not pending so try again
                 elif r_json['status'] != 'pending':
                     message = f"Non pending status {r_json}"
                     logger.info(message)
-                    wayback_status_from_enricher = message
-                    to_enrich.set("wayback_status_from_enricher", message)
+                    wayback_status = message
 
             except Exception as e:
                 message = f"Error getting wayback job status for {url=} due to: {e}"
                 logger.debug(message)
-                wayback_status_from_enricher = message
-                to_enrich.set("wayback_status_from_enricher", message)
+                wayback_status = message
                 keep_going = False
 
             if keep_going:
@@ -196,6 +187,7 @@ class WaybackArchiverEnricher(Enricher, Archiver):
             to_enrich.set("wayback", wayback_url)
         else:
             to_enrich.set("wayback", {"job_id": job_id, "check_status": f'https://web.archive.org/save/status/{job_id}'})
+
         to_enrich.set("check wayback", f"https://web.archive.org/web/*/{url}")
-        to_enrich.set("wayback_status_from_enricher", wayback_status_from_enricher)
+        to_enrich.set("wayback_status", wayback_status)
         return True
