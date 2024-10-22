@@ -78,10 +78,10 @@ class GsheetsFeeder(Gsheets, Feeder):
         try:
             sh = self.open_sheet()
         except gspread.exceptions.APIError as e:
-            logger.warning(f"**DM caught gspread.exceptions.APIError and raising again {e}")
+            logger.warning(f"gspread.exceptions.APIError and raising again {e}")
             raise
         except Exception as e:
-            logger.warning(f"**DM caught Exception in gsheet_feeder and raising again {e}")
+            logger.warning(f"Exception in gsheet_feeder and raising again {e}")
             raise
 
         # DM make sure Incidents worksheet is enumerated first if exists
