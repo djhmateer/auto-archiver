@@ -129,14 +129,16 @@ class TelethonArchiver(Archiver):
                 post = self.client.get_messages(chat, ids=post_id)
             except ValueError as e:
                 logger.error(f"Could not fetch telegram {url} possibly it's private: {e}")
+                item.set("archive_detail", "telethon (Telegram): Could not get post. Private?")
                 return False
             except ChannelInvalidError as e:
                 logger.error(f"Could not fetch telegram {url}. This error may be fixed if you setup a bot_token in addition to api_id and api_hash (but then private channels will not be archived, we need to update this logic to handle both): {e}")
+                item.set("archive_detail", "telethon (Telegram): Could not get post. Invalid Channel?")
                 return False
 
             logger.debug(f"TELETHON GOT POST {post=}")
             if post is None: 
-                item.set("archive_detail", "telethon (Telegram): Could not get post - None. Check context link?")
+                item.set("archive_detail", "telethon (Telegram): Could not get post. Check link")
                 return False
 
             media_posts = self._get_media_posts_in_group(chat, post)
@@ -174,6 +176,7 @@ class TelethonArchiver(Archiver):
             # lets send back to archive_detail on the spreadsheet
             if "This channel can" in title:
                 item.set("archive_detail", f'telethon: {title}')
+                return False
 
         return result.success("telethon")
 
