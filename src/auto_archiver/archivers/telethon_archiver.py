@@ -122,6 +122,9 @@ class TelethonArchiver(Archiver):
 
         result = Metadata()
 
+        # DM I have seen this fail not being able to open database file
+        # when wacz ran previously and on dev machine. prod is fine.
+
         # NB: not using bot_token since then private channels cannot be archived: self.client.start(bot_token=self.bot_token)
         with self.client.start():
         # with self.client.start(bot_token=self.bot_token):

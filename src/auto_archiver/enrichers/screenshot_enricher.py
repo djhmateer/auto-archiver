@@ -40,12 +40,13 @@ class ScreenshotEnricher(Enricher):
 
         # DM 23rd Oct - getting FileNotFoundError: [Errno 2] No such file or directory after wacz 
         # eg run row 32, then row 33 throws here.
-        # only on dev WSL?
         try:
             working_directory = os.getcwd()
         except FileNotFoundError as e:
-            logger.warning(f"Dev only? Error getting current working directory: {e}")
-            working_directory = '/mnt/c/dev/v6-auto-archiver'
+            message = "Dev only. Something to do with wacz. Turn off wacz in dev yaml. Error getting current working directory"
+            logger.error(message)
+            to_enrich.set("archive_detail", f"screenshot_enricher: {message}")
+            raise
 
         # Use subprocess.run to execute the command with the specified working directory
         sub_result = subprocess.run(command, cwd=working_directory, capture_output=True, text=True)
