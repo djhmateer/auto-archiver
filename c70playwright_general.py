@@ -23,8 +23,6 @@ def run(playwright):
         print('problem - no chromium found')
         exit()
 
-
-
     # chromium I've seen fail on telegram videos with an Error code: No providers
     browser = playwright.chromium.launch_persistent_context(data_dir,
                                         headless=False,
@@ -33,7 +31,7 @@ def run(playwright):
                                         )
     page = browser.new_page()
 
-    page.goto(url,  wait_until='domcontentloaded', timeout=60000)
+    page.goto(url,  wait_until='domcontentloaded', timeout=20000)
 
     # telegram needs a wait for media to load
     page.wait_for_timeout(4000)

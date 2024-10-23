@@ -8,6 +8,7 @@ from selenium.webdriver.common.by import By
 from . import Enricher
 from ..utils import Webdriver, UrlUtil, random_str  
 from ..core import Media, Metadata, ArchivingContext
+from pathlib import Path
 
 class ScreenshotEnricher(Enricher):
     name = "screenshot_enricher"
@@ -36,7 +37,16 @@ class ScreenshotEnricher(Enricher):
         command = ["pipenv", "run", "xvfb-run", "python3", "c71playwright_general_firefox.py", url, tmp_dir]
                 
         # '/mnt/c/dev/v6-auto-archiver' - where the c21.py file is called
-        working_directory = os.getcwd()
+
+        # DM 23rd Oct - getting FileNotFoundError: [Errno 2] No such file or directory after wacz 
+        # eg run row 32, then row 33 throws here.
+        # only on dev WSL?
+        try:
+            working_directory = os.getcwd()
+        except FileNotFoundError as e:
+            logger.warning(f"Dev only? Error getting current working directory: {e}")
+            working_directory = '/mnt/c/dev/v6-auto-archiver'
+
         # Use subprocess.run to execute the command with the specified working directory
         sub_result = subprocess.run(command, cwd=working_directory, capture_output=True, text=True)
 
@@ -56,7 +66,7 @@ class ScreenshotEnricher(Enricher):
         # command = ["pipenv", "run", "xvfb-run", "python3", "c71playwright_general_firefox.py", url, tmp_dir]
                 
         # '/mnt/c/dev/v6-auto-archiver' - where the c21.py file is called
-        working_directory = os.getcwd()
+        # working_directory = os.getcwd()
         # Use subprocess.run to execute the command with the specified working directory
         sub_result = subprocess.run(command, cwd=working_directory, capture_output=True, text=True)
 
