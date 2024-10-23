@@ -105,8 +105,16 @@ class WaybackArchiverEnricher(Enricher, Archiver):
             else:
                 return False
                 
-        # check job status
-        job_id = r.json().get('job_id')
+        # DM 23rd Oct - have seen this throw. Wayback is still not working properly so swallow the error
+        try:
+            # check job status
+            job_id = r.json().get('job_id')
+        except Exception as e:
+            message = f"Json decode error getting wayback job_id for {url=} due to: {e}"
+            logger.info(message)
+            to_enrich.set("wayback_status", message)
+            return False
+
         if not job_id:
             message = f"Wayback failed with {r.json()}"
             logger.info(message)

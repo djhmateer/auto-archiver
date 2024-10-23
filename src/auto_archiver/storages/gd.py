@@ -109,10 +109,18 @@ class GDriveStorage(Storage):
             'name': [filename],
             'parents': [upload_to]
         }
-        media = MediaFileUpload(media.filename, resumable=True)
-        gd_file = self.service.files().create(supportsAllDrives=True, body=file_metadata, media_body=media, fields='id').execute()
-        logger.debug(f'uploadf: uploaded file {gd_file["id"]} successfully in folder={upload_to}')
-
+        
+        # DM Oct 23rd 2024 - somehow a file is trying to be uploaded which doen't exist
+        # so catch and carry on instead of leaving in state: Archive in progress
+        try:
+            media = MediaFileUpload(media.filename, resumable=True)
+            gd_file = self.service.files().create(supportsAllDrives=True, body=file_metadata, media_body=media, fields='id').execute()
+            logger.debug(f'uploadf: uploaded file {gd_file["id"]} successfully in folder={upload_to}')
+        except FileNotFoundError as e:
+            logger.error(f'gd uploadf: file not found {media.filename}')
+        except Exception as e:
+            logger.error(f'gd uploadf: error uploading {media.filename} to {upload_to} - {e}')
+        
     # must be implemented even if unused
     def uploadf(self, file: IO[bytes], key: str, **kwargs: dict) -> bool: pass
 

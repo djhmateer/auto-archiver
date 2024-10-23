@@ -166,8 +166,15 @@ class TelethonArchiver(Archiver):
                 result.add_media(Media(filename))
             
             result.set_title(title).set_timestamp(post.date).set("api_data", post.to_dict())
+            # DM not sure what this code path is for
             if post.message != title:
                 result.set_content(post.message)
+
+            # DM eg if telethon fails with a message like:'This channel can’t be displayed because it violated local laws.'
+            # lets send back to archive_detail on the spreadsheet
+            if "This channel can" in title:
+                item.set("archive_detail", f'telethon: {title}')
+
         return result.success("telethon")
 
     def _get_media_posts_in_group(self, chat, original_post, max_amp=10):

@@ -164,15 +164,9 @@ class YoutubeDLArchiver(Archiver):
         # asdf = item.get("screen1_column_present")
         screen1 = item.screen1_column_present
         if screen1 == "y":
-            logger.info("Found screen1 column so Running playwright")
+            logger.info("Found screen1 column so Running c31playwright which gets many screenshots on ads")
 
-            # ***** use xvfb to run the browser - pass the temp directory********
-
-            # pipenv run xvfb-run python3 c21playwright_ads.py
-
-            # Define the command as a list of arguments
-
-            # '/mnt/c/dev/v6-auto-archiver' - where the c21.py file is called
+            # '/mnt/c/dev/v6-auto-archiver' - where the c31 file is called
             working_directory = os.getcwd()
 
             # where 1.png etc are saved
