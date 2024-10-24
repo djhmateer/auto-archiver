@@ -25,7 +25,6 @@ class ScreenshotEnricher(Enricher):
 
     def enrich(self, to_enrich: Metadata) -> None:
         url = to_enrich.get_url()
-        
 
         # 1. Firefox
         # DM 16th Oct 2024 - see AA Demo Main for use cases - not significantly better at all.
@@ -43,7 +42,7 @@ class ScreenshotEnricher(Enricher):
         try:
             working_directory = os.getcwd()
         except FileNotFoundError as e:
-            message = "Dev only. Something to do with wacz. Turn off wacz in dev yaml. Error getting current working directory"
+            message = "Dev only. Something to do with wacz. Error getting current working directory"
             logger.error(message)
             to_enrich.set("archive_detail", f"screenshot_enricher: {message}")
             raise
@@ -57,6 +56,9 @@ class ScreenshotEnricher(Enricher):
         fn = os.path.join(tmp_dir, f"1.png")
         m = Media(filename=fn)
         to_enrich.add_media(m, f"playwright-screenshot-1-firefox")
+
+        # DM fast
+        # return
 
 
         # 2. Chrome

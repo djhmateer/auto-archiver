@@ -23,7 +23,11 @@ def run(playwright):
         exit()
 
     
-    browser = playwright.firefox.launch(headless=False, executable_path=executable_path) 
+    # browser = playwright.firefox.launch(headless=False, executable_path=executable_path) 
+
+    # DM for testing on dev - nice to have headless
+    # need to test to make sure it works in prod
+    browser = playwright.firefox.launch(headless=True, executable_path=executable_path) 
 
     context = browser.new_context(
         #  user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",

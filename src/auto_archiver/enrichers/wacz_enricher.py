@@ -9,6 +9,7 @@ from ..core import Media, Metadata, ArchivingContext
 from . import Enricher
 from ..archivers import Archiver
 from ..utils import UrlUtil, random_str
+import time
 
 
 class WaczArchiverEnricher(Enricher, Archiver):
@@ -65,6 +66,7 @@ class WaczArchiverEnricher(Enricher, Archiver):
     # errors from browsertrix which fails out of the crawl
     # It seems to be more solid on Linux production
     def enrich(self, to_enrich: Metadata) -> bool: 
+    
         url = to_enrich.get_url()
         if "facebook.com" in to_enrich.netloc:
             logger.debug("Special codepath using playwright with a logged in facebook profile to do a screenshot")
@@ -94,7 +96,6 @@ class WaczArchiverEnricher(Enricher, Archiver):
         collection = random_str(8)
 
         # unknown why it fails on second time
-        # only on WSL2 instance - Ubuntu prod is fine.
 
         # foo = ArchivingContext.get_tmp_dir()
         # this will fail as the call to os.getcwd() fails
@@ -102,12 +103,16 @@ class WaczArchiverEnricher(Enricher, Archiver):
         # bar = os.path.abspath(foo)
         # but if we fix with using psutil way, then get errors further down with shutil copying
 
-        hard_code_directory_for_wsl2 ='/mnt/c/dev/v6-auto-archiver' 
+        # hard_code_directory_for_wsl2 ='/mnt/c/dev/v6-auto-archiver' 
+        hard_code_directory_for_wsl2 ='/mnt/c/dev/test' 
         try:
             browsertrix_home_host = os.environ.get('BROWSERTRIX_HOME_HOST') or os.path.abspath(ArchivingContext.get_tmp_dir())
         except FileNotFoundError as e:
             logger.debug('Dev environment found using ' + hard_code_directory_for_wsl2)
             browsertrix_home_host = hard_code_directory_for_wsl2 + ArchivingContext.get_tmp_dir()[1:]
+
+        # works  
+        browsertrix_home_host ='/mnt/c/dev/test'
 
         browsertrix_home_container = os.environ.get('BROWSERTRIX_HOME_CONTAINER') or browsertrix_home_host
 
@@ -136,44 +141,115 @@ class WaczArchiverEnricher(Enricher, Archiver):
             logger.debug(f"generating WACZ in Docker for {url=}")
             logger.debug(f"{browsertrix_home_host=} {browsertrix_home_container=}")
 
-
             if self.docker_commands:
                 cmd = self.docker_commands + cmd
             else:
-                # 0.11.2 works - otherwise the test case OS4892 on AA Demo Main doesn't seem to crawl properly (it was multiple screenshots)
                 # note there is another part further down the code which needs to be changed too.
                 cmd = ["docker", "run", "--rm", "-v", f"{browsertrix_home_host}:/crawls/", "webrecorder/browsertrix-crawler"] + cmd
-                # cmd = ["docker", "run", "--rm", "-v", f"{browsertrix_home_host}:/crawls/", "webrecorder/browsertrix-crawler:0.11.2"] + cmd
 
             if self.profile:
                 profile_fn = os.path.join(browsertrix_home_container, "profile.tar.gz")
                 logger.debug(f"copying {self.profile} to {profile_fn}")
+
                 shutil.copyfile(self.profile, profile_fn)
+
                 cmd.extend(["--profile", os.path.join("/crawls", "profile.tar.gz")])
 
         else:
-            logger.debug(f"generating WACZ without Docker for {url=}")
+            # DM I never use this codepath
+            foo = 1
+            # logger.debug(f"generating WACZ without Docker for {url=}")
 
-            if self.profile:
-                cmd.extend(["--profile", os.path.join("/app", str(self.profile))])
+            # if self.profile:
+            #     cmd.extend(["--profile", os.path.join("/app", str(self.profile))])
 
         try:
+
             logger.info(f"Running browsertrix-crawler: {' '.join(cmd)}")
+            # works
+            # cmd = [
+            #     "docker", "run",
+            #     "--rm",
+            #     "-v", "/mnt/c/dev/test:/crawls/",
+            #     "webrecorder/browsertrix-crawler",
+            #     "crawl",
+            #     "--url", "https://davemateer.com/2024/06/25/certbot-auto-deploy",
+            #     "--scopeType", "page",
+            #     "--generateWACZ",
+            #     "--text",
+            #     "--screenshot", "fullPage",
+            #     "--collection", "0534d4b5",
+            #     "--id", "0534d4b5",
+            #     "--saveState", "never",
+            #     "--behaviors", "autoscroll,autoplay,autofetch,siteSpecific",
+            #     "--behaviorTimeout", "200",
+            #     "--timeout", "200",
+            #     "--postLoadDelay", "20",
+            #     "--profile", "/crawls/profile.tar.gz"
+            # ]
+            # logger.info(f"Running browsertrix-crawler: {' '.join(cmd)}")
+            
+
+            # works
+            # cmd = [
+            #     "docker", "run",
+            #     "-v", "/mnt/c/dev/test/:/crawls/",
+            #     "-it", "webrecorder/browsertrix-crawler",
+            #     "crawl",
+            #     "--url", "https://davemateer.com/2024/06/25/certbot-auto-deploy",
+            #     "--generateWACZ",
+            #     "--text",
+            #     "--collection", "test"
+            # ]
+                
+            # This works with no shell
+            # cmd = [
+            #     "docker", "run",
+            #     "-v", "/mnt/c/dev/test/:/crawls/",
+            #     "-it", "webrecorder/browsertrix-crawler",
+            #     "crawl",
+            #     "--url", "https://davemateer.com/2022/09/22/mssql-php-local-on-wsl",
+            #     "--generateWACZ",
+            #     "--text",
+            #     "--collection", "test"
+            # ]
+
+
+            # this works!
+            # cmd = "docker run -v /mnt/c/dev/test/:/crawls/ -it webrecorder/browsertrix-crawler crawl --url https://davemateer.com/2022/09/22/mssql-php-local-on-wsl  --generateWACZ --text --collection test"
+
+            # this doesn't
+            # cmd = "docker run -v /mnt/c/dev/v6-auto-archiver/:/crawls/ -it webrecorder/browsertrix-crawler crawl --url https://davemateer.com/2022/09/22/mssql-php-local-on-wsl  --generateWACZ --text --collection test"
+
             subprocess.run(cmd, check=True)
+            # this works
+            # subprocess.run(cmd, check=True, shell=True)
+
         except Exception as e:
             logger.error(f"WACZ generation failed: {e}")
             return False
 
+        # good test!
+        working_directory = os.getcwd()
+
+        # return True
+
         if use_docker:
             wacz_fn = os.path.join(browsertrix_home_container, "collections", collection, f"{collection}.wacz")
         else:
-            wacz_fn = os.path.join("collections", collection, f"{collection}.wacz")
+            foo 
+            # dm not used
+            # wacz_fn = os.path.join("collections", collection, f"{collection}.wacz")
 
         if not os.path.exists(wacz_fn):
             logger.warning(f"Unable to locate and upload WACZ  {wacz_fn=}")
             return False
 
+        # adding the .wacz file to the Metadata object
         to_enrich.add_media(Media(wacz_fn), "browsertrix")
+
+        # it fails with true here!!!
+        return True
 
         if self.extract_media:
             self.extract_media_from_wacz(to_enrich, wacz_fn)

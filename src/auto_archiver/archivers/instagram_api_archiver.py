@@ -157,7 +157,7 @@ class InstagramAPIArchiver(Archiver):
         try:
             post = self.scrape_item(result, post, context)
         except Exception as e:
-            message = f'Instagram_api - has the post been deleted? {e}'
+            message = f'Instagram_api - post deleted? Private profile? {e}'
             result.set("archive_detail", message)
             return False
             
