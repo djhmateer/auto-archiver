@@ -12,22 +12,25 @@ def run(playwright):
     # tmp_dir = "/mnt/c/dev/v6-auto-archiver/tmp"
 
 
+    dev = True
     dev_executable_path = '/home/dave/.cache/ms-playwright/firefox-1458/firefox/firefox'
     prod_executable_path = '/home/dave/.cache/ms-playwright/firefox-1429/firefox/firefox'
     if os.path.exists(dev_executable_path):
         executable_path = dev_executable_path
     elif os.path.exists(prod_executable_path):
         executable_path = prod_executable_path
+        dev = False
     else:
         print('problem - no firefox found')
         exit()
 
     
-    # browser = playwright.firefox.launch(headless=False, executable_path=executable_path) 
-
     # DM for testing on dev - nice to have headless
-    # need to test to make sure it works in prod
-    browser = playwright.firefox.launch(headless=True, executable_path=executable_path) 
+    if dev:
+        browser = playwright.firefox.launch(headless=True, executable_path=executable_path) 
+    else:
+        # ie headful in production
+        browser = playwright.firefox.launch(headless=False, executable_path=executable_path) 
 
     context = browser.new_context(
         #  user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",

@@ -53,7 +53,16 @@ class WaczArchiverEnricher(Enricher, Archiver):
         #if self.docker_in_docker:
          #   logger.debug(f"Removing {self.cwd_dind=}")
           #  shutil.rmtree(self.cwd_dind, ignore_errors=True)
-          foo = 1
+
+          # cleanup the linux tmp directory
+         linux_tmp_dir ='/home/dave/aatmp' 
+         # Check if the directory exists
+         if os.path.exists(linux_tmp_dir):
+            # Remove the directory and all its contents
+            shutil.rmtree(linux_tmp_dir)
+            print(f"Directory '{linux_tmp_dir}' and all its contents have been removed.")
+         else:
+            print(f"Directory '{linux_tmp_dir}' does not exist.")
 
     def download(self, item: Metadata) -> Metadata:
         # this new Metadata object is required to avoid duplication
@@ -68,6 +77,7 @@ class WaczArchiverEnricher(Enricher, Archiver):
     def enrich(self, to_enrich: Metadata) -> bool: 
     
         url = to_enrich.get_url()
+
         if "facebook.com" in to_enrich.netloc:
             logger.debug("Special codepath using playwright with a logged in facebook profile to do a screenshot")
             # where 1.png etc are saved
@@ -86,35 +96,34 @@ class WaczArchiverEnricher(Enricher, Archiver):
             m = Media(filename=fn)
             to_enrich.add_media(m, f"c60playwright-screenshot")
     
-
-
         if to_enrich.get_media_by_id("browsertrix"):
             logger.info(f"WACZ enricher had already been executed: {to_enrich.get_media_by_id('browsertrix')}")
             return True
 
-
         collection = random_str(8)
 
-        # unknown why it fails on second time
+        # need a temp directory for docker to write to outside of current working directory for this app
+        # otherwise working_directory = os.getcwd() will fail after docker has run once.
 
-        # foo = ArchivingContext.get_tmp_dir()
-        # this will fail as the call to os.getcwd() fails
-        # https://stackoverflow.com/questions/3210902/python-why-does-os-getcwd-sometimes-crash-with-oserror
-        # bar = os.path.abspath(foo)
-        # but if we fix with using psutil way, then get errors further down with shutil copying
+        linux_tmp_dir ='/home/dave/aatmp' 
+        # Check if the directory exists, and if not, create it
+        if not os.path.exists(linux_tmp_dir):
+            os.makedirs(linux_tmp_dir)
 
-        # hard_code_directory_for_wsl2 ='/mnt/c/dev/v6-auto-archiver' 
-        hard_code_directory_for_wsl2 ='/mnt/c/dev/test' 
-        try:
-            browsertrix_home_host = os.environ.get('BROWSERTRIX_HOME_HOST') or os.path.abspath(ArchivingContext.get_tmp_dir())
-        except FileNotFoundError as e:
-            logger.debug('Dev environment found using ' + hard_code_directory_for_wsl2)
-            browsertrix_home_host = hard_code_directory_for_wsl2 + ArchivingContext.get_tmp_dir()[1:]
+        # This doesn't work
+        # '/mnt/c/dev/v6-auto-archiver/tmpa22nvh69'
+        # browsertrix_home_host = os.path.abspath(ArchivingContext.get_tmp_dir())
+        # try:
+        #     browsertrix_home_host = os.environ.get('BROWSERTRIX_HOME_HOST') or os.path.abspath(ArchivingContext.get_tmp_dir())
+        # except FileNotFoundError as e:
+        #     logger.debug('Dev environment found using ' + hard_code_directory_for_wsl2)
+        #     browsertrix_home_host = hard_code_directory_for_wsl2 + ArchivingContext.get_tmp_dir()[1:]
 
         # works  
-        browsertrix_home_host ='/mnt/c/dev/test'
-
-        browsertrix_home_container = os.environ.get('BROWSERTRIX_HOME_CONTAINER') or browsertrix_home_host
+        # browsertrix_home_host ='/mnt/c/dev/test'
+        browsertrix_home_host = linux_tmp_dir
+        # browsertrix_home_container = os.environ.get('BROWSERTRIX_HOME_CONTAINER') or browsertrix_home_host
+        browsertrix_home_container = linux_tmp_dir
 
         cmd = [
             "crawl",
@@ -132,7 +141,8 @@ class WaczArchiverEnricher(Enricher, Archiver):
             "--postLoadDelay", "20"]
 
         # call docker if explicitly enabled or we are running on the host (not in docker)
-        use_docker = os.environ.get('WACZ_ENABLE_DOCKER') or not os.environ.get('RUNNING_IN_DOCKER')
+        # use_docker = os.environ.get('WACZ_ENABLE_DOCKER') or not os.environ.get('RUNNING_IN_DOCKER')
+        use_docker = True
 
 #88 - generating WACZ in Docker for url='https://www.facebook.com/khitthitnews/posts/pfbid02tX6o4TcNykMYyH4Wjbz3ckq5bH5rRr7aqLFCymkWwhVzPJGwq2mSCnp9jYZ8CVdTl'
 # 89 - browsertrix_home_host='/home/dave/auto-archiver/tmplwb1vufr' browsertrix_home_container='/home/dave/auto-archiver/tmplwb1vufr'
@@ -150,95 +160,29 @@ class WaczArchiverEnricher(Enricher, Archiver):
             if self.profile:
                 profile_fn = os.path.join(browsertrix_home_container, "profile.tar.gz")
                 logger.debug(f"copying {self.profile} to {profile_fn}")
-
                 shutil.copyfile(self.profile, profile_fn)
-
                 cmd.extend(["--profile", os.path.join("/crawls", "profile.tar.gz")])
 
-        else:
-            # DM I never use this codepath
-            foo = 1
+        # else:
             # logger.debug(f"generating WACZ without Docker for {url=}")
-
             # if self.profile:
             #     cmd.extend(["--profile", os.path.join("/app", str(self.profile))])
 
         try:
-
             logger.info(f"Running browsertrix-crawler: {' '.join(cmd)}")
-            # works
-            # cmd = [
-            #     "docker", "run",
-            #     "--rm",
-            #     "-v", "/mnt/c/dev/test:/crawls/",
-            #     "webrecorder/browsertrix-crawler",
-            #     "crawl",
-            #     "--url", "https://davemateer.com/2024/06/25/certbot-auto-deploy",
-            #     "--scopeType", "page",
-            #     "--generateWACZ",
-            #     "--text",
-            #     "--screenshot", "fullPage",
-            #     "--collection", "0534d4b5",
-            #     "--id", "0534d4b5",
-            #     "--saveState", "never",
-            #     "--behaviors", "autoscroll,autoplay,autofetch,siteSpecific",
-            #     "--behaviorTimeout", "200",
-            #     "--timeout", "200",
-            #     "--postLoadDelay", "20",
-            #     "--profile", "/crawls/profile.tar.gz"
-            # ]
-            # logger.info(f"Running browsertrix-crawler: {' '.join(cmd)}")
-            
-
-            # works
-            # cmd = [
-            #     "docker", "run",
-            #     "-v", "/mnt/c/dev/test/:/crawls/",
-            #     "-it", "webrecorder/browsertrix-crawler",
-            #     "crawl",
-            #     "--url", "https://davemateer.com/2024/06/25/certbot-auto-deploy",
-            #     "--generateWACZ",
-            #     "--text",
-            #     "--collection", "test"
-            # ]
-                
-            # This works with no shell
-            # cmd = [
-            #     "docker", "run",
-            #     "-v", "/mnt/c/dev/test/:/crawls/",
-            #     "-it", "webrecorder/browsertrix-crawler",
-            #     "crawl",
-            #     "--url", "https://davemateer.com/2022/09/22/mssql-php-local-on-wsl",
-            #     "--generateWACZ",
-            #     "--text",
-            #     "--collection", "test"
-            # ]
-
-
-            # this works!
-            # cmd = "docker run -v /mnt/c/dev/test/:/crawls/ -it webrecorder/browsertrix-crawler crawl --url https://davemateer.com/2022/09/22/mssql-php-local-on-wsl  --generateWACZ --text --collection test"
-
-            # this doesn't
-            # cmd = "docker run -v /mnt/c/dev/v6-auto-archiver/:/crawls/ -it webrecorder/browsertrix-crawler crawl --url https://davemateer.com/2022/09/22/mssql-php-local-on-wsl  --generateWACZ --text --collection test"
-
             subprocess.run(cmd, check=True)
-            # this works
-            # subprocess.run(cmd, check=True, shell=True)
 
         except Exception as e:
             logger.error(f"WACZ generation failed: {e}")
             return False
 
-        # good test!
+        # good test for filesystem bug solved by having a temp directory outside of the current working directory
+        # this will throw an exception
         working_directory = os.getcwd()
-
-        # return True
 
         if use_docker:
             wacz_fn = os.path.join(browsertrix_home_container, "collections", collection, f"{collection}.wacz")
-        else:
-            foo 
-            # dm not used
+        # else:
             # wacz_fn = os.path.join("collections", collection, f"{collection}.wacz")
 
         if not os.path.exists(wacz_fn):
@@ -248,8 +192,6 @@ class WaczArchiverEnricher(Enricher, Archiver):
         # adding the .wacz file to the Metadata object
         to_enrich.add_media(Media(wacz_fn), "browsertrix")
 
-        # it fails with true here!!!
-        return True
 
         if self.extract_media:
             self.extract_media_from_wacz(to_enrich, wacz_fn)
