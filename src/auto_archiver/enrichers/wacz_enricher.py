@@ -462,6 +462,7 @@ class WaczArchiverEnricher(Enricher, Archiver):
                     # DM 25th Oct 24 if size of media file is < x discard
                     fs = os.path.getsize(fn)
                     if fs < 6000 and ext == ".jpg": continue
+                    if fs < 6000 and ext == ".webp": continue
                     if fs < 37000 and ext == ".png": continue
                     if ext == ".gif": continue
                     if ext == ".ico": continue
