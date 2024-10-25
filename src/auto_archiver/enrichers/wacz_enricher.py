@@ -54,15 +54,10 @@ class WaczArchiverEnricher(Enricher, Archiver):
          #   logger.debug(f"Removing {self.cwd_dind=}")
           #  shutil.rmtree(self.cwd_dind, ignore_errors=True)
 
-          # cleanup the linux tmp directory
+         # cleanup the linux tmp directory
          linux_tmp_dir ='/home/dave/aatmp' 
-         # Check if the directory exists
          if os.path.exists(linux_tmp_dir):
-            # Remove the directory and all its contents
             shutil.rmtree(linux_tmp_dir)
-            print(f"Directory '{linux_tmp_dir}' and all its contents have been removed.")
-         else:
-            print(f"Directory '{linux_tmp_dir}' does not exist.")
 
     def download(self, item: Metadata) -> Metadata:
         # this new Metadata object is required to avoid duplication
@@ -457,6 +452,21 @@ class WaczArchiverEnricher(Enricher, Archiver):
 
                     record_url_best_qual = UrlUtil.twitter_best_quality_url(record_url)
                     with open(fn, "wb") as outf: outf.write(record.raw_stream.read())
+
+                    # only want < 40 images
+                    if counter > 40: 
+                        logger.debug(f"Stopping as found 40 images")
+                        break # out of for loop
+
+                    # only want larger more important images
+                    # DM 25th Oct 24 if size of media file is < x discard
+                    fs = os.path.getsize(fn)
+                    if fs < 6000 and ext == ".jpg": continue
+                    if fs < 37000 and ext == ".png": continue
+                    if ext == ".gif": continue
+                    if ext == ".ico": continue
+                    if ext == None : continue
+
 
                     m = Media(filename=fn)
                     m.set("src", record_url)
