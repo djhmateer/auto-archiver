@@ -306,8 +306,8 @@ class WaczArchiverEnricher(Enricher, Archiver):
                                     next_fb_id = self.save_images_to_enrich_object_from_url_using_browsertrix(builder_url, to_enrich, fb_id)
 
                                     total_images = len(to_enrich.media)
-                                    if total_images > 70:
-                                        logger.warning('Total images is > 70 so stopping crawl')
+                                    if total_images > 120:
+                                        logger.warning('Total images is > max so stopping crawl')
                                         break
                                     if next_fb_id in fb_ids_requested:
                                         logger.debug('have looped around all photos in js viewer so end')
