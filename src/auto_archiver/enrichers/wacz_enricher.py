@@ -90,8 +90,8 @@ class WaczArchiverEnricher(Enricher, Archiver):
             fn = os.path.join(tmp_dir, f"1.png")
             m = Media(filename=fn)
             to_enrich.add_media(m, f"c60playwright-screenshot")
-            # DM 31st OCt 24 testing to see if screenshot is working
-            return True
+            # DM 31st OCt 24 testing to see if screenshot is working -it is!
+            # return True
     
         if to_enrich.get_media_by_id("browsertrix"):
             logger.info(f"WACZ enricher had already been executed: {to_enrich.get_media_by_id('browsertrix')}")
