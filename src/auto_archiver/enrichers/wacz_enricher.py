@@ -90,8 +90,6 @@ class WaczArchiverEnricher(Enricher, Archiver):
             fn = os.path.join(tmp_dir, f"1.png")
             m = Media(filename=fn)
             to_enrich.add_media(m, f"c60playwright-screenshot")
-            # DM 31st OCt 24 testing to see if screenshot is working -it is!
-            # return True
     
         if to_enrich.get_media_by_id("browsertrix"):
             logger.info(f"WACZ enricher had already been executed: {to_enrich.get_media_by_id('browsertrix')}")
@@ -306,7 +304,7 @@ class WaczArchiverEnricher(Enricher, Archiver):
                                     next_fb_id = self.save_images_to_enrich_object_from_url_using_browsertrix(builder_url, to_enrich, fb_id)
 
                                     total_images = len(to_enrich.media)
-                                    if total_images > 120:
+                                    if total_images > 70:
                                         logger.warning('Total images is > max so stopping crawl')
                                         break
                                     if next_fb_id in fb_ids_requested:
@@ -501,25 +499,31 @@ class WaczArchiverEnricher(Enricher, Archiver):
             with open('url.txt', 'w') as file:
                 file.write(url_build)
 
-            # collection = str(uuid.uuid4())[0:8]
             collection = random_str(8)
 
-            hard_code_directory_for_wsl2 ='/mnt/c/dev/v6-auto-archiver' 
-            browsertrix_home = ""
-            tmp_dir = ArchivingContext.get_tmp_dir()
-            try:
-                # DM get strange AttributeError if include self.browsertrix_home - taken out for now 
-                # browsertrix_home = self.browsertrix_home or os.path.abspath(ArchivingContext.get_tmp_dir())
-                # browsertrix_home = os.path.abspath(ArchivingContext.get_tmp_dir())
-                browsertrix_home = os.path.abspath(tmp_dir)
-            except FileNotFoundError: 
-                logger.debug(f'Dev found in function 2')
-                # tmp_dir = ArchivingContext.get_tmp_dir()
-                foo = tmp_dir[1:]
-                browsertrix_home = f'{hard_code_directory_for_wsl2}{foo}'
+            linux_tmp_dir ='/home/dave/aatmp' 
+            # Check if the directory exists, and if not, create it
+            if not os.path.exists(linux_tmp_dir):
+                os.makedirs(linux_tmp_dir)
+
+            # DM 31st Oct 24 take out
+            # hard_code_directory_for_wsl2 ='/mnt/c/dev/v6-auto-archiver' 
+            # browsertrix_home = ""
+            # tmp_dir = ArchivingContext.get_tmp_dir()
+            # try:
+            #     # DM get strange AttributeError if include self.browsertrix_home - taken out for now 
+            #     # browsertrix_home = self.browsertrix_home or os.path.abspath(ArchivingContext.get_tmp_dir())
+            #     # browsertrix_home = os.path.abspath(ArchivingContext.get_tmp_dir())
+            #     browsertrix_home = os.path.abspath(tmp_dir)
+            # except FileNotFoundError: 
+            #     logger.debug(f'Dev found in function 2')
+            #     # tmp_dir = ArchivingContext.get_tmp_dir()
+            #     foo = tmp_dir[1:]
+            #     browsertrix_home = f'{hard_code_directory_for_wsl2}{foo}'
+
+            browsertrix_home = linux_tmp_dir
 
             docker_commands = ["docker", "run", "--rm", "-v", f"{browsertrix_home}:/crawls/", "webrecorder/browsertrix-crawler"]
-            # docker_commands = ["docker", "run", "--rm", "-v", f"{browsertrix_home}:/crawls/", "webrecorder/browsertrix-crawler:0.11.2"]
             cmd = docker_commands + [
                 "crawl",
                 "--url", url_build,
@@ -535,6 +539,11 @@ class WaczArchiverEnricher(Enricher, Archiver):
             ]
 
             if self.profile:
+                # DM 31st oct patch this back in to make sure the profile there... I'm guessing it is already
+                profile_fn = os.path.join(browsertrix_home, "profile.tar.gz")
+                logger.debug(f"copying {self.profile} to {profile_fn}")
+                shutil.copyfile(self.profile, profile_fn)
+
                 # profile_fn = os.path.join(browsertrix_home_container, "profile.tar.gz")
                 # logger.debug(f"copying {self.profile} to {profile_fn}")
                 # shutil.copyfile(self.profile, profile_fn)
@@ -616,7 +625,8 @@ class WaczArchiverEnricher(Enricher, Archiver):
                     # create local file and add media
                     ext = mimetypes.guess_extension(content_type)
                     warc_fn = f"warc-file-{collection}-{counter}{ext}"
-                    fn = os.path.join(tmp_dir, warc_fn)
+                    # fn = os.path.join(tmp_dir, warc_fn)
+                    fn = os.path.join(linux_tmp_dir, warc_fn)
 
                     with open(fn, "wb") as outf: outf.write(record.raw_stream.read())
 
