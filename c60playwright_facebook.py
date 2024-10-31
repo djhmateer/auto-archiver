@@ -17,7 +17,7 @@ def run(playwright):
     # 1 violent
     # url = "https://www.facebook.com/khitthitnews/posts/pfbid02tX6o4TcNykMYyH4Wjbz3ckq5bH5rRr7aqLFCymkWwhVzPJGwq2mSCnp9jYZ8CVdTl"
 
-    tmp_dir = "/mnt/c/dev/v6-auto-archiver/tmp"
+    # tmp_dir = "/mnt/c/dev/v6-auto-archiver/tmp"
 
     # needs have an up to date profile in there copied from dev
     # ./chrome from:
