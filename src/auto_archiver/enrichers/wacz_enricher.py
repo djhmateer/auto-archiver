@@ -79,7 +79,7 @@ class WaczArchiverEnricher(Enricher, Archiver):
             tmp_dir = ArchivingContext.get_tmp_dir()
             command = ["pipenv", "run", "xvfb-run", "python3", "c60playwright_facebook.py", url, tmp_dir]
                 
-            # '/mnt/c/dev/v6-auto-archiver' - where the c21.py file is called
+            # '/mnt/c/dev/v6-auto-archiver' - where the c60.py file is called
             working_directory = os.getcwd()
             # Use subprocess.run to execute the command with the specified working directory
             sub_result = subprocess.run(command, cwd=working_directory, capture_output=True, text=True)
@@ -90,6 +90,8 @@ class WaczArchiverEnricher(Enricher, Archiver):
             fn = os.path.join(tmp_dir, f"1.png")
             m = Media(filename=fn)
             to_enrich.add_media(m, f"c60playwright-screenshot")
+            # DM 31st OCt 24 testing to see if screenshot is working
+            return True
     
         if to_enrich.get_media_by_id("browsertrix"):
             logger.info(f"WACZ enricher had already been executed: {to_enrich.get_media_by_id('browsertrix')}")

@@ -3,8 +3,21 @@ import sys
 import os
 
 def run(playwright):
+    # for testing run this python file directly and comment out and in
+
     url = sys.argv[1]
     tmp_dir = sys.argv[2]
+
+    # 3 documnets
+    # url = "https://www.facebook.com/khitthitnews/posts/pfbid0PTvT6iAccWqatvbDQNuqpFwL5WKzHuLK4QjP97Fwut637CV3XXQU53z1s2bJMAKwl"
+
+    # single lady
+    # url = "https://www.facebook.com/photo/?fbid=1329142910787472&set=a.132433247125117"
+
+    # 1 violent
+    # url = "https://www.facebook.com/khitthitnews/posts/pfbid02tX6o4TcNykMYyH4Wjbz3ckq5bH5rRr7aqLFCymkWwhVzPJGwq2mSCnp9jYZ8CVdTl"
+
+    tmp_dir = "/mnt/c/dev/v6-auto-archiver/tmp"
 
     # needs have an up to date profile in there copied from dev
     # ./chrome from:
@@ -22,7 +35,6 @@ def run(playwright):
     else:
         print('problem - no chromium found')
         exit()
-
 
 
     browser = playwright.chromium.launch_persistent_context(data_dir,
