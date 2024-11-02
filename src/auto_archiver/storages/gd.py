@@ -178,7 +178,13 @@ class GDriveStorage(Storage):
                     time.sleep(sleep_seconds)
 
         if raise_on_missing:
-            raise ValueError(f'{debug_header} not found after {retries} attempt(s)')
+            # DM 2nd Nov 24 - raising here when can't upload a 1.png (which should be fine)
+            # ie file has been added (which is probably should have been) by a screenshotter
+            # s3 upload works, but gd doesn't.. so lets try this.
+            # todo fix 
+            # https://videoidf.azureedge.net/ac11c212-a9f8-481b-b2ee-7944268befd0
+            # raise ValueError(f'{debug_header} not found after {retries} attempt(s)')
+            logger.error(f'{debug_header} not found after {retries} attempt(s)')
         return None
 
     def _mkdir(self, name: str, parent_id: str):
