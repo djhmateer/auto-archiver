@@ -46,7 +46,7 @@ if [ $(pgrep -c "${0##*/}") -gt 1 ]; then
           echo "time diff less then $TIMETOWAIT - normal control flow when the FB archiver is running" >> /home/dave/log.txt 2>&1
      fi
 
-     echo "Another instance of the script is running. Aborting this run of cron_fb.sh " >> /home/dave/log.txt 2>&1
+     echo "Another instance of the script is running. Aborting this run of cron_pluro.sh " >> /home/dave/log.txt 2>&1
      exit
 fi
 
