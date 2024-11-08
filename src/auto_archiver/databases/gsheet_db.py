@@ -308,9 +308,24 @@ class GsheetsDb(Database):
                         retry_count = retry_count + 1
                         time.sleep(30)
                 
-                if (retry_flag): pass
-                    # insert failed into db so alert on sheet
-                    # result.status = result.status + " TWEET FAILED"
+                if (retry_flag): 
+                    # insert failed into db
+                    logger.error(f" FAILED TO INSERT HASH into db - IP address changed need to update firewall?")
+                    logger.error(f"""
+                      INSERT INTO [dbo].[Hash]
+                        ([HashText]
+                        ,[DocumentName]
+                        ,[TabName]
+                        ,[EntryNumber]
+                        ,[HasBeenTweeted])
+                    VALUES
+                        ('{hash}'
+                        ,'{document_name}'
+                        ,'{tab_name}'
+                        ,'{entry_number}'         
+                        ,0)')
+
+                        """)
                 else:
                     logger.success(f"Inserted hash into db {hash}")
 
