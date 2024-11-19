@@ -82,8 +82,11 @@ class WaybackArchiverEnricher(Enricher, Archiver):
                 r = requests.post('https://web.archive.org/save/', headers=ia_headers, data=post_data, proxies=proxies,  timeout=30)
                 try_again = False
             except Exception as e:
-                if i == 2:
+                if i == 4:
                     message = f"couldnt contact wayback after {i} tries last error was {e}"
+                    # DM 19th Nov 24 - wayback is down so don't log this as an error
+                    # but it really is. Wait until wayback is more stable.
+                    # https://web.archive.org/save    this is the UI version
                     logger.info(message)
                     to_enrich.set("wayback_status", message)
                     return False
@@ -96,7 +99,8 @@ class WaybackArchiverEnricher(Enricher, Archiver):
             message = f"Internet archive failed with status of {r.status_code}: {r.json()}"
 
             # DM 14th Oct - while IA is coming back up. so failed to submit to wayback doesn't pollute my logs
-            logger.info(message)
+            # logger.info(message)
+            logger.warning(message)
 
             # DM what is this?
             # to_enrich.set("wayback", message)
