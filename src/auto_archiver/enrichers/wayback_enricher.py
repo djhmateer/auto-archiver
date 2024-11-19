@@ -11,6 +11,8 @@ class WaybackArchiverEnricher(Enricher, Archiver):
     Submits the current URL to the webarchive and returns a job_id or completed archive.
 
     The Wayback machine will rate-limit IP heavy usage. 
+
+    To get credentials visit https://archive.org/account/s3.php
     """
     name = "wayback_archiver_enricher"
 
@@ -53,12 +55,13 @@ class WaybackArchiverEnricher(Enricher, Archiver):
             to_enrich.set("wayback_status", message)
             return
 
-        logger.debug(f"calling wayback for {url=}")
+        logger.debug(f"starting wayback for {url=}")
 
         if to_enrich.get("wayback"):
             message = f"[SKIP] WAYBACK since already enriched: {to_enrich.get('wayback')}"
             logger.info(message)
-            to_enrich.set("wayback_status", message)
+            # this code path can be called if archiver calls wayback, then enricher calls wayback. eg https://example.com
+            # to_enrich.set("wayback_status", message)
             return True
 
         ia_headers = {
@@ -75,6 +78,7 @@ class WaybackArchiverEnricher(Enricher, Archiver):
         i = 1
         while try_again:
             try:
+                logger.debug(f"POSTing to wayback for {url}")
                 r = requests.post('https://web.archive.org/save/', headers=ia_headers, data=post_data, proxies=proxies,  timeout=30)
                 try_again = False
             except Exception as e:
@@ -145,7 +149,9 @@ class WaybackArchiverEnricher(Enricher, Archiver):
             # if time.time() - start_time <= self.timeout:
             #     logger.debug(f"Timeout reached")
             #     break
-            if attempt > 3:
+
+            # 6 minutes of polling. 2.5 minutes is usual to get a response. 19th Nov 2024
+            if attempt > 12:
                 message = f"Wayback get status failed after 3 attempts - last attempt {r_status.json()}"
                 logger.info(message)
                 wayback_status = message
@@ -165,7 +171,7 @@ class WaybackArchiverEnricher(Enricher, Archiver):
 
                 # pending so try again
                 elif r_json['status'] == 'pending':
-                    message = f"Wayback get is pending {r_json}"
+                    message = f"Wayback get attempt {attempt} is pending {r_json}"
                     logger.debug(message)
                     wayback_status = message
 
@@ -184,12 +190,18 @@ class WaybackArchiverEnricher(Enricher, Archiver):
             except Exception as e:
                 message = f"Error getting wayback job status for {url=} due to: {e}"
                 logger.debug(message)
-                wayback_status = message
-                keep_going = False
+
+                if 'Max retries exceeded with url' in str(e):
+                    message = f"Max retries exceeded with url so wait and try again"
+                    logger.info(message)
+                    time.sleep(300)
+                else:
+                    wayback_status = message
+                    keep_going = False
 
             if keep_going:
                 attempt += 1
-                time.sleep(3)  # TODO: can be improved with exponential backoff
+                time.sleep(30)  # TODO: can be improved with exponential backoff
 
         if wayback_url:
             to_enrich.set("wayback", wayback_url)

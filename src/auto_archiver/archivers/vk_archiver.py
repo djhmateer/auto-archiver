@@ -20,10 +20,12 @@ class VkArchiver(Archiver):
 
         # 18th Oct 24
         # have seen it throw here with AUTH: no sid (as account had been blocked)
+        # tried to warm up an accounr on 19th Nov 24 for a week or 2.
+        # next - try not doing this here and just in download as will be hitting lots of authentication attempts
         # try:
-        self.vks = VkScraper(self.username, self.password, session_file=self.session_file)
+        #   self.vks = VkScraper(self.username, self.password, session_file=self.session_file)
         # except Exception as e:
-            # logger.error(f"VK: failed to init scraper: {e}")
+        #     logger.error(f"VK: failed to init scraper: {e}")
 
     @staticmethod
     def configs() -> dict:
@@ -38,6 +40,14 @@ class VkArchiver(Archiver):
 
         if "vk.com" not in item.netloc: return False
 
+        # DM 19th Nov 24
+        try:
+          self.vks = VkScraper(self.username, self.password, session_file=self.session_file)
+        except Exception as e:
+            logger.error(f"VK: failed to init scraper: {e}")
+            return False
+
+        
         # some urls can contain multiple wall/photo/... parts and all will be fetched
         vk_scrapes = self.vks.scrape(url)
         if not len(vk_scrapes): return False
