@@ -156,7 +156,7 @@ class WaybackArchiverEnricher(Enricher, Archiver):
 
             # 6 minutes of polling. 2.5 minutes is usual to get a response. 19th Nov 2024
             if attempt > 12:
-                message = f"Wayback get status failed after 3 attempts - last attempt {r_status.json()}"
+                message = f"Wayback get status failed after {attempt} attempts - last attempt {r_status.json()}"
                 logger.info(message)
                 wayback_status = message
                 keep_going = False

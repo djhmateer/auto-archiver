@@ -699,9 +699,11 @@ class GsheetsFeeder(Gsheets, Feeder):
                     else:
                         ArchivingContext.set("folder", folder, True)
                 else:
+                    # DM 26th Nov - just skip this row if no entry number is set
+                    logger.error(f"Entry number not set {sh.title}, {wks.title}, row {row} - skipping and continuing with run")
+                    continue
                     # DM fail out of entire run
-                    # should probably check that folder: entry number   is set.
-                    raise ValueError("Cant find entry number on spreadsheet")
+                    # raise ValueError("Cant find entry number on spreadsheet")
 
                 yield m
 

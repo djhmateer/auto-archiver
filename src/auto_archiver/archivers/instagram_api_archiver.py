@@ -85,6 +85,8 @@ class InstagramAPIArchiver(Archiver):
         # download basic profile info
         url = result.get_url()
         user = self.call_api("v2/user/by/username", {"username": username}).get("user")
+
+        # 25th Nov 2024 - assert fails here if an instagram story eg /s/12345
         assert user, f"User {username} not found"
         user = self.cleanup_dict(user)
 
