@@ -87,6 +87,7 @@ class InstagramAPIArchiver(Archiver):
         user = self.call_api("v2/user/by/username", {"username": username}).get("user")
 
         # 25th Nov 2024 - assert fails here if an instagram story eg /s/12345
+        # 26th Nov 2024 - fails on https://www.instagram.com/stories/highlights/18062951455630520/  but ultimately succeeds below.. so false error.
         assert user, f"User {username} not found"
         user = self.cleanup_dict(user)
 
