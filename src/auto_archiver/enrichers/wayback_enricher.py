@@ -173,6 +173,17 @@ class WaybackArchiverEnricher(Enricher, Archiver):
                     wayback_status = "success"
                     keep_going = False
 
+                # DM 29th Nov - some sites fail with a 400 - The target server could not understand the request
+                # even though it says this.. The target server could not understand the reques
+                # it may work after a few minutes.
+                # https://www.facebook.com/dror.simri/posts/pfbid02aFnmiHLTvsUaEALa7yKcpFHxNohrTpavFZ5vwwmHWKGGGKavXNxt767cSL1p8rB3l
+                # elif r_status.status_code == 400:
+                #     message = f"Wayback get failed with 400 {r_json}"
+                #     logger.info(message)
+                #     wayback_status = message
+                #     # this will never work
+                #     keep_going = False
+
                 # pending so try again
                 elif r_json['status'] == 'pending':
                     message = f"Wayback get attempt {attempt} is pending {r_json}"
