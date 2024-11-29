@@ -35,11 +35,19 @@ python-twitter-v2 = "*"
 instaloader = "*"
 tqdm = "*"
 jinja2 = "*"
-cryptography = "*"
+#cryptography = "*"
+cryptography = "==43.0.3"
+
+
 dataclasses-json = "*"
 yt-dlp = "*"
 vk-url-scraper = "*"
 
+
+# DM hack to force this version
+# probably used by requests below
+# otherwise get ImportError: cannot import name 'verify' from 'OpenSSL.crypto' (unknown location)
+pyopenssl = "==24.2.1"
 
 requests = {extras = ["socks"], version = "*"}
 
@@ -63,6 +71,7 @@ certvalidator = "*"
 
 # DM July yt
 playwright = "*"
+#playwright = "==1.48.0"
 python-dotenv = "*"
 
 [dev-packages]

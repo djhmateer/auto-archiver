@@ -32,7 +32,6 @@ class ScreenshotEnricher(Enricher):
         logger.debug("C71Playwright - 1. Firefox to do a screenshot")
         # where 1.png etc are saved
         tmp_dir = ArchivingContext.get_tmp_dir()
-        # command = ["pipenv", "run", "xvfb-run", "python3", "c70playwright_general.py", url, tmp_dir]
         command = ["pipenv", "run", "xvfb-run", "python3", "c71playwright_general_firefox.py", url, tmp_dir]
                 
         # '/mnt/c/dev/v6-auto-archiver' - where the c21.py file is called
@@ -54,11 +53,11 @@ class ScreenshotEnricher(Enricher):
         logger.debug(f"Playwright Output: {sub_result.stdout}")
 
         fn = os.path.join(tmp_dir, f"1.png")
-        m = Media(filename=fn)
-        to_enrich.add_media(m, f"playwright-screenshot-1-firefox")
-
-        # DM fast
-        # return
+        if os.path.exists(fn):
+            m = Media(filename=fn)
+            to_enrich.add_media(m, f"playwright-screenshot-1-firefox")
+        else:
+            logger.warning(f"C70Playwright - Firefox - file not found: {fn=}. Unknown why this would fail. Check logs")
 
 
         # 2. Chrome
@@ -66,9 +65,8 @@ class ScreenshotEnricher(Enricher):
         # where 1.png etc are saved
         tmp_dir = ArchivingContext.get_tmp_dir()
         command = ["pipenv", "run", "xvfb-run", "python3", "c70playwright_general.py", url, tmp_dir]
-        # command = ["pipenv", "run", "xvfb-run", "python3", "c71playwright_general_firefox.py", url, tmp_dir]
                 
-        # '/mnt/c/dev/v6-auto-archiver' - where the c21.py file is called
+        # '/mnt/c/dev/v6-auto-archiver' - where the .py file is called
         # working_directory = os.getcwd()
         # Use subprocess.run to execute the command with the specified working directory
         sub_result = subprocess.run(command, cwd=working_directory, capture_output=True, text=True)
@@ -76,9 +74,13 @@ class ScreenshotEnricher(Enricher):
         # Print the output and error (if any)
         logger.debug(f"Playwright Output: {sub_result.stdout}")
 
+        # if playwright fails, then this file won't exist (Google file upload doesn't like this. S3 doesn't mind)
         fn = os.path.join(tmp_dir, f"2.png")
-        m = Media(filename=fn)
-        to_enrich.add_media(m, f"playwright-screenshot-2-chrome")
+        if os.path.exists(fn):
+            m = Media(filename=fn)
+            to_enrich.add_media(m, f"playwright-screenshot-2-chrome")
+        else:
+            logger.warning(f"C70Playwright - Chrome - file not found: {fn=}. Maybe a timeout due to fonts not loading? Firefox should be better")
 
 
 

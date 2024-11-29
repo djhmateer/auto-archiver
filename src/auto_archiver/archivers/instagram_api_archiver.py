@@ -49,6 +49,13 @@ class InstagramAPIArchiver(Archiver):
             logger.warning(f"Multiple instagram matches found in {url=}, using the first one")
             return
         g1, g2, g3 = insta_matches[0][0], insta_matches[0][1], insta_matches[0][2]
+        # DM 28th Nov 24
+        # https://www.instagram.com/s/aGlnaGxpZ2h0OjE4MDQ5MzU5NjQ5NTcxNTAw
+        if g1 == "" and g2 =="s" and g3 == "":
+            logger.debug(f"Instagram short code not implemented yet")
+            # try next archiver et yt-dlp 
+            return False
+
         if g1 == "": return self.download_profile(item, g2)
         elif g1 == "p": return self.download_post(item, g2, context="post")
         elif g1 == "reel": return self.download_post(item, g2, context="reel")
