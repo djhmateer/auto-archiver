@@ -95,7 +95,15 @@ class WaczArchiverEnricher(Enricher, Archiver):
             fn = os.path.join(tmp_dir, f"c60.png")
             m = Media(filename=fn)
             to_enrich.add_media(m, f"c60playwright-screenshot")
+
     
+    
+        # DM 2nd Dec 2024 - ignoreing youtube for now
+        # as may be a huge file
+        # then parsing it will be massive too
+        if "youtube.com" in to_enrich.netloc:
+            return True
+
         if to_enrich.get_media_by_id("browsertrix"):
             logger.info(f"WACZ enricher had already been executed: {to_enrich.get_media_by_id('browsertrix')}")
             return True
