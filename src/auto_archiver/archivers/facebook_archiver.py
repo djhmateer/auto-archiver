@@ -61,7 +61,8 @@ class FacebookArchiver(Archiver):
             shutil.rmtree(linux_tmp_dir)
 
     def download(self, item: Metadata) -> Metadata:
-        if 'facebook.com' != item.netloc:
+        # item.netloc could be www.facebook.com or facebook.com
+        if 'facebook.com' not in item.netloc:
             logger.debug(f'Facebook archiver not applicable for {item.netloc}')
             return False
 
