@@ -6,20 +6,21 @@ from loguru import logger
 from warcio.archiveiterator import ArchiveIterator
 
 from ..core import Media, Metadata, ArchivingContext
-from . import Enricher
-from ..archivers import Archiver
+# from . import Enricher
+from . import Archiver
 from ..utils import UrlUtil, random_str
 import time
 
 
-class WaczArchiverEnricher(Enricher, Archiver):
+# class FacebookArchiver(Enricher, Archiver):
+class FacebookArchiver(Archiver):
     """
     Uses https://github.com/webrecorder/browsertrix-crawler to generate a .WACZ archive of the URL
     If used with [profiles](https://github.com/webrecorder/browsertrix-crawler#creating-and-using-browser-profiles)
     it can become quite powerful for archiving private content.
     When used as an archiver it will extract the media from the .WACZ archive so it can be enriched.
     """
-    name = "wacz_archiver_enricher"
+    name = "facebook_archiver"
 
     def __init__(self, config: dict) -> None:
         # without this STEP.__init__ is not called
@@ -60,11 +61,15 @@ class WaczArchiverEnricher(Enricher, Archiver):
             shutil.rmtree(linux_tmp_dir)
 
     def download(self, item: Metadata) -> Metadata:
+        if 'facebook.com' != item.netloc:
+            return False
+
         # this new Metadata object is required to avoid duplication
         result = Metadata()
         result.merge(item)
         if self.enrich(result):
-            return result.success("wacz")
+            return result.success("facebook")
+            # return result.success("wacz")
 
     # On WSL2 in Dev I've seen spurious :ERR_NETWORK_CHANGED at 
     # errors from browsertrix which fails out of the crawl
@@ -77,8 +82,6 @@ class WaczArchiverEnricher(Enricher, Archiver):
         # normal Chrome Playwright C70 screenshotter is fine for FB as sending cookie by default
         # long timeout so keep this in.
         if "facebook.com" in to_enrich.netloc:
-            # has already been run by facebook_archiver
-            return True
             logger.debug("Special codepath using playwright with a logged in facebook profile to do a screenshot")
             # where 1.png etc are saved
             tmp_dir = ArchivingContext.get_tmp_dir()

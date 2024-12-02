@@ -9,3 +9,5 @@ from .telegram_archiver import TelegramArchiver
 from .vk_archiver import VkArchiver
 from .youtubedl_archiver import YoutubeDLArchiver
 from .instagram_api_archiver import InstagramAPIArchiver
+
+from .facebook_archiver import FacebookArchiver

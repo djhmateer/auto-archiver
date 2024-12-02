@@ -135,8 +135,8 @@ class WaybackArchiverEnricher(Enricher, Archiver):
             # 19th Apr - wayback throwing job failed error.. so lets just force all facebook links to succeed as the fb archiver will pick them up.
             # if 'This host has been already captured' in r.text:
             if 'facebook.com' in url:
-                logger.debug("Swallowing error so that fb archiver picks up properly")
-                # swallow the error (wayback: success will show) so that
+                logger.debug("Swallowing wayback failed error as it is facebook")
+                # swallow the error (wayback: success will show) 
                 # the fb archiver will pickup properly 
                 to_enrich.set("wayback_status", message)
                 return True

@@ -3,6 +3,7 @@ import sys
 import os
 
 def run(playwright):
+    # DM 2nd Dec 24 - not used for FB as general C70 works fine. Actually I am using as it gets a long timeout.
     # for testing run this python file directly and comment out and in
 
     url = sys.argv[1]
@@ -46,10 +47,12 @@ def run(playwright):
 
     page.goto(url,  wait_until='domcontentloaded', timeout=60000)
 
-    for i in range(1, 2):
-        print(i)
-        page.screenshot(path=tmp_dir + f'/{i}.png', full_page=True)
-        page.wait_for_timeout(1000)
+    # for i in range(1, 2):
+    #     print(i)
+    #     page.screenshot(path=tmp_dir + f'/{i}.png', full_page=True)
+    
+    page.screenshot(path=tmp_dir + '/c60.png', full_page=True)
+    page.wait_for_timeout(1000)
 
     exit()
 
