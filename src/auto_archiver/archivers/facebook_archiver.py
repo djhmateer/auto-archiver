@@ -62,6 +62,7 @@ class FacebookArchiver(Archiver):
 
     def download(self, item: Metadata) -> Metadata:
         if 'facebook.com' != item.netloc:
+            logger.debug(f'Facebook archiver not applicable for {item.netloc}')
             return False
 
         # this new Metadata object is required to avoid duplication
