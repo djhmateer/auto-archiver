@@ -75,10 +75,14 @@ class WaczArchiverEnricher(Enricher, Archiver):
 
         # DM 2nd Dec 2024
         # normal Chrome Playwright C70 screenshotter is fine for FB as sending cookie by default
-        # long timeout so keep this in.
+        # but this has long timeout so keep this in (better)
         if "facebook.com" in to_enrich.netloc:
+            if 'videos' in url:
+                # keep going as this is probabaly a facebook video which we do want the wacz for.
+                pass
+            else:
             # has already been run by facebook_archiver
-            return True
+                return True
             logger.debug("Special codepath using playwright with a logged in facebook profile to do a screenshot")
             # where 1.png etc are saved
             tmp_dir = ArchivingContext.get_tmp_dir()
@@ -97,8 +101,7 @@ class WaczArchiverEnricher(Enricher, Archiver):
             to_enrich.add_media(m, f"c60playwright-screenshot")
 
     
-    
-        # DM 2nd Dec 2024 - ignoreing youtube for now
+        # DM 2nd Dec 2024 - ignoring youtube for now
         # as may be a huge file
         # then parsing it will be massive too
         if "youtube.com" in to_enrich.netloc:
@@ -198,7 +201,10 @@ class WaczArchiverEnricher(Enricher, Archiver):
             return False
 
         # adding the .wacz file to the Metadata object
+        foo = Media(wacz_fn)
+        # foo is '/home/dave/aatmp/collections/f7242116/f7242116.wacz'
         to_enrich.add_media(Media(wacz_fn), "browsertrix")
+
 
 
         # default to true

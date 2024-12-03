@@ -83,6 +83,9 @@ class FacebookArchiver(Archiver):
         # DM 2nd Dec 2024
         # normal Chrome Playwright C70 screenshotter is fine for FB as sending cookie by default
         # long timeout so keep this in.
+
+        # This won't upload if this same screenshot as the one captured alrady by Chrome (ie if timeout didn't matter)
+        # as hash will be a duplicate
         if "facebook.com" in to_enrich.netloc:
             logger.debug("Special codepath using playwright with a logged in facebook profile to do a screenshot")
             # where 1.png etc are saved

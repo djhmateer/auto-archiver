@@ -26,16 +26,14 @@ class ScreenshotEnricher(Enricher):
     def enrich(self, to_enrich: Metadata) -> None:
         url = to_enrich.get_url()
 
-        # 1. Firefox
+        # 1. Chrome
         # DM 16th Oct 2024 - see AA Demo Main for use cases - not significantly better at all.
         # maybe for specifc sites.
-        logger.debug("C71Playwright - 1. Firefox to do a screenshot")
+        logger.debug("C70Playwright - Chrome ")
         # where 1.png etc are saved
         tmp_dir = ArchivingContext.get_tmp_dir()
-        command = ["pipenv", "run", "xvfb-run", "python3", "c71playwright_general_firefox.py", url, tmp_dir]
+        command = ["pipenv", "run", "xvfb-run", "python3", "c70playwright_general.py", url, tmp_dir]
                 
-        # '/mnt/c/dev/v6-auto-archiver' - where the c21.py file is called
-
         # DM 23rd Oct - getting FileNotFoundError: [Errno 2] No such file or directory after wacz 
         # eg run row 32, then row 33 throws here.
         try:
@@ -52,19 +50,21 @@ class ScreenshotEnricher(Enricher):
         # Print the output and error (if any)
         logger.debug(f"Playwright Output: {sub_result.stdout}")
 
-        fn = os.path.join(tmp_dir, f"1.png")
+        fn = os.path.join(tmp_dir, f"c70.png")
         if os.path.exists(fn):
             m = Media(filename=fn)
-            to_enrich.add_media(m, f"playwright-screenshot-1-firefox")
+            to_enrich.add_media(m, f"c70playwright-screenshot-chrome")
         else:
-            logger.warning(f"C70Playwright - Firefox - file not found: {fn=}. Unknown why this would fail. Check logs")
+            logger.warning(f"C70Playwright - Chrome - file not found: {fn=}. Unknown why this would fail. Check logs. Maybe a timeout due to fonts not loading?")
 
 
-        # 2. Chrome
-        logger.debug("C70Playwright 2. Chrome to do a screenshot")
+
+
+        # 2. Firefox
+        logger.debug("C71Playwright Firefox")
         # where 1.png etc are saved
         tmp_dir = ArchivingContext.get_tmp_dir()
-        command = ["pipenv", "run", "xvfb-run", "python3", "c70playwright_general.py", url, tmp_dir]
+        command = ["pipenv", "run", "xvfb-run", "python3", "c71playwright_general_firefox.py", url, tmp_dir]
                 
         # '/mnt/c/dev/v6-auto-archiver' - where the .py file is called
         # working_directory = os.getcwd()
@@ -75,12 +75,12 @@ class ScreenshotEnricher(Enricher):
         logger.debug(f"Playwright Output: {sub_result.stdout}")
 
         # if playwright fails, then this file won't exist (Google file upload doesn't like this. S3 doesn't mind)
-        fn = os.path.join(tmp_dir, f"2.png")
+        fn = os.path.join(tmp_dir, f"c71.png")
         if os.path.exists(fn):
             m = Media(filename=fn)
-            to_enrich.add_media(m, f"playwright-screenshot-2-chrome")
+            to_enrich.add_media(m, f"c71playwright-screenshot-firefox")
         else:
-            logger.warning(f"C70Playwright - Chrome - file not found: {fn=}. Maybe a timeout due to fonts not loading? Firefox should be better")
+            logger.warning(f"C71Playwright - Firefox - file not found: {fn=}. Unknown why this would fail.")
 
 
 

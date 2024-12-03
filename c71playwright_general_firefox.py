@@ -81,7 +81,7 @@ def run(playwright):
     # telegram needs a wait for media to load
     page.wait_for_timeout(8000)
     
-    page.screenshot(path=tmp_dir + f'/1.png', full_page=True)
+    page.screenshot(path=tmp_dir + f'/c71.png', full_page=True)
 
     # page.wait_for_timeout(112000)
 
