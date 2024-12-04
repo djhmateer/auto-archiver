@@ -83,6 +83,7 @@ class WaczArchiverEnricher(Enricher, Archiver):
             else:
             # has already been run by facebook_archiver
                 return True
+
             logger.debug("Special codepath using playwright with a logged in facebook profile to do a screenshot")
             # where 1.png etc are saved
             tmp_dir = ArchivingContext.get_tmp_dir()
@@ -107,6 +108,7 @@ class WaczArchiverEnricher(Enricher, Archiver):
         if "youtube.com" in to_enrich.netloc:
             return True
 
+        # DM 4th Dec - maybe don't need this / FB catch above gets enough
         if to_enrich.get_media_by_id("browsertrix"):
             logger.info(f"WACZ enricher had already been executed: {to_enrich.get_media_by_id('browsertrix')}")
             return True
@@ -206,9 +208,20 @@ class WaczArchiverEnricher(Enricher, Archiver):
         to_enrich.add_media(Media(wacz_fn), "browsertrix")
 
 
+        extract_mediab = True
+        if 'vk.com' in url: extract_mediab = False
+        if 't.me' in url: extract_mediab = False
+        if 'twitter.com' in url: extract_mediab = False
+        if 'x.com' in url: extract_mediab = False
+        if 'instagram.com' in url: extract_mediab = False
+        if 'tiktok.com' in url: extract_mediab = False
+        # youtube should not get here
+        # facebook should not get here except for videos but lets not pollute
+        if 'facebook.com' in url: extract_mediab = False
 
         # default to true
-        if self.extract_media:
+        # if self.extract_media:
+        if extract_mediab:
             self.extract_media_from_wacz(to_enrich, wacz_fn)
         return True
 
