@@ -63,5 +63,6 @@ cd /home/dave/auto-archiver
 
 # PROD
 
+# SERVER 5
 pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-eor.yaml
 sleep $TIME

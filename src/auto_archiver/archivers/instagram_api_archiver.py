@@ -52,9 +52,14 @@ class InstagramAPIArchiver(Archiver):
         # DM 28th Nov 24
         # https://www.instagram.com/s/aGlnaGxpZ2h0OjE4MDQ5MzU5NjQ5NTcxNTAw
         if g1 == "" and g2 =="s" and g3 == "":
-            logger.debug(f"Instagram short code not implemented yet")
-            # try next archiver et yt-dlp 
-            return False
+            message = f'Instagram_api - short code not implemented. Try linking direcly to the story or post ie not an instagram/s/ link, where the s stands for short code'
+            logger.warning(message)
+            logger.warning("user has been warned with above message in Archive_Detail. Maybe look into hiker api to see if they support the short code")
+
+            result = Metadata()   
+            result.set("archive_detail", message)
+            # have chosen to succeed here as don't want it to continue trying other archivers
+            return result.success("insta short code not implemented")
 
         if g1 == "": return self.download_profile(item, g2)
         elif g1 == "p": return self.download_post(item, g2, context="post")

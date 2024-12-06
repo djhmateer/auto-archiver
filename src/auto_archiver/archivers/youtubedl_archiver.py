@@ -83,6 +83,11 @@ class YoutubeDLArchiver(Archiver):
         ydl = yt_dlp.YoutubeDL({**ydl_options, "getcomments": self.comments})
         #TODO: for playlist or long lists of videos, how to download one at a time so they can be stored before the next one is downloaded?
 
+        # DM 6th Dec 24
+        # https://news.sky.com/story/middle-east-latest-gaza-lebanon-israel-iran-live-updates-12978800?postid=8479471#liveblog-body
+        # this above url causes extract_info to hang and eventually the server runs out of ram.
+        #
+
         # DM July - special feature to allow for not downloading the file if the column is set to n
         # if column not there then download as normal
         should_download = item.get("should_download", "").lower()
