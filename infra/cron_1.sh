@@ -2,11 +2,14 @@
 
 # chmod +x cron.sh
 
+# run cron_fb.sh every minute as user dave
+# cd /etc/cron.d
+# sudo vim run-v6-auto-archive
+
+# * * * * * dave /home/dave/auto-archiver/infra/cron_fb.sh
+
 cd /home/dave/auto-archiver
-
 PATH=/usr/local/bin:$PATH
-
-TIME=5
 
 # only 1 instance of this will run if job lasts longer than 1 minute
 # https://askubuntu.com/a/915731/677298
@@ -51,25 +54,38 @@ if [ $(pgrep -c "${0##*/}") -gt 1 ]; then
 fi
 
 
-# TEST - make sure that the FB profile is working
-#pipenv run python -m src.auto_archiver --config secrets/orchestration-aa-demo-main-facebook.yaml
+TIME=5
+
+# TEST 
+cd /home/dave/auto-archiver
+# pipenv run python -m src.auto_archiver --config secrets/orchestration-aa-demo-main.yaml
 # sleep $TIME
 
-# pipenv run python -m src.auto_archiver --config secrets/orchestration-aa-demo-main.yaml
+# PROD
 
+# SERVER 5 is doing this now
+# pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-eor.yaml
+# sleep $TIME
 
-# run-one pipenv run python -m src.auto_archiver --config secrets/orchestration-glan.yaml                
-pipenv run python -m src.auto_archiver --config secrets/orchestration-glan.yaml                
+pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-cir-sahel.yaml
 sleep $TIME
 
-# pipenv run python -m src.auto_archiver --config secrets/orchestration-glan-facebook.yaml
+pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-cir-sudan.yaml
 sleep $TIME
 
-pipenv run python -m src.auto_archiver --config secrets/orchestration-glan-ytbm.yaml                
+pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-aw.yaml
 sleep $TIME
 
-# pipenv run python -m src.auto_archiver --config secrets/orchestration-glan-ytbm-facebook.yaml
+pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-mw.yaml
 sleep $TIME
 
+# SERVER 2 doing this now
+# pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-projects.yaml
+# sleep $TIME
 
 
+
+
+# PROJECT ENDED
+# pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-eor-grc.yaml
+# sleep $TIME

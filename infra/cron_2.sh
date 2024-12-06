@@ -63,32 +63,9 @@ cd /home/dave/auto-archiver
 
 # PROD
 
-# ARCHIVER5 is doing this now
-# pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-eor.yaml
-# sleep $TIME
-
-pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-cir-sahel.yaml
-sleep $TIME
-
-pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-cir-sudan.yaml
-sleep $TIME
-
-pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-aw.yaml
-sleep $TIME
-
-pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-eor-grc.yaml
-sleep $TIME
-
-pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-mw.yaml
-sleep $TIME
-
+# SERVER 2 doing this now
 pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-projects.yaml
 sleep $TIME
 
 
-## cron job output is in 
-## vim /home/dave/log.txt
 
-# to stop cron job comment out in /etc/cron.d
-# then reload
-# sudo service cron reload
