@@ -165,6 +165,7 @@ class FacebookArchiver(Archiver):
                 # note there is another part further down the code which needs to be changed too.
                 cmd = ["docker", "run", "--rm", "-v", f"{browsertrix_home_host}:/crawls/", "webrecorder/browsertrix-crawler"] + cmd
 
+            ## ***HERE*** why is it not going inside here?????
             if self.profile:
                 profile_fn = os.path.join(browsertrix_home_container, "profile.tar.gz")
                 logger.debug(f"copying {self.profile} to {profile_fn}")

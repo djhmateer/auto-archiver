@@ -96,7 +96,14 @@ class WaybackArchiverEnricher(Enricher, Archiver):
                     i = i + 1
 
         if r.status_code != 200:
-            message = f"Internet archive failed with status of {r.status_code}: {r.json()}"
+
+            # on a status code of 503 there is no json so lets try and get 
+            try:
+                foo = r.json()
+            except Exception as e:
+                foo = None
+
+            message = f"Internet archive failed with status of {r.status_code}: {foo}"
 
             # DM 14th Oct - while IA is coming back up. so failed to submit to wayback doesn't pollute my logs
             # logger.info(message)

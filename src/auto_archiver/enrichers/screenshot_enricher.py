@@ -29,6 +29,9 @@ class ScreenshotEnricher(Enricher):
         # 1. Chrome
         # DM 16th Oct 2024 - see AA Demo Main for use cases - not significantly better at all.
         # maybe for specifc sites.
+
+        c70screenshotsFail = False
+
         logger.debug("C70Playwright - Chrome ")
         # where 1.png etc are saved
         tmp_dir = ArchivingContext.get_tmp_dir()
@@ -56,11 +59,13 @@ class ScreenshotEnricher(Enricher):
             to_enrich.add_media(m, f"c70playwright-screenshot-chrome")
         else:
             logger.warning(f"C70Playwright - Chrome - file not found: {fn=}. Unknown why this would fail. Check logs. Maybe a timeout due to fonts not loading?")
-
+            c70screenshotsFail = True
 
 
 
         # 2. Firefox
+        c71screenshotsFail = False
+
         logger.debug("C71Playwright Firefox")
         # where 1.png etc are saved
         tmp_dir = ArchivingContext.get_tmp_dir()
@@ -81,6 +86,15 @@ class ScreenshotEnricher(Enricher):
             to_enrich.add_media(m, f"c71playwright-screenshot-firefox")
         else:
             logger.warning(f"C71Playwright - Firefox - file not found: {fn=}. Unknown why this would fail.")
+            c71screenshotsFail = True
+
+        if c70screenshotsFail and c71screenshotsFail:
+            logger.error("Both C70 and C71 Playwright screenshots failed. This is unexpected. Check logs.")
+            to_enrich.set("archive_detail", "Both C70 and C71 Playwright screenshots failed. This is unexpected. Check logs.")
+
+            # DM 12th Dec 24 - I got a malformed url on prod which caused all screenshots to fail.
+            # TODO - ditch old processes or ??? boot server????
+            return
 
 
 
