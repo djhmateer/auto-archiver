@@ -100,7 +100,14 @@ class InstagramAPIArchiver(Archiver):
 
         # 25th Nov 2024 - assert fails here if an instagram story eg /s/12345
         # 26th Nov 2024 - fails on https://www.instagram.com/stories/highlights/18062951455630520/  but ultimately succeeds below.. so false error.
-        assert user, f"User {username} not found"
+        # 13th Dec 24 - fails with  https://www.instagram.com/jony_hemeryth_garcia?igsh=ZjcycGJwMTNkODFk
+        # assert user, f"User {username} not found"
+        if user is None:
+            message = f'User not found. Maybe private account?'
+            logger.debug(message)
+            result.set("archive_detail", message)
+            return 
+
         user = self.cleanup_dict(user)
 
         result.set_title(user.get("full_name", username)).set("data", user)
@@ -115,8 +122,10 @@ class InstagramAPIArchiver(Archiver):
                 stories = self._download_stories_reusable(result, username)
                 result.set("#stories", len(stories))
             except Exception as e:
-                result.append("errors", f"Error downloading stories for {username}")
-                logger.error(f"Error downloading stories for {username}: {e}")
+                result.append("errors", f"Error downloading stories for {username} - private?")
+                logger.debug(f"Error downloading stories for {username}: {e} - private?")
+                message = f'Problem downloading stories for {username} - private?'
+                result.set("archive_detail", message)
 
             # download all posts
             try:
