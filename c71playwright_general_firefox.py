@@ -64,7 +64,11 @@ def run(playwright):
         # Instagram
         # Search for the button with the text 'Allow all cookies' and click it
         # page.locator('button:has-text("Allow all cookies")').click()
-        page.locator('button:has-text("Decline optional cookies")').click(timeout=5000)
+        try:
+            page.locator('button:has-text("Decline optional cookies")').click(timeout=5000)
+            print('success - optional cookies click in instagram')
+        except:
+            print('exception -no Decline optional cookies in instagram')
 
         page.wait_for_timeout(2000)
 
