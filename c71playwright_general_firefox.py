@@ -50,7 +50,11 @@ def run(playwright):
     # page.set_default_timeout(60000)  # Set timeout to 60 seconds (or longer)
 
     # print('goto url')
-    page.goto(url, wait_until='domcontentloaded', timeout=60000)
+    try:
+        page.goto(url, wait_until='domcontentloaded', timeout=60000)
+    except:
+        print('problem with page.goto')
+        exit()
     # page.goto(url, timeout=60000)
 
     # why is browser closing then when I run this it fails with: Taget page, context or browser has been closed

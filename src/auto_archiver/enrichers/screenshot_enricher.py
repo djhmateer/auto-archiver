@@ -89,8 +89,8 @@ class ScreenshotEnricher(Enricher):
             c71screenshotsFail = True
 
         if c70screenshotsFail and c71screenshotsFail:
-            logger.error("Both C70 and C71 Playwright screenshots failed. This is unexpected. Check logs.")
-            to_enrich.set("archive_detail", "Both C70 and C71 Playwright screenshots failed. This is unexpected. Check logs.")
+            logger.error("Both C70 and C71 Playwright screenshots failed. This is unexpected. Check logs. Maybe invalid url?")
+            to_enrich.set("archive_detail", "Invalid URL? Both C70 and C71 Playwright screenshots failed. This is unexpected. Check logs.")
 
             # DM 12th Dec 24 - I got a malformed url on prod which caused all screenshots to fail.
             # TODO - ditch old processes or ??? boot server????

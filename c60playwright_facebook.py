@@ -45,7 +45,11 @@ def run(playwright):
                                         )
     page = browser.new_page()
 
-    page.goto(url,  wait_until='domcontentloaded', timeout=60000)
+    try:
+        page.goto(url,  wait_until='domcontentloaded', timeout=60000)
+    except:
+        print('problem with page.goto')
+        exit()
 
     # for i in range(1, 2):
     #     print(i)
