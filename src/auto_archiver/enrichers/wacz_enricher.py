@@ -78,17 +78,18 @@ class WaczArchiverEnricher(Enricher, Archiver):
         # but this has long timeout so keep this in (better)
         if "facebook.com" in to_enrich.netloc:
             if 'videos' in url:
-                # keep going as this is probabaly a facebook video which we do want the wacz for.
+                # keep going as this is probabaly a facebook video which we do want the wacz for (ytdlp)
                 pass
             else:
-            # has already been run by facebook_archiver
+                # has already been run by facebook_archiver
                 return True
 
+            # done by facebook_archiver
             logger.debug("Special codepath using playwright with a logged in facebook profile to do a screenshot")
             # where 1.png etc are saved
             tmp_dir = ArchivingContext.get_tmp_dir()
             command = ["pipenv", "run", "xvfb-run", "python3", "c60playwright_facebook.py", url, tmp_dir]
-                
+                    
             # '/mnt/c/dev/v6-auto-archiver' - where the c60.py file is called
             working_directory = os.getcwd()
             # Use subprocess.run to execute the command with the specified working directory
@@ -99,7 +100,8 @@ class WaczArchiverEnricher(Enricher, Archiver):
 
             fn = os.path.join(tmp_dir, f"c60.png")
             m = Media(filename=fn)
-            to_enrich.add_media(m, f"c60playwright-screenshot")
+            # there may be another screenshot with same name so add wacz_enricher
+            to_enrich.add_media(m, f"c60playwright-screenshot-wacz_enricher")
 
     
         # DM 2nd Dec 2024 - ignoring youtube for now
