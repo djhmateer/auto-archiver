@@ -13,6 +13,7 @@ def run(playwright):
 
 
     dev = True
+    # laptop is on same as dev 
     dev_executable_path = '/home/dave/.cache/ms-playwright/firefox-1458/firefox/firefox'
     prod_executable_path = '/home/dave/.cache/ms-playwright/firefox-1429/firefox/firefox'
     if os.path.exists(dev_executable_path):
