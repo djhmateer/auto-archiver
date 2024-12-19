@@ -13,12 +13,16 @@ def run(playwright):
 
     dev_executable_path = '/home/dave/.cache/ms-playwright/chromium-1076/chrome-linux/chrome'
     prod_executable_path = '/home/dave/.cache/ms-playwright/chromium-1091/chrome-linux/chrome'
+    laptop_executable_path = '/home/dave/.cache/ms-playwright/chromium-1129/chrome-linux/chrome'
     if os.path.exists(dev_executable_path):
         print('1076 found')
         executable_path = dev_executable_path
     elif os.path.exists(prod_executable_path):
         print('1091 found')
         executable_path = prod_executable_path
+    elif os.path.exists(laptop_executable_path):
+        print('1129 found')
+        executable_path = laptop_executable_path
     else:
         print('problem - no chromium found')
         exit()
