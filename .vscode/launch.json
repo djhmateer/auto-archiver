@@ -263,6 +263,5 @@
 			"justMyCode": true,
 			"args": ["--config","secrets/orchestration-cir-projects-facebook.yaml"]
 		}
-
     ]
 }

@@ -11,3 +11,4 @@ from .youtubedl_archiver import YoutubeDLArchiver
 from .instagram_api_archiver import InstagramAPIArchiver
 
 from .facebook_archiver import FacebookArchiver
+from .instagram_instagrapi import InstagramInstagrapiArchiver

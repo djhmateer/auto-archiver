@@ -9,7 +9,11 @@ name = "pypi"
 gspread = "*"
 # gspread = "==5.12.4"
 
+# ('An error occurred (MissingContentLength) when calling the PutObject operation: None',)
+# https://github.com/boto/boto3/issues/4398
 boto3 = "*"
+#boto3 = "1.35.99"
+
 argparse = "*"
 beautifulsoup4 = "*"
 tiktok-downloader = "*"
@@ -73,6 +77,10 @@ certvalidator = "*"
 playwright = "*"
 #playwright = "==1.48.0"
 python-dotenv = "*"
+
+instagrapi = "*"
+pydantic = "*"
+
 
 [dev-packages]
 autopep8 = "*"

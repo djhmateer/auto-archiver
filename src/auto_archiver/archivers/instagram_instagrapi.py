@@ -8,25 +8,33 @@ from . import Archiver
 from ..core import Metadata
 from ..core import Media
 
-class InstagramAPIArchiver(Archiver):
+from instagrapi import Client
+from instagrapi.exceptions import LoginRequired
+
+class InstagramInstagrapiArchiver(Archiver):
     """
-    Uses an https://github.com/subzeroid/instagrapi API deployment to fetch instagram posts data
-    
-    # TODO: improvement collect aggregates of locations[0].location and mentions for all posts
+    Test archiver to get private instagram posts
+    Public posts and profiles are handled by the instagram_api_archiver (HikerAPI)
+
+    **NOTE - need to put in username and password in download_post method hard code in here for now**
+
+    Docs https://subzeroid.github.io/instagrapi/
+
+    Source https://github.com/subzeroid/instagrapi
     """
-    name = "instagram_api_archiver"
+    name = "instagram_instagrapi_archiver"
 
     global_pattern = re.compile(r"(?:(?:http|https):\/\/)?(?:www.)?(?:instagram.com)\/(stories(?:\/highlights)?|p|reel)?\/?([^\/\?]*)\/?(\d+)?")
 
     def __init__(self, config: dict) -> None:
         super().__init__(config)
-        self.assert_valid_string("access_token")
-        self.assert_valid_string("api_endpoint")
-        self.full_profile_max_posts = int(self.full_profile_max_posts)
-        if self.api_endpoint[-1] == "/": self.api_endpoint = self.api_endpoint[:-1]
+        # self.assert_valid_string("access_token")
+        # self.assert_valid_string("api_endpoint")
+        # self.full_profile_max_posts = int(self.full_profile_max_posts)
+        # if self.api_endpoint[-1] == "/": self.api_endpoint = self.api_endpoint[:-1]
 
-        self.full_profile = bool(self.full_profile)
-        self.minimize_json_output = bool(self.minimize_json_output)
+        # self.full_profile = bool(self.full_profile)
+        # self.minimize_json_output = bool(self.minimize_json_output)
 
     @staticmethod
     def configs() -> dict:
@@ -61,15 +69,16 @@ class InstagramAPIArchiver(Archiver):
             # have chosen to succeed here as don't want it to continue trying other archivers
             return result.success("insta short code not implemented")
 
-        if g1 == "": return self.download_profile(item, g2)
-        elif g1 == "p": return self.download_post(item, g2, context="post")
-        elif g1 == "reel": return self.download_post(item, g2, context="reel")
-        elif g1 == "stories/highlights": return self.download_highlights(item, g2)
-        elif g1 == "stories": 
-            if len(g3): return self.download_post(item, id=g3, context="story")
-            return self.download_stories(item, g2)
+        # DM 21st Jan commented out as just testing download_post
+        # if g1 == "": return self.download_profile(item, g2)
+        if g1 == "p": return self.download_post(item, g2, context="post")
+        # elif g1 == "reel": return self.download_post(item, g2, context="reel")
+        # elif g1 == "stories/highlights": return self.download_highlights(item, g2)
+        # elif g1 == "stories": 
+        #     if len(g3): return self.download_post(item, id=g3, context="story")
+        #     return self.download_stories(item, g2)
         else: 
-            logger.warning(f"Unknown instagram regex group match {g1=} found in {url=}")
+            logger.warning(f"Unknown instagram_instagrapi regex group match {g1=} found in {url=}")
             return
         
     @retry(wait_random_min=1000, wait_random_max=3000, stop_max_attempt_number=5)
@@ -168,14 +177,98 @@ class InstagramAPIArchiver(Archiver):
         result.set("#highlights", count_highlights)
 
     def download_post(self, result: Metadata, code: str = None, id: str = None, context: str = None) -> Metadata:
-        if id:
-            post = self.call_api(f"v1/media/by/id", {"id": id})
-        else:
-            post = self.call_api(f"v1/media/by/code", {"code": code})
-        assert post, f"Post {id or code} not found"
+        # if id:
+        #     # dm commented out as just testing code 
+        #     # post = self.call_api(f"v1/media/by/id", {"id": id})
+        #     foo = 1
+        # else:
+        #     # dm following this path
+        #     post = self.call_api(f"v1/media/by/code", {"code": code})
+        # assert post, f"Post {id or code} not found"
 
-        if caption_text := post.get("caption_text"):
+        # post is a dict
+        cl = Client()
+        try:
+            session = cl.load_settings("session.json")
+        except FileNotFoundError:
+            # If file doesn't exist, start with empty session
+            session = {}
+
+        login_via_session = False
+        login_via_pw = False
+        USERNAME = "foo"
+        PASSWORD = "foo"
+        
+        if session:
+            try:
+                cl.set_settings(session)
+
+                cl.login(USERNAME, PASSWORD)
+
+                # check if session is valid
+                try:
+                    cl.get_timeline_feed()
+                except LoginRequired:
+                    logger.info("Session is invalid, need to login via username and password")
+
+                    old_session = cl.get_settings()
+
+                    # use the same device uuids across logins
+                    cl.set_settings({})
+                    cl.set_uuids(old_session["uuids"])
+
+                    cl.login(USERNAME, PASSWORD)
+                login_via_session = True
+            except Exception as e:
+                logger.info("Couldn't login user using session information: %s" % e)
+
+        if not login_via_session:
+            try:
+                logger.info("Attempting to login via username and password. username: %s" % USERNAME)
+                if cl.login(USERNAME, PASSWORD):
+                    login_via_pw = True
+                    # DM added this
+                    cl.dump_settings("session.json")
+            except Exception as e:
+                logger.info("Couldn't login user using username and password: %s" % e)
+
+        if not login_via_pw and not login_via_session:
+            raise Exception("Couldn't login user with either password or session")
+
+        # DM added this
+        # private account (which the logged in user is following) post
+        # returns an int
+
+        # '3547471774263482984'
+        foo = cl.media_pk_from_url("https://www.instagram.com/p/DE7JsiLsxpoh2blMrIrvXkSlN6yrWbkFPv1L5E0/")
+
+        # got image url and text - excellent!
+        bar = cl.media_info(foo)
+
+        post = bar
+
+
+
+
+        result = Metadata() 
+        if caption_text := post.caption_text:
+        # if caption_text := post.get("caption_text"):
             result.set_title(caption_text)
+
+        # lets get the first larger image from the post.. need to download it too
+        foo = post.image_versions2
+        bar = foo.get("candidates")
+        foo2 = bar[0]
+        foo3 = foo2.get("url")
+        # image_url = post.image_versions2.candidates[0].url
+        image_url = foo3
+        filename = self.download_from_url(image_url)
+        image_media = Media(filename=filename)
+
+        result.add_media(Media(filename=filename), id=f"image")
+        return result.success(f"instagrapi {context or 'post'}")
+
+
 
         # DM 17th Oct - if instagram post has been deleted this will fail
         try:
