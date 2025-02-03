@@ -128,7 +128,7 @@ class Metadata:
     def set_title(self, title: str) -> Metadata:
         return self.set("title", title)
 
-    # DM July
+    # DM July 24
     def set_view_count(self, view_count: str) -> Metadata:
         return self.set("view_count", view_count)
 
@@ -146,6 +146,11 @@ class Metadata:
     
     def set_channel_follower_count(self, channel_follower_count: str) -> Metadata:
         return self.set("channel_follower_count", channel_follower_count)
+
+    # DM Feb 25
+    def set_channel_id(self, channel_id: str) -> Metadata:
+        return self.set("channel_id", channel_id)
+    
 
 
 

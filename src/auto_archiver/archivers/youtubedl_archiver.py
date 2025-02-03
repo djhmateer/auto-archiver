@@ -126,6 +126,12 @@ class YoutubeDLArchiver(Archiver):
         channel_follower_count = info.get("channel_follower_count")
         result.set_channel_follower_count(channel_follower_count)
 
+        # DM 3rd Feb 25
+        # get extra field that never changes for an uploader
+        # whereas channel can change
+        channel_id = info.get("channel_id")
+        result.set_channel_id(channel_id)
+
 
         for entry in entries:
             try:

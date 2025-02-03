@@ -132,6 +132,9 @@ class GsheetsDb(Database):
             channel_follower_count = item.get("channel_follower_count")
             batch_if_valid('channel_follower_count', channel_follower_count)
 
+            channel_id = item.get("channel_id")
+            batch_if_valid('channel_id', channel_id)
+
             # set the screen1, screen2, screen3, screen4
             # there may be a raw video downloaded or not
             # first_media = all_media[0]
