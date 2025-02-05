@@ -150,8 +150,13 @@ class GDriveStorage(Storage):
         if use_mime_type:
             query_string += f" and mimeType='application/vnd.google-apps.folder' "
 
-        # aa demo main has overrides so that it is fast
-        # otherwise stick to defaults of 3 and 30
+        # aa demo main has overrides in config file eg  so that it is fast
+        # gd_retries: 1
+        # gd_sleep_seconds: 1
+        # DM 5th Feb 25 - 3 and 30 - had problems with GD not being able to find the folder and file after an upload
+        # otherwise stick to defaults of 4 and 40
+        # TODO refactor as it always waits 160s before creating a folder for the first time
+        # need to extend logic somehow so that it know when first folder should be created to just create it.
         retries = self.gd_retries
         sleep_seconds = self.gd_sleep_seconds
 
