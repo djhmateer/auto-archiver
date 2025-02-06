@@ -20,6 +20,13 @@ class TimestampingEnricher(Enricher):
     The information that gets timestamped is concatenation (via paragraphs) of the file hashes existing in the current archive. It will depend on which archivers and enrichers ran before this one. Inner media files (like thumbnails) are not included in the .txt file. It should run AFTER the hash_enricher.
 
     See https://gist.github.com/Manouchehri/fd754e402d98430243455713efada710 for list of timestamp authorities.
+
+    #DM notes
+    The .txt file contains the same hash value as a single jpg (if just 1 piece of media)
+    that text file is then timestamped
+    3 crt files are recieved (cert chain)
+    1 e32e6e537c8f4e3c84488748 file is retured (the timestamp response)
+    should then be able to prove that the .txt file was signed on this date
     """
     name = "timestamping_enricher"
 
@@ -33,7 +40,9 @@ class TimestampingEnricher(Enricher):
                 "default": [
                     # [Adobe Approved Trust List] and [Windows Cert Store]
                     "http://timestamp.digicert.com", 
-                    "http://timestamp.identrust.com",
+                    # DM comment out
+                    # "http://timestamp.identrust.com",
+
                     # "https://timestamp.entrust.net/TSS/RFC3161sha2TS", # not valid for timestamping
                     # "https://timestamp.sectigo.com", # wait 15 seconds between each request.
 
@@ -41,7 +50,8 @@ class TimestampingEnricher(Enricher):
                     # "https://timestamp.sectigo.com/qualified", # wait 15 seconds between each request.
                     
                     # [Windows Cert Store]
-                    "http://timestamp.globalsign.com/tsa/r6advanced1",
+                    # DM comment out
+                    # "http://timestamp.globalsign.com/tsa/r6advanced1",
                     
                     # [Adobe: European Union Trusted Lists] and [Windows Cert Store]
                     # "http://ts.quovadisglobal.com/eu", # not valid for timestamping
@@ -50,7 +60,8 @@ class TimestampingEnricher(Enricher):
                     # "http://tsa.sep.bg", # self-signed certificate in certificate chain
                     # "http://tsa.izenpe.com", #unable to get local issuer certificate
                     # "http://kstamp.keynectis.com/KSign", # unable to get local issuer certificate
-                    "http://tss.accv.es:8318/tsa",
+                    # DM comment out
+                    # "http://tss.accv.es:8318/tsa",
                 ], 
                 "help": "List of RFC3161 Time Stamp Authorities to use, separate with commas if passed via the command line.", 
                 "cli_set": lambda cli_val, cur_val: set(cli_val.split(",")) 
