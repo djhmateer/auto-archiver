@@ -39,9 +39,9 @@ class TimestampingEnricher(Enricher):
             "tsa_urls": { 
                 "default": [
                     # [Adobe Approved Trust List] and [Windows Cert Store]
-                    "http://timestamp.digicert.com", 
+                    # "http://timestamp.digicert.com", 
                     # DM comment out
-                    # "http://timestamp.identrust.com",
+                    "http://timestamp.identrust.com",
 
                     # "https://timestamp.entrust.net/TSS/RFC3161sha2TS", # not valid for timestamping
                     # "https://timestamp.sectigo.com", # wait 15 seconds between each request.

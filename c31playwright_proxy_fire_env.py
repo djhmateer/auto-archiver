@@ -25,14 +25,14 @@ def run(playwright):
 
     ## SPIN UP VPN if on PROD so that I get fast down and uploads of raw video 
     # which don't need the vpn
-    # if prod:
-    #     try:
-    #         result = subprocess.run(['expressvpn', 'connect', 'usho'], capture_output=True, text=True, check=True)
-    #         print(result.stdout)
-    #     except subprocess.CalledProcessError as e:
-    #         print(f"Error occurred: {e}")
-    #         print(e.stderr)
-    #         exit()
+    if prod:
+        try:
+            result = subprocess.run(['expressvpn', 'connect', 'usho'], capture_output=True, text=True, check=True)
+            print(result.stdout)
+        except subprocess.CalledProcessError as e:
+            print(f"Error occurred: {e}")
+            print(e.stderr)
+            exit()
 
 
     browser = playwright.firefox.launch(headless=False, executable_path=executable_path) 
@@ -140,14 +140,14 @@ def run(playwright):
         if i % 5 == 0:
             pop_up_dismiss()
 
-    # if prod:
-    #     try:
-    #         result = subprocess.run(['expressvpn', 'disconnect'], capture_output=True, text=True, check=True)
-    #         print(result.stdout)
-    #     except subprocess.CalledProcessError as e:
-    #         print(f"Error occurred: {e}")
-    #         print(e.stderr)
-    #         exit()
+    if prod:
+        try:
+            result = subprocess.run(['expressvpn', 'disconnect'], capture_output=True, text=True, check=True)
+            print(result.stdout)
+        except subprocess.CalledProcessError as e:
+            print(f"Error occurred: {e}")
+            print(e.stderr)
+            exit()
     exit()
 
 def main():
