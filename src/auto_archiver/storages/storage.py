@@ -38,11 +38,11 @@ class Storage(Step):
                 "choices": Storage.FILENAME_GENERATOR_CHOICES
             },
             "gd_retries": {
-                "default": 8,
+                "default": 2,
                 "help": "asdf"
             },
             "gd_sleep_seconds": {
-                "default": 40,
+                "default": 20,
                 "help": "asdf"
             }
         }
