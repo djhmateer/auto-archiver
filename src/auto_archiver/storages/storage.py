@@ -42,7 +42,7 @@ class Storage(Step):
                 "help": "asdf"
             },
             "gd_sleep_seconds": {
-                "default": 20,
+                "default": 60,
                 "help": "asdf"
             }
         }
