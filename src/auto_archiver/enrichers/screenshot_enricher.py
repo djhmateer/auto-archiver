@@ -112,6 +112,7 @@ class ScreenshotEnricher(Enricher):
                 # youtube cookie popup
                 if 'youtube.com' in url:
                     try:
+                        logger.debug("trying to click youtube cookie popup")    
                         reject_button = driver.find_element(By.CSS_SELECTOR, 'button[aria-label="Reject the use of cookies and other data for the purposes described"]')
                         reject_button.click()
                     except Exception as e:

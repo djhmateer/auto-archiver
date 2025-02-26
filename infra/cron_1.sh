@@ -79,9 +79,9 @@ sleep $TIME
 pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-domain-mw.yaml
 sleep $TIME
 
-# SERVER 2 doing this now
-# pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-projects.yaml
-# sleep $TIME
+# SERVER 2 was doing this now
+pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-projects.yaml
+sleep $TIME
 
 
 

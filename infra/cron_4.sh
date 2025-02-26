@@ -51,4 +51,7 @@ if [ $(pgrep -c "${0##*/}") -gt 1 ]; then
 fi
 
 pipenv run python -m src.auto_archiver --config secrets/orchestration-pluro-demo.yaml                
+sleep $TIME
 
+pipenv run python -m src.auto_archiver --config secrets/orchestration-lighthouse-reports.yaml                
+sleep $TIME
