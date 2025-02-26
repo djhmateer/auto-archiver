@@ -69,6 +69,9 @@ pipenv run python -m src.auto_archiver --config secrets/orchestration-glan-ytbm.
 sleep $TIME
 
 # pipenv run python -m src.auto_archiver --config secrets/orchestration-glan-ytbm-facebook.yaml
+# sleep $TIME
+
+pipenv run python -m src.auto_archiver --config secrets/orchestration-lighthouse-reports.yaml                
 sleep $TIME
 
 
