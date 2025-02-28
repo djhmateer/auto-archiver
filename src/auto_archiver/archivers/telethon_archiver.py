@@ -60,13 +60,25 @@ class TelethonArchiver(Archiver):
         self.client = TelegramClient(self.session_file, self.api_id, self.api_hash)
         logger.info(f"Initiated client with session_file {self.session_file}")    
 
-        # DM 28th Feb 25 - error here 
-        try:    
-            with self.client.start():
-                logger.debug(f"SETUP {self.name} login works.")
-        except Exception as e:
-            logger.error(f"Caught exception starting telethonclient: {e}")
-            raise e
+        # DM 28th Feb 25 - telethon client sometimes failing with this exception:
+        # Could not find a matching Constructor ID for the TLObject that was supposed to be read with ID 83314fca 
+        try_again = True
+        retries = 1
+        while try_again:
+            if retries > 5:
+                logger.error(f"Failed to start telethon client after {retries} retries")
+                raise Exception("Failed to start telethon client after 5 retries")
+            try:    
+                with self.client.start():
+                    logger.debug(f"SETUP {self.name} login works.")
+                    try_again = False
+            except Exception as e:
+                logger.error(f"Caught exception starting telethonclient: {e}")
+                logger.info(f"sleeping for {5 * retries} seconds before retrying")
+                time.sleep(5 * retries)
+                retries += 1
+
+
 
         if self.join_channels and len(self.channel_invites):
             logger.info(f"SETUP {self.name} joining channels...")
