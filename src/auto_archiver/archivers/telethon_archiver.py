@@ -48,12 +48,18 @@ class TelethonArchiver(Archiver):
 
         # make a copy of the session that is used exclusively with this archiver instance
         new_session_file = os.path.join("secrets/", f"telethon-{time.strftime('%Y-%m-%d')}{random_str(8)}.session")
+        logger.info(f"SETUP telethon_archiver made new session file called {new_session_file}")    
+
         shutil.copy(self.session_file + ".session", new_session_file)
+        logger.info(f"Copied {self.session_file}.session to {new_session_file}")    
+
         self.session_file = new_session_file.replace(".session", "")
+        logger.info(f"Set session_file to {self.session_file}")    
 
         # initiate the client
         self.client = TelegramClient(self.session_file, self.api_id, self.api_hash)
-        
+        logger.info(f"Initiated client with session_file {self.session_file}")    
+
         with self.client.start():
             logger.debug(f"SETUP {self.name} login works.")
 

@@ -59,14 +59,14 @@ TIME=5
 # TEST 
 cd /home/dave/auto-archiver
 
-pipenv run python -m src.auto_archiver --config secrets/orchestration-aa-demo-main.yaml
-sleep $TIME
+# pipenv run python -m src.auto_archiver --config secrets/orchestration-aa-demo-main.yaml
+# sleep $TIME
 
 # PROD
 
 # SERVER 2 was doing this now (flipped to aa demo main for special run)
-#pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-projects.yaml
-#sleep $TIME
+pipenv run python -m src.auto_archiver --config secrets/orchestration-cir-projects.yaml
+sleep $TIME
 
 
 
