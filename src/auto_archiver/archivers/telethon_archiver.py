@@ -65,7 +65,7 @@ class TelethonArchiver(Archiver):
         try_again = True
         retries = 1
         while try_again:
-            if retries > 5:
+            if retries > 10:
                 logger.error(f"Failed to start telethon client after {retries} retries")
                 raise Exception("Failed to start telethon client after 5 retries")
             try:    
