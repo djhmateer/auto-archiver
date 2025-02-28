@@ -60,8 +60,13 @@ class TelethonArchiver(Archiver):
         self.client = TelegramClient(self.session_file, self.api_id, self.api_hash)
         logger.info(f"Initiated client with session_file {self.session_file}")    
 
-        with self.client.start():
-            logger.debug(f"SETUP {self.name} login works.")
+        # DM 28th Feb 25 - error here 
+        try:    
+            with self.client.start():
+                logger.debug(f"SETUP {self.name} login works.")
+        except Exception as e:
+            logger.error(f"Caught exception starting telethonclient: {e}")
+            raise e
 
         if self.join_channels and len(self.channel_invites):
             logger.info(f"SETUP {self.name} joining channels...")
