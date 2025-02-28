@@ -185,6 +185,9 @@ class InstagramAPIArchiver(Archiver):
             result.set("archive_detail", message)
             return False
             
+        # DM 28th Feb - get username from post and put in metadata
+        if username := post.get("user", {}).get("username"):
+            result.set("username", username)
 
         if post.get("taken_at"): result.set_timestamp(post.get("taken_at"))
         return result.success(f"insta {context or 'post'}")
