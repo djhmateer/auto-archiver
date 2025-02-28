@@ -75,8 +75,9 @@ class TelethonArchiver(Archiver):
                     try_again = False
             except Exception as e:
                 # logger.error(f"Caught exception starting telethonclient: {e}")
-                logger.error(f"Caught exception starting telethonclient: {retries}")
-                logger.info(f"sleeping for {5 * retries} seconds before retrying")
+                message = f"Caught exception starting telethonclient: retry number {retries} sleeping for {5 * retries} seconds"
+                logger.error(message)
+                # logger.info(f"sleeping for {5 * retries} seconds before retrying")
                 time.sleep(5 * retries)
                 retries += 1
 
