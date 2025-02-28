@@ -44,6 +44,107 @@ class TelethonArchiver(Archiver):
         2. trigger login process for telegram or proceed if already saved in a session file
         3. joins channel_invites where needed
         """
+        logger.info("telethon setup - doing nothing")
+        # logger.info(f"SETUP {self.name} checking login...")
+
+        # # make a copy of the session that is used exclusively with this archiver instance
+        # new_session_file = os.path.join("secrets/", f"telethon-{time.strftime('%Y-%m-%d')}{random_str(8)}.session")
+        # logger.info(f"SETUP telethon_archiver made new session file called {new_session_file}")    
+
+        # shutil.copy(self.session_file + ".session", new_session_file)
+        # logger.info(f"Copied {self.session_file}.session to {new_session_file}")    
+
+        # self.session_file = new_session_file.replace(".session", "")
+        # logger.info(f"Set session_file to {self.session_file}")    
+
+        # # initiate the client
+        # self.client = TelegramClient(self.session_file, self.api_id, self.api_hash)
+        # logger.info(f"Initiated client with session_file {self.session_file}")    
+
+        # # DM 28th Feb 25 - telethon client sometimes failing with this exception:
+        # # Could not find a matching Constructor ID for the TLObject that was supposed to be read with ID 83314fca 
+        # try_again = True
+        # retries = 1
+        # while try_again:
+        #     if retries > 11:
+        #         message = f"Failed to start telethon client after {retries} retries"
+        #         logger.error(message)
+        #         raise Exception(message)
+        #     try:    
+        #         with self.client.start():
+        #             logger.debug(f"SETUP telethon_archiver login works.")
+        #             try_again = False
+        #     except Exception as e:
+        #         # logger.error(f"Caught exception starting telethonclient: {e}")
+        #         message = f"Caught telethon: retry {retries} sleeping {5 * retries}s"
+        #         logger.error(message)
+        #         # logger.info(f"sleeping for {5 * retries} seconds before retrying")
+        #         time.sleep(5 * retries)
+        #         retries += 1
+
+
+
+        # if self.join_channels and len(self.channel_invites):
+        #     logger.info(f"SETUP {self.name} joining channels...")
+        #     with self.client.start():
+        #         # get currently joined channels
+        #         # https://docs.telethon.dev/en/stable/modules/custom.html#module-telethon.tl.custom.dialog
+        #         joined_channel_ids = [c.id for c in self.client.get_dialogs() if c.is_channel]
+        #         logger.info(f"already part of {len(joined_channel_ids)} channels")
+
+        #         i = 0
+        #         pbar = tqdm(desc=f"joining {len(self.channel_invites)} invite links", total=len(self.channel_invites))
+        #         while i < len(self.channel_invites):
+        #             channel_invite = self.channel_invites[i]
+        #             channel_id = channel_invite.get("id", False)
+        #             invite = channel_invite["invite"]
+        #             if (match := self.invite_pattern.search(invite)):
+        #                 try:
+        #                     if channel_id:
+        #                         ent = self.client.get_entity(int(channel_id))  # fails if not a member
+        #                     else:
+        #                         ent = self.client.get_entity(invite)  # fails if not a member
+        #                         logger.warning(f"please add the property id='{ent.id}' to the 'channel_invites' configuration where {invite=}, not doing so can lead to a minutes-long setup time due to telegram's rate limiting.")
+        #                 except ValueError as e:
+        #                     logger.info(f"joining new channel {invite=}")
+        #                     try:
+        #                         self.client(ImportChatInviteRequest(match.group(2)))
+        #                     except UserAlreadyParticipantError as e:
+        #                         logger.info(f"already joined {invite=}")
+        #                     except InviteRequestSentError:
+        #                         logger.warning(f"already sent a join request with {invite} still no answer")
+        #                     except InviteHashExpiredError:
+        #                         logger.warning(f"{invite=} has expired please find a more recent one")
+        #                     except Exception as e:
+        #                         logger.error(f"could not join channel with {invite=} due to {e}")
+        #                 except FloodWaitError as e:
+        #                     logger.warning(f"got a flood error, need to wait {e.seconds} seconds")
+        #                     time.sleep(e.seconds)
+        #                     continue
+        #             else:
+        #                 logger.warning(f"Invalid invite link {invite}")
+        #             i += 1
+        #             pbar.update()
+
+    def cleanup(self) -> None:
+        logger.info(f"cleanup telethon - doing nothing")
+        # logger.info(f"CLEANUP {self.name}.")
+        # session_file_name = self.session_file + ".session"
+        # if os.path.exists(session_file_name):
+        #     os.remove(session_file_name)
+
+    def download(self, item: Metadata) -> Metadata:
+        """
+        if this url is archivable will download post info and look for other posts from the same group with media.
+        can handle private/public channels
+        """
+
+        # DM 28th Feb 25 - taken out of setup as there are transient errors
+        """
+        1. makes a copy of session_file that is removed in cleanup
+        2. trigger login process for telegram or proceed if already saved in a session file
+        3. joins channel_invites where needed
+        """
         logger.info(f"SETUP {self.name} checking login...")
 
         # make a copy of the session that is used exclusively with this archiver instance
@@ -65,7 +166,7 @@ class TelethonArchiver(Archiver):
         try_again = True
         retries = 1
         while try_again:
-            if retries > 17:
+            if retries > 11:
                 message = f"Failed to start telethon client after {retries} retries"
                 logger.error(message)
                 raise Exception(message)
@@ -125,17 +226,18 @@ class TelethonArchiver(Archiver):
                     i += 1
                     pbar.update()
 
-    def cleanup(self) -> None:
-        logger.info(f"CLEANUP {self.name}.")
-        session_file_name = self.session_file + ".session"
-        if os.path.exists(session_file_name):
-            os.remove(session_file_name)
 
-    def download(self, item: Metadata) -> Metadata:
-        """
-        if this url is archivable will download post info and look for other posts from the same group with media.
-        can handle private/public channels
-        """
+
+
+
+
+
+
+
+
+
+        ## DM OLD CODE below
+
         url = item.get_url()
         # detect URLs that we definitely cannot handle
         match = self.link_pattern.search(url)
@@ -206,6 +308,13 @@ class TelethonArchiver(Archiver):
             if "This channel can" in title:
                 item.set("archive_detail", f'telethon: {title}')
                 return False
+
+
+        # DM 28th Feb - cleanup code
+        logger.info(f"CLEANUP {self.name}.")
+        session_file_name = self.session_file + ".session"
+        if os.path.exists(session_file_name):
+            os.remove(session_file_name)
 
         return result.success("telethon")
 
