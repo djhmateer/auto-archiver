@@ -66,14 +66,16 @@ class TelethonArchiver(Archiver):
         retries = 1
         while try_again:
             if retries > 10:
-                logger.error(f"Failed to start telethon client after {retries} retries")
-                raise Exception("Failed to start telethon client after 5 retries")
+                message = f"Failed to start telethon client after {retries} retries"
+                logger.error(message)
+                raise Exception(message)
             try:    
                 with self.client.start():
-                    logger.debug(f"SETUP {self.name} login works.")
+                    logger.debug(f"SETUP telethon_archiver login works.")
                     try_again = False
             except Exception as e:
-                logger.error(f"Caught exception starting telethonclient: {e}")
+                # logger.error(f"Caught exception starting telethonclient: {e}")
+                logger.error(f"Caught exception starting telethonclient: {retries}")
                 logger.info(f"sleeping for {5 * retries} seconds before retrying")
                 time.sleep(5 * retries)
                 retries += 1
