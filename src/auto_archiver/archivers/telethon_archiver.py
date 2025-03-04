@@ -139,6 +139,9 @@ class TelethonArchiver(Archiver):
         can handle private/public channels
         """
 
+        # DM 4th March hack to get around 2nd time this is called, it uses old session file
+        self.session_file = "secrets/anon"
+
         # DM 28th Feb 25 - taken out of setup as there are transient errors
         """
         1. makes a copy of session_file that is removed in cleanup
