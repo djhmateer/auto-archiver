@@ -80,6 +80,9 @@ class WaczArchiverEnricher(Enricher, Archiver):
             if 'videos' in url:
                 # keep going as this is probabaly a facebook video which we do want the wacz for (ytdlp)
                 pass
+            elif 'watch' in url:
+                # keep going as this is probabaly a facebook video which we do want the wacz for (ytdlp)
+                pass
             else:
                 # has already been run by facebook_archiver
                 return True
