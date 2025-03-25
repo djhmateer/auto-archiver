@@ -11,6 +11,7 @@
 cd /home/dave/auto-archiver
 PATH=/usr/local/bin:$PATH
 
+
 # only 1 instance of this will run if job lasts longer than 1 minute
 # https://askubuntu.com/a/915731/677298
 if [ $(pgrep -c "${0##*/}") -gt 1 ]; then
@@ -32,9 +33,14 @@ if [ $(pgrep -c "${0##*/}") -gt 1 ]; then
      # NOTE HAVE DISABLED THE KILL FOR NOW
      TIMETOWAIT=3600
      if (($difference > $TIMETOWAIT)); then
-          # printf "\ndate: $now_human \n" >> /home/dave/kill_log.txt 2>&1
-          # echo "time diff greater then $TIMETOWAIT seconds - kill the process as cron.sh has produced no stdout!" >> /home/dave/log.txt 2>&1
+          printf "\ndate: $now_human \n" > /home/dave/kill_log.txt 2>&1
+          #echo "time diff greater then $TIMETOWAIT seconds - kill the process as cron.sh has produced no stdout!" >> /home/dave/log.txt 2>&1
           # echo "time diff greater then $TIMETOWAIT seconds - kill the process as cron.sh has produced no stdout!" >> /home/dave/kill_log.txt 2>&1
+
+          # 25th Mar 2025
+          # telethon sometimes stalls with only an output to ~/run-auto-archive.log which is from /etc/cron.d/run-auto-archive cron job
+          # https://github.com/LonamiWebs/Telethon/issues/4088
+          echo "time diff greater then $TIMETOWAIT seconds - maybe it is the: Telethon Server closed the connection: 0 bytes read on a total of 8 expected bytes problem. so I will reboot the server!" > /home/dave/kill_log.txt 2>&1
           # # pid=$(pgrep -f auto_archive_fb)
           # echo "pid is $pid" >> /home/dave/log.txt 2>&1
           # # kill -9 $pid

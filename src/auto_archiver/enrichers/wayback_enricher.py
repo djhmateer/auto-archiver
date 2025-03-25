@@ -194,10 +194,11 @@ class WaybackArchiverEnricher(Enricher, Archiver):
                 # 13th March 25 - Facebook is giving a 400 error.
                 # The target server could not understand the request for https://www.facebook.com/permalink.php?
                 # also on the UI
-                elif r_json['status'] == 'error' and 'facebook.com' in url and "The target server could not understand the request for" in message:
-                    logger.info(message)
-                    wayback_status = message
-                    keep_going = False
+                # 17th March 25 - it seems to give this response after a few minutes
+                # elif r_json['status'] == 'error' and 'facebook.com' in url and "The target server could not understand the request for" in message:
+                #     logger.info(message)
+                #     wayback_status = message
+                #     keep_going = False
                 
 
                 # pending so try again
