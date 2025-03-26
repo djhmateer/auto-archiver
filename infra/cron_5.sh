@@ -47,8 +47,8 @@ if [ $(pgrep -c "${0##*/}") -gt 1 ]; then
           # echo "killed" >> /home/dave/log.txt 2>&1
           # echo "killed" >> /home/dave/kill_log.txt 2>&1
           # # as there are firefox processes which need to be killed
-          # sudo reboot
-          echo "problem - probably a stuck process"
+          sudo reboot
+          # echo "problem - probably a stuck process - see ~/kill_log.txt"
      else
           # echo "time diff less then $TIMETOWAIT - normal control flow when the archiver is running" >> /home/dave/log.txt 2>&1
           echo "normal control flow when archiver is running"
