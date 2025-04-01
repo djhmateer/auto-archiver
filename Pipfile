@@ -73,9 +73,11 @@ retrying = "*"
 tsp-client = "*"
 certvalidator = "*"
 
-# DM July yt
-playwright = "*"
+# DM Apr 25 - method 'Browser.setContrast' is not supported
+# was on 1.51.0
+#playwright = "*"
 #playwright = "==1.48.0"
+playwright = "==1.49.1"
 python-dotenv = "*"
 
 instagrapi = "*"

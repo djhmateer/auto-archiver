@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "f41c4a94e09362aaaaa4d9151e93328d06b9f57c672da75a3eba0ab266792d5b"
+            "sha256": "3d6ef7aad88056fc631dd39c81defce384f4a7667957f30f2fa1a778a99edbf2"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -1548,17 +1548,17 @@
         },
         "playwright": {
             "hashes": [
-                "sha256:2e0ae6eb44297b24738e1a6d9c580ca4243b4e21b7e65cf936a71492c08dd0d4",
-                "sha256:4cef804991867ea27f608b70fa288ee52a57651e22d02ab287f98f8620b9408c",
-                "sha256:814e4ec2a1a0d6f6221f075622c06b31ceb2bdc6d622258cfefed900c01569ae",
-                "sha256:9ece9316c5d383aed1a207f079fc2d552fff92184f0ecf37cc596e912d00a8c3",
-                "sha256:ab4c0ff00bded52c946be60734868febc964c8a08a9b448d7c20cb3811c6521c",
-                "sha256:bcaaa3d5d73bda659bfb9ff2a288b51e85a91bd89eda86eaf8186550973e416a",
-                "sha256:d5c9f67bc6ef49094618991c78a1466c5bac5ed09157660d78b8510b77f92746"
+                "sha256:1041ffb45a0d0bc44d698d3a5aa3ac4b67c9bd03540da43a0b70616ad52592b8",
+                "sha256:3be48c6d26dc819ca0a26567c1ae36a980a0303dcd4249feb6f59e115aaddfb8",
+                "sha256:43b304be67f096058e587dac453ece550eff87b8fbed28de30f4f022cc1745bb",
+                "sha256:47b23cb346283278f5b4d1e1990bcb6d6302f80c0aa0ca93dd0601a1400191df",
+                "sha256:753ca90ee31b4b03d165cfd36e477309ebf2b4381953f2a982ff612d85b147d2",
+                "sha256:9f38ed3d0c1f4e0a6d1c92e73dd9a61f8855133249d6f0cec28648d38a7137be",
+                "sha256:cd9bc8dab37aa25198a01f555f0a2e2c3813fe200fef018ac34dfe86b34994b9"
             ],
             "index": "pypi",
             "markers": "python_version >= '3.9'",
-            "version": "==1.51.0"
+            "version": "==1.49.1"
         },
         "propcache": {
             "hashes": [
@@ -1872,11 +1872,11 @@
         },
         "pyee": {
             "hashes": [
-                "sha256:18a19c650556bb6b32b406d7f017c8f513aceed1ef7ca618fb65de7bd2d347ef",
-                "sha256:bbc33c09e2ff827f74191e3e5bbc6be7da02f627b7ec30d86f5ce1a6fb2424a3"
+                "sha256:7b14b74320600049ccc7d0e0b1becd3b4bd0a03c745758225e31a59f4095c990",
+                "sha256:c480603f4aa2927d4766eb41fa82793fe60a82cbfdb8d688e0d08c55a534e145"
             ],
             "markers": "python_version >= '3.8'",
-            "version": "==12.1.1"
+            "version": "==12.0.0"
         },
         "pygments": {
             "hashes": [
