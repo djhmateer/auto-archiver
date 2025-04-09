@@ -58,21 +58,19 @@ fi
 # pipenv run python -m src.auto_archiver --config secrets/orchestration-aa-demo-main.yaml
 
 
-# run-one pipenv run python -m src.auto_archiver --config secrets/orchestration-glan.yaml                
+# now called Sheet 1 (9th April 2025)
 pipenv run python -m src.auto_archiver --config secrets/orchestration-glan.yaml                
 sleep $TIME
 
-# pipenv run python -m src.auto_archiver --config secrets/orchestration-glan-facebook.yaml
-sleep $TIME
-
+# now called Sheet 2     
 pipenv run python -m src.auto_archiver --config secrets/orchestration-glan-ytbm.yaml                
 sleep $TIME
 
 # pipenv run python -m src.auto_archiver --config secrets/orchestration-glan-ytbm-facebook.yaml
 # sleep $TIME
 
-pipenv run python -m src.auto_archiver --config secrets/orchestration-lighthouse-reports.yaml                
-sleep $TIME
+# pipenv run python -m src.auto_archiver --config secrets/orchestration-lighthouse-reports.yaml                
+# sleep $TIME
 
 
 
