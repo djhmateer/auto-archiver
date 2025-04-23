@@ -58,11 +58,11 @@ fi
 # pipenv run python -m src.auto_archiver --config secrets/orchestration-aa-demo-main.yaml
 
 
-# now called Sheet 1 (9th April 2025)
+# now called SHEET 1 (9th April 2025)
 pipenv run python -m src.auto_archiver --config secrets/orchestration-glan.yaml                
 sleep $TIME
 
-# now called Sheet 2     
+# now called SHEET 2     
 pipenv run python -m src.auto_archiver --config secrets/orchestration-glan-ytbm.yaml                
 sleep $TIME
 
