@@ -326,8 +326,8 @@ class GsheetsDb(Database):
                         ,'{document_name}'
                         ,'{tab_name}'
                         ,'{entry_number}'         
-                        ,0)')
-
+                        ,0)
+                        
                         """)
                 else:
                     logger.success(f"Inserted hash into db {hash}")

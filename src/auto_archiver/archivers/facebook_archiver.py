@@ -163,7 +163,8 @@ class FacebookArchiver(Archiver):
                 cmd = self.docker_commands + cmd
             else:
                 # note there is another part further down the code which needs to be changed too.
-                cmd = ["docker", "run", "--rm", "-v", f"{browsertrix_home_host}:/crawls/", "webrecorder/browsertrix-crawler"] + cmd
+                # cmd = ["docker", "run", "--rm", "-v", f"{browsertrix_home_host}:/crawls/", "webrecorder/browsertrix-crawler"] + cmd
+                cmd = ["docker", "run", "--rm", "-v", f"{browsertrix_home_host}:/crawls/", "webrecorder/browsertrix-crawler:1.5.2"] + cmd
 
             ## ***HERE*** why is it not going inside here?????
             if self.profile:
@@ -242,6 +243,9 @@ class FacebookArchiver(Archiver):
             # if this first root page is strategy 0 then get the images as will be full resolution already
             if "facebook.com/photo" in url:
                 # strategy 0 eg https://www.facebook.com/photo/?fbid=1646726009098072&set=pcb.1646726145764725
+
+                # single lady
+                # https://www.facebook.com/khitthitnews/posts/pfbid0PTvT6iAccWqatvbDQNuqpFwL5WKzHuLK4QjP97Fwut637CV3XXQU53z1s2bJMAKwl
                 crawl_and_get_media_from_sub_page = False
             else:
                 # strategy 1 eg https://www.facebook.com/khitthitnews/posts/pfbid0PTvT6iAccWqatvbDQNuqpFwL5WKzHuLK4QjP97Fwut637CV3XXQU53z1s2bJMAKwl
@@ -279,12 +283,15 @@ class FacebookArchiver(Archiver):
                     # DM catch for strategy 1 - Part 1
                     if record.rec_type == 'request' and crawl_and_get_media_from_sub_page == True:
                         uri = record.rec_headers.get_header('WARC-Target-URI')
+                        logger.debug(f"uri: {uri}")
+                        # This has changed and we can't look for photo%2F%3Ffbid%3D anymore.
                         if "bulk-route-definitions/" in uri:
                             content = record.content_stream().read()
                             foo = str(content)
 
                             # Strategy 1 test
                             # photo%2F%3Ffbid%3D1646726009098072%26set%3Dpcb.1646726145764725%26
+                            # the map with text belo
                             # fbid = 1646726009098072
                             # set = pcb.1646726145764725
                             photo_string_start_pos = foo.find(f'photo%2F%3Ffbid%3D',0)
@@ -538,7 +545,8 @@ class FacebookArchiver(Archiver):
 
             browsertrix_home = linux_tmp_dir
 
-            docker_commands = ["docker", "run", "--rm", "-v", f"{browsertrix_home}:/crawls/", "webrecorder/browsertrix-crawler"]
+            # docker_commands = ["docker", "run", "--rm", "-v", f"{browsertrix_home}:/crawls/", "webrecorder/browsertrix-crawler"]
+            docker_commands = ["docker", "run", "--rm", "-v", f"{browsertrix_home}:/crawls/", "webrecorder/browsertrix-crawler:1.5.2"]
             cmd = docker_commands + [
                 "crawl",
                 "--url", url_build,
