@@ -20,7 +20,7 @@ To get started with Auto Archiver, there are 3 main steps you need to complete.
 2. [Setup up your configuration](configurations.md) (if you are ok with the default settings, you can skip this step)
 3. Run the archiving process<a id="running"></a>
 
-The way you run the Auto Archiver depends on how you installed it (docker install or local install)
+The way you run the Auto Archiver depends on how you installed it (docker install or local install).
 
 ### Running a Docker Install
 
