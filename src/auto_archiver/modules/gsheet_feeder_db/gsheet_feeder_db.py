@@ -101,6 +101,7 @@ class GsheetsFeederDB(Feeder, Database):
         logger.info(f"STARTED {item}")
         gw, row = self._retrieve_gsheet(item)
         gw.set_cell(row, "status", "Archive in progress")
+        logger.info(f" row: {row} on {gw.wks.spreadsheet.title} : {gw.wks.title}")
 
     def failed(self, item: Metadata, reason: str) -> None:
         logger.error(f"FAILED {item}")
