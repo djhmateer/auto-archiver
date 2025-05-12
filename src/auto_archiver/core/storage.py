@@ -32,7 +32,6 @@ from auto_archiver.utils.misc import random_str
 from auto_archiver.core import Media, BaseModule, Metadata
 from auto_archiver.modules.hash_enricher.hash_enricher import HashEnricher
 
-
 class Storage(BaseModule):
     """
     Base class for implementing storage modules in the media archiving framework.
@@ -84,7 +83,14 @@ class Storage(BaseModule):
             # media key is already set
             return
 
+        # in pre 1 release, this returned something line DM0001 ie the entry number from the sheet
+        # now it returns: 'dia020/aa-demo-main/sheet1'
         folder = metadata.get_context("folder", "")
+
+        # DM 12th May 25 for now I just want dia020
+        # and don't want the /aa-demo-main/sheet1
+        folder = folder.split("/")[0]
+
         filename, ext = os.path.splitext(media.filename)
 
         # Handle path_generator logic
