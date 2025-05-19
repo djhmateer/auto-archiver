@@ -50,6 +50,8 @@ if [ $(pgrep -c "${0##*/}") -gt 1 ]; then
      exit
 fi
 
+# pipenv run python -m src.auto_archiver --config secrets/orchestration-aa-demo-main.yaml
+
 # SHEET 1
 # trying to get working on server4 (19th May 2025)
 pipenv run python -m src.auto_archiver --config secrets/orchestration-glan.yaml  
