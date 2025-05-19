@@ -62,7 +62,7 @@ sudo apt upgrade -y
 # sudo apt install python3.9 -y
 # sudo apt install python3.10 -y
 
-# 3.10.6 already installed in Ubun 22.04
+# 3.10.6 already installed in Ubuntu 22.04
 
 # need this for pip upgrade to work
 export PATH=/home/dave/.local/bin:$PATH
@@ -70,6 +70,7 @@ export PATH=/home/dave/.local/bin:$PATH
 sudo apt install python3-pip -y
 
 # update pip to 23.3.1
+# DM 7th May 25 - do I need this anymore if using ubuntu 24
 pip install --upgrade pip
 
 # We are calling pipenv from cron so need to install this way

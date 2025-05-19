@@ -71,7 +71,7 @@ class TwitterArchiver(Archiver):
             try:
                 return self.download_alternative(item, url, tweet_id)
             except Exception as ex:
-                logger.info("download alternative didn't work")
+                logger.info(f"download alternative didn't work: {ex}")
                 return False
 
         # result.set_title(tweet.content).set_content(tweet.json()).set_timestamp(tweet.date)
@@ -164,7 +164,8 @@ class TwitterArchiver(Archiver):
             .set_timestamp(datetime.strptime(tweet["created_at"], "%a %b %d %H:%M:%S %z %Y"))
         if not tweet.get("entities", {}).get("media"):
             logger.debug('No media found, archiving tweet text only')
-            return result
+            # return result
+            return result.success("twitter-text-only")
         for i, tw_media in enumerate(tweet["entities"]["media"]):
             media = Media(filename="")
             mimetype = ""

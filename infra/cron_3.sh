@@ -59,8 +59,9 @@ fi
 
 
 # now called SHEET 1 (9th April 2025)
-pipenv run python -m src.auto_archiver --config secrets/orchestration-glan.yaml                
-sleep $TIME
+# now running on server4 (19th May 2025)
+# pipenv run python -m src.auto_archiver --config secrets/orchestration-glan.yaml                
+# sleep $TIME
 
 # now called SHEET 2     
 pipenv run python -m src.auto_archiver --config secrets/orchestration-glan-ytbm.yaml                

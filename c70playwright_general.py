@@ -42,7 +42,8 @@ def run(playwright):
         exit()
 
     # telegram needs a wait for media to load
-    page.wait_for_timeout(4000)
+    # page.wait_for_timeout(4000)
+    page.wait_for_timeout(8000)
 
     page.screenshot(path=tmp_dir + '/c70.png', full_page=True)
     page.wait_for_timeout(1000)

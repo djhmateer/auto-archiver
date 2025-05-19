@@ -55,6 +55,16 @@
 			"args": ["--config","secrets/orchestration-glan-ytbm.yaml"]
 		},
 		{
+			"name": "GLAN-SHEET 1 LEO (davemateer@gmail)",
+			"type": "python",
+			"request": "launch",
+			// "program": "src/auto_archiver",
+            "module": "src.auto_archiver",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","secrets/orchestration-glan-sheet1-leo.yaml"]
+		},
+		{
 			"name": "GLAN-YTBM - Facebook (davemateer@gmail)",
 			"type": "python",
 			"request": "launch",
