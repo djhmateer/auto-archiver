@@ -1,3 +1,4 @@
+import time
 import jsonlines
 import mimetypes
 import os
@@ -88,9 +89,18 @@ class WaczExtractorEnricher(Enricher, Extractor):
 
         if self.auth_for_site(url):
             # there's an auth for this site, but browsertrix only supports username/password auth
-            logger.warning(
-                "The WACZ enricher / Browsertrix does not support using the 'authentication' information for logging in. You should consider creating a Browser Profile for WACZ archiving. More information: https://auto-archiver.readthedocs.io/en/latest/modules/autogen/extractor/wacz_extractor_enricher.html#browsertrix-profiles"
-            )
+            if (
+                'facebook.com' in url or 
+                'twitter.com' in url or 
+                'x.com' in url or
+                'instagram.com' in url
+            ):
+                # DM 26th May 2025 - this is more of a debug message rather than a warning
+                logger.debug(f"for Facebook and Twitter/X and Instagram passed a cookie to the yt-dlp extractor for screenshotting, content and comments and profile.tar.gz to here for image extraction")
+            else:
+                logger.warning(
+                    "The WACZ enricher / Browsertrix does not support using the 'authentication' information for logging in. You should consider creating a Browser Profile for WACZ archiving. More information: https://auto-archiver.readthedocs.io/en/latest/modules/autogen/extractor/wacz_extractor_enricher.html#browsertrix-profiles"
+                )
 
         # call docker if explicitly enabled or we are running on the host (not in docker)
         if self.use_docker:
@@ -132,6 +142,7 @@ class WaczExtractorEnricher(Enricher, Extractor):
                 my_env["SOCKS_HOST"] = self.socks_proxy_host
                 my_env["SOCKS_PORT"] = str(self.socks_proxy_port)
             subprocess.run(cmd, check=True, env=my_env)
+
         except Exception as e:
             logger.error(f"WACZ generation failed: {e}")
             return False
@@ -237,6 +248,31 @@ class WaczExtractorEnricher(Enricher, Extractor):
                 record_url_best_qual = UrlUtil.twitter_best_quality_url(record_url)
                 with open(fn, "wb") as outf:
                     outf.write(record.raw_stream.read())
+
+                # DM 28th May 25 - special cases Instagram
+                if 'instagram' in record_url:
+                    # https://static.cdninstagram.com/images/instagram/xig_legacy_spritesheets/sprite_core.png?__makehaste_cache_breaker=VftLCxPPZoi
+                    # https://www.instagram.com/images/instagram/xig_legacy_spritesheets/sprite_compassion_2x.png?__makehaste_cache_breaker=qw4qS1SUQa2
+                    if '__makehaste_cache_breaker' in record_url:
+                        continue
+                    # phone image and icons
+                    if 'https://www.instagram.com/rsrc.php/v4/' in record_url:
+                        continue
+
+                # DM 22nd May 25 - only want larger more important images 
+                fs = os.path.getsize(fn)
+                # if fs < 6000 and ext == ".jpg": continue
+                if fs < 13500 and ext == ".jpg": continue
+                if fs < 6000 and ext == ".webp": continue
+                # are pngs useful at all?
+                # I see them mostly as graphics or artwork.
+                # screenshots are pngs from browsertrix
+                if fs < 37000 and ext == ".png": continue
+                # youtube
+                if fs < 12000 and ext == ".avif": continue
+                if ext == ".gif": continue
+                if ext == ".ico": continue
+                if ext == None : continue
 
                 m = Media(filename=fn)
                 m.set("src", record_url)
