@@ -33,18 +33,23 @@ class ThumbnailEnricher(Enricher):
                 folder = os.path.join(self.tmp_dir, random_str(24))
                 os.makedirs(folder, exist_ok=True)
                 logger.debug(f"generating thumbnails for {m.filename}")
-                duration = m.get("duration")
 
-                if duration is None:
-                    try:
-                        probe = ffmpeg.probe(m.filename)
-                        duration = float(
-                            next(stream for stream in probe["streams"] if stream["codec_type"] == "video")["duration"]
-                        )
-                        to_enrich.media[m_id].set("duration", duration)
-                    except Exception as e:
-                        logger.error(f"error getting duration of video {m.filename}: {e}")
-                        return
+                # DM 22nd May 2025 - have seen a duration on 18 seconds here
+                # youtube says 17 seconds
+                # when downloaded it says 16 seconds
+                # which then caused maths problems
+                # duration = m.get("duration")
+
+                # if duration is None:
+                try:
+                    probe = ffmpeg.probe(m.filename)
+                    duration = float(
+                        next(stream for stream in probe["streams"] if stream["codec_type"] == "video")["duration"]
+                    )
+                    to_enrich.media[m_id].set("duration", duration)
+                except Exception as e:
+                    logger.error(f"error getting duration of video {m.filename}: {e}")
+                    return
 
                 num_thumbs = int(min(max(1, (duration / 60) * self.thumbnails_per_minute), self.max_thumbnails))
                 timestamps = [duration / (num_thumbs + 1) * i for i in range(1, num_thumbs + 1)]
