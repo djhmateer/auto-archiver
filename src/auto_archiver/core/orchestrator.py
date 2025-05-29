@@ -331,13 +331,25 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
         except ValueError:
             pass
 
-        # add other logging info
-        if self.logger_id is None:  # note - need direct comparison to None since need to consider falsy value 0
+        # Only set up logging if it hasn't been set up before
+        if self.logger_id is None:
+            # Add stderr logger with configured level
             self.logger_id = logger.add(sys.stderr, level=logging_config["level"])
-            if log_file := logging_config["file"]:
-                logger.add(log_file) if not logging_config["rotation"] else logger.add(
-                    log_file, rotation=logging_config["rotation"]
-                )
+    
+            # Optionally add file logging if a log file is specified
+            log_file = logging_config.get("file")
+            if log_file:
+                # Add file logger with optional rotation
+                rotation = logging_config.get("rotation")
+                if rotation:
+                    # logger.add(log_file, rotation=rotation)
+                    logger.add("logs/1debug.log", level="DEBUG", rotation="100 MB")
+                    logger.add("logs/2info.log", level="INFO", rotation="100 MB")
+                    logger.add("logs/3success.log", level="SUCCESS", rotation="100 MB")
+                    logger.add("logs/4warning.log", level="WARNING", rotation="100 MB")
+                    logger.add("logs/5error.log", level="ERROR", rotation="100 MB")
+                else:
+                    logger.add(log_file)
 
     def install_modules(self, modules_by_type):
         """
