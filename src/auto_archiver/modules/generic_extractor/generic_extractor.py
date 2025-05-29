@@ -364,7 +364,16 @@ class GenericExtractor(Extractor):
         # this time download
         ydl.params["getcomments"] = self.comments
         # TODO: for playlist or long lists of videos, how to download one at a time so they can be stored before the next one is downloaded?
-        data = ydl.extract_info(url, ie_key=info_extractor.ie_key(), download=True)
+
+        # if a playlist and we hit max_downloads this throws here
+        try:
+            data = ydl.extract_info(url, ie_key=info_extractor.ie_key(), download=True)
+        except Exception as e:
+            if 'Maximum number of downloads reached, stopping due to --max-downloads' in str(e):
+                logger.warning("Maximum number of downloads reached, stopping due to --max-downloads")
+            else:
+                raise e
+
         if "entries" in data:
             entries = data.get("entries", [])
             if not len(entries):
@@ -377,9 +386,36 @@ class GenericExtractor(Extractor):
 
         for entry in entries:
             try:
+                # eg /home/dave/code/auto-archiver/tmpymhetp8w/YSuHrTfcikU.NA
                 filename = ydl.prepare_filename(entry)
+
+                # DM 14th May 2025 - commented out these 2 lines
+                # if not os.path.exists(filename):
+                #     filename = filename.split(".")[0] + ".mkv"
+
+                # With a single video the extension is fine
+                # When there is a playlist the filename extension is NA
+                # lets take the filename eg WNy0ZRLrtis.NA 
+                # then search on disk for WNy0ZRLrtis
                 if not os.path.exists(filename):
-                    filename = filename.split(".")[0] + ".mkv"
+                    logger.debug(f"File {filename} does not exist, searching for it on disk")
+                    path = os.path.dirname(filename)
+
+                    # eg WNy0ZRLrtis ie no extension
+                    filename_to_search_for_without_extension = filename.split("/")[-1].split(".")[0]
+
+                    # Search the path for the filename without extension
+                    found = False
+                    for file in os.listdir(path):
+                        if file.startswith(filename_to_search_for_without_extension):
+                            # if filename ends with .vtt then ignore as subtitles
+                            if not file.endswith(".vtt"):
+                                filename = os.path.join(path, file)
+                                found = True
+                                break # out of the for loop
+                    if not found:
+                        logger.info(f"File {filename} not found on disk - private video perhaps?")
+                        raise
 
                 new_media = Media(filename)
                 for x in ["duration", "original_url", "fulltitle", "description", "upload_date"]:
@@ -397,7 +433,11 @@ class GenericExtractor(Extractor):
                             logger.error(f"Error loading subtitle file {val.get('filepath')}: {e}")
                 result.add_media(new_media)
             except Exception as e:
-                logger.error(f"Error processing entry {entry}: {e}")
+                # DM 29th May 2025 - continue without this problematic entry
+                # not sure why yt-dlp thinks the instagramcarousel? is a video playlist
+                # https://www.instagram.com/hiddenpalestine/p/C0PTzJARgin/?img_index=1 
+                # have downgraded from error to info for now. TODO - keep an eye on this!
+                logger.info(f"Warning processing entry {entry}: {e}")
 
         return self.add_metadata(data, info_extractor, url, result)
 
@@ -462,6 +502,8 @@ class GenericExtractor(Extractor):
                 raise SkipYtdlp()
 
             # don't download since it can be a live stream
+            # DM 22nd May 25 - getting a worse title when logged in (ie passed cookies)
+            # using wacz gets a better title (but what happens when that is logged in?)
             data = ydl.extract_info(url, ie_key=info_extractor.ie_key(), download=False)
             if data.get("is_live", False) and not self.livestreams:
                 logger.warning("Livestream detected, skipping due to 'livestreams' configuration setting")
