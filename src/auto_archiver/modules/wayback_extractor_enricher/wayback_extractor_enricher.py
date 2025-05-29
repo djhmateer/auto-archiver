@@ -56,8 +56,13 @@ class WaybackExtractorEnricher(Enricher, Extractor):
         try:
             job_id = r.json().get("job_id")
             if not job_id:
-                logger.error(f"Wayback failed with {r.json()}")
-                return False
+                # for some sites likes twitter, with 'we're facing some limitation' this is business as usual for us, so not an error
+                if 'twitter.com' or 'x.com' in url:
+                    logger.info(f"Wayback failed and we know about this with Twitter/X with {r.json()}")
+                    return False
+                else:
+                    logger.error(f"Wayback failed with {r.json()}")
+                    return False
         except json.decoder.JSONDecodeError:
             logger.error(f"Expected a JSON with job_id from Wayback and got {r.text}")
             return False
