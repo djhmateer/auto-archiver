@@ -82,18 +82,46 @@ class CookieSettingDriver(webdriver.Firefox):
                 self.find_element(By.XPATH, xpath).click()
                 time.sleep(2)
             except selenium_exceptions.NoSuchElementException:
+                # Button text not found, normal code path
+                pass
+            except Exception as e:
+                # Unusual - happens on tiktok.com
+                # Element <script id="tiktok-cookie-banner-config" type="application/json"> could not be scrolled into view
+                logger.debug(f"Error clicking cookie button, but continuing to take screenshot: {e}")
                 pass
 
-        # now get the actual URL
-        if self.facebook_accept_cookies:
-            # try and click the 'close' button on the 'login' window to close it
+        # Youtube cookie popup
+        if 'youtu.be' in url:
             try:
-                xpath = "//div[@role='dialog']//div[@aria-label='Close']"
-                self.find_element(By.XPATH, xpath).click()
-                time.sleep(2)
-            except selenium_exceptions.NoSuchElementException:
-                logger.warning("Unable to find the 'close' button on the facebook login window")
-                pass
+                logger.debug("Trying to click youtu.be cookie popup")    
+                reject_button = self.find_element(By.CSS_SELECTOR, 'button[aria-label="Reject all"]')
+                reject_button.click()
+                # wait for popup to close - between 4 and 10 seconds
+                # sleep_before_screenshot takes care of this
+            except Exception as e:
+                logger.debug("No cookies popup which may be fine") 
+        elif 'youtube.com'in url:
+            try:
+                logger.debug("Trying to click youtube cookie popup")    
+                reject_button = self.find_element(By.CSS_SELECTOR, 'button[aria-label="Reject the use of cookies and other data for the purposes described"]')
+                reject_button.click()
+                # wait for popup to close - between 4 and 10 seconds
+                # sleep_before_screenshot takes care of this
+            except Exception as e:
+                logger.debug("No cookies popup which may be fine")
+
+        # now get the actual URL
+        # DM 22nd May 2025 - as I'm passing a cookie I don't need this, and it affects post pages with a popup so turn off 
+        elif self.facebook_accept_cookies:
+            # try and click the 'close' button on the 'login' window to close it
+            # try:
+            #     xpath = "//div[@role='dialog']//div[@aria-label='Close']"
+            #     self.find_element(By.XPATH, xpath).click()
+            #     time.sleep(2)
+            # except selenium_exceptions.NoSuchElementException:
+            #     logger.info("Unable to find the 'close' button on the facebook login window. This is fine if a cookie is passed.")
+            #     pass
+            pass
 
         else:
             # for all other sites, try and use some common button text to reject/accept cookies

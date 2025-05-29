@@ -4,6 +4,7 @@ import os
 import base64
 
 from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.common.by import By
 
 
 from auto_archiver.core import Enricher
@@ -44,8 +45,10 @@ class ScreenshotEnricher(Enricher):
             auth=auth,
         ) as driver:
             try:
+                # this goes to webdriver.py which has cookie popup handling
                 driver.get(url)
                 time.sleep(int(self.sleep_before_screenshot))
+
                 screenshot_file = os.path.join(self.tmp_dir, f"screenshot_{random_str(8)}.png")
                 driver.save_screenshot(screenshot_file)
                 to_enrich.add_media(Media(filename=screenshot_file), id="screenshot")
