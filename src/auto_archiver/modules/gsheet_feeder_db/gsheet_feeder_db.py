@@ -134,7 +134,14 @@ class GsheetsFeederDB(Feeder, Database):
         def batch_if_valid(col, val, final_value=None):
             final_value = final_value or val
             try:
-                if val and gw.col_exists(col) and gw.get_cell(row_values, col) == "":
+                # if val and gw.col_exists(col) and gw.get_cell(row_values, col) == "":
+
+                if val and gw.col_exists(col):
+                    existing_value = gw.get_cell(row_values, col)
+                    if existing_value:
+                        logger.info(f"Overwriting spreadsheet cell {col}={existing_value} with {final_value} in {gw.wks.title} row {row}")
+                    
+                    # always update the cell to new value even if it already had a value
                     cell_updates.append((row, col, final_value))
             except Exception as e:
                 logger.error(f"Unable to batch {col}={final_value} due to {e}")
