@@ -39,8 +39,8 @@ class ThumbnailEnricher(Enricher):
                 # when downloaded it says 16 seconds
                 # which then caused maths problems
                 # duration = m.get("duration")
-
                 # if duration is None:
+
                 try:
                     probe = ffmpeg.probe(m.filename)
                     duration = float(
@@ -48,8 +48,11 @@ class ThumbnailEnricher(Enricher):
                     )
                     to_enrich.media[m_id].set("duration", duration)
                 except Exception as e:
-                    logger.error(f"error getting duration of video {m.filename}: {e}")
-                    return
+                    # Fall back which is sometimes not quite right see above message
+                    duration = m.get("duration")
+                    if duration is None:
+                        logger.error(f"error getting duration of video {m.filename}: {e}")
+                        return
 
                 num_thumbs = int(min(max(1, (duration / 60) * self.thumbnails_per_minute), self.max_thumbnails))
                 timestamps = [duration / (num_thumbs + 1) * i for i in range(1, num_thumbs + 1)]
