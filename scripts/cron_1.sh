@@ -51,5 +51,6 @@ TIME=5
 # TEST 
 cd /home/dave/auto-archiver
 # pipenv run python -m src.auto_archiver --config secrets/orchestration-aa-demo-main.yaml
-# sleep $TIME
+poetry run python src/auto_archiver --config secrets/orchestration-aa-demo-main.yaml
+sleep $TIME
 
