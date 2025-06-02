@@ -4,7 +4,10 @@
 # notice this script depends on the logs/1trace.log file being present to know if another instance of script is running
 
 cd /home/dave/auto-archiver
-PATH=/usr/local/bin:$PATH
+# PATH=/usr/local/bin:$PATH
+
+# so poetry can be used
+export PATH="$HOME/.local/bin:$PATH"
 
 # only 1 instance of this will run if job lasts longer than 1 minute
 # https://askubuntu.com/a/915731/677298
