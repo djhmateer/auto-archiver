@@ -52,7 +52,7 @@ class GsheetsFeederDB(Feeder, Database):
 
             # process and yield metadata here:
             yield from self._process_rows(gw)
-            logger.success(f"Finished worksheet {worksheet.title}")
+            logger.info(f"Finished worksheet {worksheet.title}")
 
     def _process_rows(self, gw: GWorksheet):
         for row in range(1 + self.header, gw.count_rows() + 1):

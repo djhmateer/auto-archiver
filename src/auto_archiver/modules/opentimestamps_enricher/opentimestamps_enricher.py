@@ -119,7 +119,7 @@ class OpentimestampsEnricher(Enricher):
         if timestamp_files:
             to_enrich.set("opentimestamped", True)
             to_enrich.set("opentimestamps_count", len(timestamp_files))
-            logger.success(f"{len(timestamp_files)} OpenTimestamps proofs created for {url=}")
+            logger.info(f"{len(timestamp_files)} OpenTimestamps proofs created for {url=}")
         else:
             to_enrich.set("opentimestamped", False)
             logger.warning(f"No successful timestamps created for {url=}")
