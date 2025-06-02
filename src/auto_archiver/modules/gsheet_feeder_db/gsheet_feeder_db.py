@@ -128,6 +128,11 @@ class GsheetsFeederDB(Feeder, Database):
         gw, row = self._retrieve_gsheet(item)
         # self._safe_status_update(item, 'done')
 
+        # DM - success log message showing the row, sheet and tab
+        spreadsheet = gw.wks.spreadsheet.title
+        worksheet = gw.wks.title
+        logger.success(f" row {row} on {spreadsheet} : {worksheet}")
+
         cell_updates = []
         row_values = gw.get_row(row)
 
@@ -136,6 +141,7 @@ class GsheetsFeederDB(Feeder, Database):
             try:
                 # if val and gw.col_exists(col) and gw.get_cell(row_values, col) == "":
 
+                # DM allow overwriting of cells in spreadsheet and log if it happens
                 if val and gw.col_exists(col):
                     existing_value = gw.get_cell(row_values, col)
                     if existing_value:
