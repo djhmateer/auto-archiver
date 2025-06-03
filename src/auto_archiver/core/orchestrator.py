@@ -472,7 +472,8 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
         This method should only ever be called once
         """
 
-        self.check_for_updates()
+        # DM 3rd Jun 25 - don't want log messages
+        # self.check_for_updates()
 
         if self.setup_finished:
             logger.warning(
