@@ -27,7 +27,8 @@ class ScreenshotEnricher(Enricher):
         has_valid_auth = auth and (auth.get("cookies") or auth.get("cookies_jar") or auth.get("cookie"))
 
         if UrlUtil.is_auth_wall(url) and not has_valid_auth:
-            logger.warning(f"[SKIP] SCREENSHOT since url is behind AUTH WALL and no login details provided: {url=}")
+            # DM 3rd Jun 25 - demoting to info as am testing Instagram without a cookie to stop being caught as suspicious. Wacz enricher screenshot works.
+            logger.info(f"[SKIP] SCREENSHOT since url is behind AUTH WALL and no login details provided: {url=}")
             if any(auth.get(key) for key in ["username", "password", "api_key", "api_secret"]):
                 logger.warning(
                     f"Screenshot enricher only supports cookie-type authentication, you have provided {auth.keys()} which are not supported.\
