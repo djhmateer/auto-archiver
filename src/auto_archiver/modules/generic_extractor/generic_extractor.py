@@ -377,7 +377,8 @@ class GenericExtractor(Extractor):
         if "entries" in data:
             entries = data.get("entries", [])
             if not len(entries):
-                logger.warning("YoutubeDLArchiver could not find any video")
+                # DM 3rd Jun 25 - demoting to info as Instragram image only posts get trapped here which is fine.
+                logger.info("YoutubeDLArchiver could not find any video")
                 return False
         else:
             entries = [data]
