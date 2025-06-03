@@ -65,6 +65,10 @@ class ThumbnailEnricher(Enricher):
                     ).run()
 
                     try:
+                        # DM 3rd Jun 25 - check if the file was created as through various maths issues with short videos the last out file can be missing
+                        if not os.path.exists(output_path):
+                            logger.info(f"thumbnail {index} for media {m.filename} was not created")
+                            continue
                         thumbnails_media.append(
                             Media(filename=output_path)
                             .set("id", f"thumbnail_{index}")
