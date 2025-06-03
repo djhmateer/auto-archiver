@@ -45,7 +45,13 @@ class WaybackExtractorEnricher(Enricher, Extractor):
         if self.if_not_archived_within:
             post_data["if_not_archived_within"] = self.if_not_archived_within
         # see https://docs.google.com/document/d/1Nsv52MvSjbLb2PCpHlat0gkzw0EvtSgpKHu4mk0MnrA for more options
-        r = requests.post("https://web.archive.org/save/", headers=ia_headers, data=post_data, proxies=proxies)
+        # DM 3rd Jun 25 - this is failing with a connection refused error from wayback.
+        try:
+            r = requests.post("https://web.archive.org/save/", headers=ia_headers, data=post_data, proxies=proxies)
+        except Exception as e:
+            # todo - trap better error so can retry?
+            logger.error(f"Error calling Wayback: {e}")
+            return False
 
         if r.status_code != 200:
             logger.error(em := f"Internet archive failed with status of {r.status_code}: {r.json()}")
