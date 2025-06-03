@@ -370,7 +370,7 @@ class GenericExtractor(Extractor):
             data = ydl.extract_info(url, ie_key=info_extractor.ie_key(), download=True)
         except MaxDownloadsReached:  # proceed as normal once MaxDownloadsReached is raised
             pass
-        logger.success(data)
+        logger.debug(data)
 
         if "entries" in data:
             entries = data.get("entries", [])
