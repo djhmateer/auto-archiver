@@ -144,7 +144,9 @@ class WaczExtractorEnricher(Enricher, Extractor):
             subprocess.run(cmd, check=True, env=my_env)
 
         except Exception as e:
-            logger.error(f"WACZ generation failed: {e}")
+            # DM 3rd Jun 25 - this failed - https://www.facebook.com/story.php?story_fbid=1401076324561584&id=100039776898418&mibextid=wwXIfr&rdid=T67mPQhQnS6r4JU2# 
+            # worked without the #
+            logger.error(f"WACZ generation failed - have seen this fail with facebook and a # on the end of the url: {e}")
             return False
 
         if self.docker_in_docker:
