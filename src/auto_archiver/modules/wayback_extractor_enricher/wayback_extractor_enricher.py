@@ -34,7 +34,7 @@ class WaybackExtractorEnricher(Enricher, Extractor):
             logger.debug(f"[SKIP] WAYBACK since url is behind AUTH WALL: {url=}")
             return
 
-        logger.debug(f"calling wayback for {url=}")
+        logger.debug(f"POSTing to wayback /save for {url=}")
 
         if to_enrich.get("wayback"):
             logger.info(f"Wayback enricher had already been executed: {to_enrich.get('wayback')}")
@@ -44,13 +44,26 @@ class WaybackExtractorEnricher(Enricher, Extractor):
         post_data = {"url": url}
         if self.if_not_archived_within:
             post_data["if_not_archived_within"] = self.if_not_archived_within
+
         # see https://docs.google.com/document/d/1Nsv52MvSjbLb2PCpHlat0gkzw0EvtSgpKHu4mk0MnrA for more options
-        # DM 3rd Jun 25 - this is failing with a connection refused error from wayback.
-        try:
-            r = requests.post("https://web.archive.org/save/", headers=ia_headers, data=post_data, proxies=proxies)
-        except Exception as e:
-            # todo - trap better error so can retry?
-            logger.error(f"Error calling Wayback: {e}")
+        # DM 4th Jun 25 - the post timeout will be 4:35 with 10 attempts.
+        # we need this to be successful as need the job_id to check the status to put in the metadata.
+        attempt = 1
+        success = False
+        while attempt <= 10:
+            try:
+                r = requests.post("https://web.archive.org/save/", headers=ia_headers, data=post_data, proxies=proxies)
+                success = True
+            except Exception as e:
+                # DM 3rd Jun 25 - max retries exceeded with url: /save/ catch
+                logger.warning(f"Problem posting to wayback - retrying {attempt} error - {e}")
+                time.sleep(5 * attempt) # linear backoff
+                attempt += 1
+            if success:
+                break # out of while loop
+
+        if not success:
+            logger.error(f"Error calling Wayback - given up after {attempt} attempts.")
             return False
 
         if r.status_code != 200:
@@ -58,13 +71,13 @@ class WaybackExtractorEnricher(Enricher, Extractor):
             to_enrich.set("wayback", em)
             return False
 
-        # check job status
+        # check wayback job status
         try:
             job_id = r.json().get("job_id")
             if not job_id:
                 # for some sites likes twitter, with 'we're facing some limitation' this is business as usual for us, so not an error
                 if 'twitter.com' or 'x.com' in url:
-                    logger.info(f"Wayback failed and we know about this with Twitter/X with {r.json()}")
+                    logger.info(f"Wayback failed and we know about this with Twitter/X with {r.json()} - if it starts working from wayback side, this will be fine")
                     return False
                 else:
                     logger.error(f"Wayback failed with {r.json()}")
@@ -90,7 +103,8 @@ class WaybackExtractorEnricher(Enricher, Extractor):
                     logger.error(f"Wayback failed with {r_json}")
                     return False
             except requests.exceptions.RequestException as e:
-                logger.warning(f"RequestException: fetching status for {url=} due to: {e}")
+                logger.info(f"Attempt {attempt} of fetching status for {url=} failed which is okay due to: {e}")
+                logger.info(f"If after {self.timeout} seconds the wayback url is not found, then we will just put the check status link in the metadata")
                 break
             except json.decoder.JSONDecodeError:
                 logger.error(f"Expected a JSON from Wayback and got {r.text} for {url=}")
@@ -99,11 +113,17 @@ class WaybackExtractorEnricher(Enricher, Extractor):
                 logger.warning(f"error fetching status for {url=} due to: {e}")
             if not wayback_url:
                 attempt += 1
-                time.sleep(1)  # TODO: can be improved with exponential backoff
+                # if we try too many times here it will affect the next POST to wayback
+                # which we really need to be successful.
+                # for 30seconds timeout (in yaml) this gives 3 attempts
+                time.sleep(5 * attempt)  # linear backoff. todo: exponential backoff
+
 
         if wayback_url:
+            logger.info(f"Wayback GET status successful - {wayback_url=}")
             to_enrich.set("wayback", wayback_url)
         else:
+            logger.info(f"Wayback GET status failed so reverting to check status link")
             to_enrich.set(
                 "wayback", {"job_id": job_id, "check_status": f"https://web.archive.org/save/status/{job_id}"}
             )
