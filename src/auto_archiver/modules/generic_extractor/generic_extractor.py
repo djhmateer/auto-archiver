@@ -369,6 +369,7 @@ class GenericExtractor(Extractor):
         try:
             data = ydl.extract_info(url, ie_key=info_extractor.ie_key(), download=True)
         except MaxDownloadsReached:  # proceed as normal once MaxDownloadsReached is raised
+            logger.info(f"MaxDownloadsReached for {url=}")  
             pass
         # logger.debug(data)
 
@@ -395,6 +396,12 @@ class GenericExtractor(Extractor):
                     or (entry_url and os.path.splitext(f)[0] in entry_url)
                     and "video/" in (mimetypes.guess_type(f)[0] or "")
                 ):
+                    # DM 4th Jun 25 
+                    # https://twitter.com/EverestToday/status/1546152848819232768
+                    # case where there are captions on a twitter video - we want the video
+                    if f.endswith(".vtt"):
+                        logger.info(f"Skipping vtt file {f} as we want the video")
+                        continue
                     return os.path.join(directory, f)
             return False
 
