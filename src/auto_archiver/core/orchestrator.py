@@ -343,11 +343,11 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
                 rotation = logging_config.get("rotation")
                 if rotation:
                     # logger.add(log_file, rotation=rotation)
-                    logger.add("logs/1debug.log", level="DEBUG", rotation="100 MB")
-                    logger.add("logs/2info.log", level="INFO", rotation="100 MB")
-                    logger.add("logs/3success.log", level="SUCCESS", rotation="100 MB")
-                    logger.add("logs/4warning.log", level="WARNING", rotation="100 MB")
-                    logger.add("logs/5error.log", level="ERROR", rotation="100 MB")
+                    logger.add("logs/1debug.log", level="DEBUG", rotation=rotation)
+                    logger.add("logs/2info.log", level="INFO", rotation=rotation)
+                    logger.add("logs/3success.log", level="SUCCESS", rotation=rotation)
+                    logger.add("logs/4warning.log", level="WARNING", rotation=rotation)
+                    logger.add("logs/5error.log", level="ERROR", rotation=rotation)
                 else:
                     logger.add(log_file)
 
