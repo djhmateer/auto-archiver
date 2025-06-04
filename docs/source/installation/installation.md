@@ -171,6 +171,9 @@ sudo mv run-auto-archive /etc/cron.d
 sudo chown root /etc/cron.d/run-auto-archive
 sudo chmod 600 /etc/cron.d/run-auto-archive
 
+# Helper alias 'c' to open the above file
+echo "alias c='sudo vim /etc/cron.d/run-auto-archive'" >> ~/.bashrc
+
 
 # secrets folder copy
 # I run dev from:
