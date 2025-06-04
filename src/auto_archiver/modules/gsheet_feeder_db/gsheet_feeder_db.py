@@ -10,6 +10,7 @@ The filtered rows are processed into `Metadata` objects.
 """
 
 import os
+import time
 from typing import Tuple, Union
 from urllib.parse import quote
 
@@ -194,7 +195,18 @@ class GsheetsFeederDB(Feeder, Database):
                 ),
             )
 
-        gw.batch_set_cell(cell_updates)
+        # DM 4th Jun 25 - saw this fail with a google api [503]: The service is currently unavailable.
+        # so added a retry loop.
+        # gw.batch_set_cell(cell_updates)
+        attempt = 1
+        while attempt <= 5:
+            try:
+                gw.batch_set_cell(cell_updates)
+                break
+            except Exception as e:
+                logger.warning(f"Attempt {attempt} of batch_set_cell failed due to {e} ")
+                attempt += 1
+                time.sleep(5 * attempt) # linear backoff
 
     def _safe_status_update(self, item: Metadata, new_status: str) -> None:
         try:
