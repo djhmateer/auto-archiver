@@ -58,7 +58,7 @@ class TimestampingEnricher(Enricher):
         ]
 
         if not len(hashes):
-            logger.warning(f"No hashes found in {url=}")
+            logger.debug(f"No hashes found in {url=} - this is normal if no files have been archived eg a 404 url")
             return
 
         
