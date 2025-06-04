@@ -55,7 +55,7 @@ If using the local installation method, you will also need to install the follow
 3. (optional) [fonts-noto](https://fonts.google.com/noto) to deal with multiple unicode characters during selenium/geckodriver's screenshots: `sudo apt install fonts-noto -y`.
 4. [Browsertrix Crawler docker image](https://hub.docker.com/r/webrecorder/browsertrix-crawler) for the WACZ enricher/archiver
 
-### Bash script for Ubuntu Server install
+### Bash script for Ubuntu 24 Server install
 
 This acts as a handy guide on all requirements. This is built and tested on the 29th of May 2025 on Ubuntu Server 24.04.2 LTS (which is the current latest LTS)
 
@@ -66,15 +66,14 @@ This acts as a handy guide on all requirements. This is built and tested on the 
 # which the application runs under which makes debugging easier
 
 cd ~
+sudo apt update -y
+sudo apt upgrade -y
 
 # Clone only my latest branch
 git clone -b v1-test --single-branch https://github.com/djhmateer/auto-archiver
 
 mkdir ~/auto-archiver/secrets
 sudo chown -R dave ~/auto-archiver
-
-sudo apt update -y
-sudo apt upgrade -y
 
 ## Python 3.12.3 comes with Ubuntu 24.04.2
 
@@ -88,7 +87,7 @@ curl -sSL https://install.python-poetry.org | python3 -
 cd auto-archiver
 
 # C++ compiler so pdqhash will install next
-sudo apt install build-essential python3-dev
+sudo apt install build-essential python3-dev -y
 
 poetry install
 
@@ -97,7 +96,6 @@ poetry install
 sudo apt install ffmpeg -y
 
 ## Firefox
-# 139.0+build2-0ubuntu0.24.04.1~mt1 on 2nd Jun 25
 cd ~
 sudo add-apt-repository ppa:mozillateam/ppa -y
 
@@ -109,19 +107,19 @@ Pin-Priority: 1001
 
 echo 'Unattended-Upgrade::Allowed-Origins:: "LP-PPA-mozillateam:${distro_codename}";' | sudo tee /etc/apt/apt.conf.d/51unattended-upgrades-firefox
 
+# 139.0+build2-0ubuntu0.24.04.1~mt1 on 2nd Jun 25
 sudo apt install firefox -y
 
 ## Gecko driver
 # check version numbers for new ones
 # https://github.com/mozilla/geckodriver/releases/
-cd ~
-wget https://github.com/mozilla/geckodriver/releases/download/v0.35.0/geckodriver-v0.35.0-linux64.tar.gz
+wget https://github.com/mozilla/geckodriver/releases/download/v0.36.0/geckodriver-v0.36.0-linux64.tar.gz
 tar -xvzf geckodriver*
 chmod +x geckodriver
 sudo mv geckodriver /usr/local/bin/
 rm geckodriver*
 
-# Fonts
+# Fonts so selenium via firefox can render other languages eg Burmese
 sudo apt install fonts-noto -y
 
 # Docker
@@ -144,10 +142,11 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin 
 # add dave user to docker group 
 sudo usermod -aG docker $USER
 
-# restart shell
-# TODO try: source ~/.bashrc
-# exec bash
+# reboot otherwise can't pull images
 
+# https://github.com/webrecorder/browsertrix-crawler
+# https://hub.docker.com/r/webrecorder/browsertrix-crawler/tags
+# 1.6.2 on 4th Jun 2025
 docker pull webrecorder/browsertrix-crawler:latest
 
 # exif
@@ -156,7 +155,9 @@ sudo apt install libimage-exiftool-perl -y
 
 ## CRON run every minute
 # the cron job running as user dave will execute the shell script
-sudo chmod +x ~/auto-archiver/scripts/cron_1.sh
+# I have many scripts running from cron_11 upwards.
+# patch in the correct number
+sudo chmod +x ~/auto-archiver/scripts/cron_12.sh
 
 # don't want service to run until a reboot otherwise problems with Gecko driver
 sudo service cron stop
@@ -164,7 +165,7 @@ sudo service cron stop
 # runs the script every minute
 # notice put in a # to disable so will have to manually start it.
 cat <<EOT >> run-auto-archive
-#*/1 * * * * dave /home/dave/auto-archiver/scripts/cron_1.sh
+#*/1 * * * * dave /home/dave/auto-archiver/scripts/cron_12.sh
 EOT
 
 sudo mv run-auto-archive /etc/cron.d
