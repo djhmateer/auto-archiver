@@ -121,11 +121,11 @@ class GDriveStorage(Storage):
         self,
         parent_id: str,
         name: str,
-        retries: int = 1, # was 3 in old code, but this is working. Wait for a google drive errors.
-        sleep_seconds: int = 10, # was 30 in old code
+        retries: int = 3, # was 1
+        sleep_seconds: int = 30, # was 10 in old code
         use_mime_type: bool = False,
         raise_on_missing: bool = True,
-        use_cache=True, # was False in old code but trying this for more speed
+        use_cache=False, # Todo see if this works well for more speed
     ):
         """
         Retrieves the id of a folder or file from its @name and the @parent_id folder
@@ -149,18 +149,11 @@ class GDriveStorage(Storage):
         if use_mime_type:
             query_string += " and mimeType='application/vnd.google-apps.folder' "
 
-        # aa demo main has overrides in config file eg  so that it is fast
-        # gd_retries: 1
-        # gd_sleep_seconds: 1
-        # DM 5th Feb 25 - 3 and 30 - had problems with GD not being able to find the folder and file after an upload
-        # otherwise stick to defaults of 4 and 40
         # TODO refactor as it always waits 160s before creating a folder for the first time
         # need to extend logic somehow so that it know when first folder should be created to just create it.
-        # retries = self.gd_retries
-        # sleep_seconds = self.gd_sleep_seconds
 
-        # DM 4th Jun 25 - test this hard to get it to fail????
-
+        # DM 4th Jun 25 - test this hard to get it to fail - yes I can get it to fail with 1, 10 and True for cache on a lot of files with xxx client
+        # TODO - multiple file uploads at same time?
         for attempt in range(retries):
             results = (
                 self.service.files()
