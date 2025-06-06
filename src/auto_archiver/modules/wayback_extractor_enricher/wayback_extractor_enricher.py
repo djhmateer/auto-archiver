@@ -67,7 +67,12 @@ class WaybackExtractorEnricher(Enricher, Extractor):
             return False
 
         if r.status_code != 200:
-            logger.error(em := f"Internet archive failed with status of {r.status_code}: {r.json()}")
+            # DM 6th Jun 25 - this is a workaround for a wayback issue where it returned a non json response text 
+            try:
+                error_content = r.json()
+            except requests.exceptions.JSONDecodeError:
+                error_content = r.text
+            logger.error(em := f"Internet archive failed with status of {r.status_code}: {error_content}")
             to_enrich.set("wayback", em)
             return False
 
