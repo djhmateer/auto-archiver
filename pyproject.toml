@@ -57,7 +57,14 @@ dependencies = [
     "bgutil-ytdlp-pot-provider (>=1.0.0)",
     "yt-dlp[curl-cffi,default] (>=2025.5.22,<2026.0.0)",
     "secretstorage (>=3.3.3,<4.0.0)",
+    "urllib3 (==1.26.17)"
 ]
+
+# uwazi API https://github.com/huridocs/python_uwazi_API
+# needs 1.26.7 
+# but yt-dlp needs 1.26.17 or higher
+# selenium downgrades to 4.32.0 from 4.33.0 when I force 1.26.17
+# urllib3 (==1.26.7)"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.4"
