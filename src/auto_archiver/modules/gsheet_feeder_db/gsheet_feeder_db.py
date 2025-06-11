@@ -318,27 +318,6 @@ class GsheetsFeederDB(Feeder, Database):
             if import_to_uwazi_notes == '': import_to_uwazi_notes = "success"
             gw.set_cell(row, 'iimport_to_uwazi_notes', import_to_uwazi_notes)
 
-
-    # def _process_uwazi_sheet1(self, gw: GWorksheet, row):
-    #     logger.info("Uwazi Part 2 send Sheet1 data to Uwazi")
-
-    #     original_status = gw.get_cell(row, 'status')
-    #     keep_going = True
-    #     # has the archiver already been run?
-    #     if original_status == '':
-    #         logger.debug('Archiver not been run for the first time, so dont even check if y is in import_to_uwazi')
-    #         keep_going = False
-
-    #     if keep_going:
-    #         # check uwazi column exists
-    #         try:
-    #             _ = gw.col_exists('import_to_uwazi')
-    #         except: 
-    #             keep_going = False
-    #             logger.error('Uwazi feature is on but import_to_uwazi column not present')
-    #             continue # to next row. 
-
-
     def _process_rows(self, gw: GWorksheet):
         for row in range(1 + self.header, gw.count_rows() + 1):
             url = gw.get_cell(row, "url").strip()
@@ -356,7 +335,7 @@ class GsheetsFeederDB(Feeder, Database):
                 keep_going = True
                 # has the archiver already been run?
                 if original_status == '':
-                    logger.debug('Archiver not been run for the first time, so dont even check if y is in import_to_uwazi')
+                    logger.debug('Archiver not been run for the first time on this link')
                     keep_going = False
 
                 # check uwazi column exists
@@ -391,7 +370,7 @@ class GsheetsFeederDB(Feeder, Database):
 
                     entry_number = gw.get_cell(row, 'folder')
 
-                    logger.debug(f'sending Content  {entry_number} to Uwazi!')
+                    logger.debug(f'Getting ready to make a Content item entry number: {entry_number} to send to Uwazi!')
 
                     uwazi_title = gw.get_cell(row, 'uwazi_title')
                     if uwazi_title == '':
@@ -470,37 +449,35 @@ class GsheetsFeederDB(Feeder, Database):
                     # eg GAZ088
                     case_id = gw.get_cell(row, 'case_id')
 
-                    if len(case_id) == 0:
-                        message = 'NOT IMPORTED - CASE_ID not found in spreadsheet - not imported into Uwazi as each Content template entity should have a CASE'
-                        logger.warning(message)
-                        import_to_uwazi_notes += message
-                        gw.set_cell(row, 'import_to_uwazi_notes', import_to_uwazi_notes)
-                        # set date_imported as otherwise it will try every run to import
-                        gw.set_cell(row, 'date_imported_to_uwazi',datetime.utcnow().replace(tzinfo=timezone.utc).isoformat())
-                        continue
+                    # DM 10th Jun 25 - new feature - what if we can have a blank CASE_ID then just upload the content without the link to the case.
+                    # if len(case_id) == 0:
+                    #     message = 'NOT IMPORTED - CASE_ID not found in spreadsheet - not imported into Uwazi as each Content template entity should have a CASE'
+                    #     logger.warning(message)
+                    #     import_to_uwazi_notes += message
+                    #     gw.set_cell(row, 'import_to_uwazi_notes', import_to_uwazi_notes)
+                    #     # set date_imported as otherwise it will try every run to import
+                    #     gw.set_cell(row, 'date_imported_to_uwazi',datetime.utcnow().replace(tzinfo=timezone.utc).isoformat())
+                    #     continue
 
                     description = gw.get_cell(row, 'description')
 
-                    # we don't do screenshots now if behind an auth wall
                     screenshot = gw.get_cell(row, 'screenshot')
 
                     # Does this CASE exist in Uwazi already?
-                    # It should have been created above if new
                     uwazi_adapter = UwaziAdapter(user=self.uwazi_user, password=self.uwazi_password, url=self.uwazi_url) 
 
-                    # fooxx = uwazi_adapter.entities.get_shared_ids_search_by_case_id(self.uwazi_case_template_id, 30, case_id)
                     fooxx = uwazi_adapter.entities.get_shared_ids_search_v2_by_case_id(self.uwazi_case_template_id, case_id)
 
                     case_id_mongo = ''
-                    if len(fooxx) == 0:
-                        message = 'NOT IMPORTED as CASE not found - problem. It should have been created in Uwazi before'
-                        logger.warning(message)
-                        import_to_uwazi_notes += message
-                        gw.set_cell(row, 'import_to_uwazi_notes', import_to_uwazi_notes)
-                        # set date_imported as otherwise it will try every run to import
-                        gw.set_cell(row, 'date_imported_to_uwazi',datetime.utcnow().replace(tzinfo=timezone.utc).isoformat())
-                        continue
-
+                    # DM 11th Jun - no caseid is fine.
+                    if len(fooxx) == 0: pass
+                    #     message = 'NOT IMPORTED as CASE not found - problem. It should have been created in Uwazi before'
+                    #     logger.warning(message)
+                    #     import_to_uwazi_notes += message
+                    #     gw.set_cell(row, 'import_to_uwazi_notes', import_to_uwazi_notes)
+                    #     # set date_imported as otherwise it will try every run to import
+                    #     gw.set_cell(row, 'date_imported_to_uwazi',datetime.utcnow().replace(tzinfo=timezone.utc).isoformat())
+                    #     continue
                     else:
                         # There were CASES found in the search
                         # if the search for GAZ088 came back with multiple CASES we would be in trouble
@@ -514,39 +491,37 @@ class GsheetsFeederDB(Feeder, Database):
                         else:
                             case_id_mongo = fooxx[0]
 
-                        # only if actively set to 'case' in the content spreadsheet should we copy from CASE
-                        # get the geolocation of this CASE and copy it onto the new Content entity we are making
-                        # if there isn't a geolocation there already
-                        if geolocation == 'case' or geolocation == "CASE":
-                            try:
-                                    ggg = uwazi_adapter.entities.get_one(case_id_mongo, "en")
-                                    case_geoloc_from_uwazi_json = ggg['metadata']['geolocation_geolocation'][0]['value']
-                                    lat = case_geoloc_from_uwazi_json['lat']
-                                    lon = case_geoloc_from_uwazi_json['lon']
-                                    geolocation_geolocation = [{
-                                        "value": {
-                                            "lat": lat,
-                                            "lon": lon,
-                                            "label": ""
-                                        }
-                                    }]
-                            except:
-                                    logger.debug('no geolocation in Uwazi for this case')
+                    # only if actively set to 'case' in the content spreadsheet should we copy from CASE
+                    # get the geolocation of this CASE and copy it onto the new Content entity we are making
+                    # if there isn't a geolocation there already
+                    if geolocation == 'case' or geolocation == "CASE":
+                        try:
+                                ggg = uwazi_adapter.entities.get_one(case_id_mongo, "en")
+                                case_geoloc_from_uwazi_json = ggg['metadata']['geolocation_geolocation'][0]['value']
+                                lat = case_geoloc_from_uwazi_json['lat']
+                                lon = case_geoloc_from_uwazi_json['lon']
+                                geolocation_geolocation = [{
+                                    "value": {
+                                        "lat": lat,
+                                        "lon": lon,
+                                        "label": ""
+                                    }
+                                }]
+                        except:
+                                logger.debug('no geolocation in Uwazi for this case')
 
-                        if screenshot == '':
-                            screenshot_alpha = []
-                            screenshot2_alpha = []
-                        else:
-                            screenshot_alpha = [{
-                                        "value": {
-                                            "label": "screenshot",
-                                            "url": screenshot
-                                        }
-                                    }]
-                            screenshot2_alpha = [{"value":screenshot}]
+                    if screenshot == '':
+                        screenshot_alpha = []
+                        screenshot2_alpha = []
+                    else:
+                        screenshot_alpha = [{
+                                    "value": {
+                                        "label": "screenshot",
+                                        "url": screenshot
+                                    }
+                                }]
+                        screenshot2_alpha = [{"value":screenshot}]
 
-                            
-                        
                     # Content
                     entity = {
                             'title': uwazi_title,
@@ -555,17 +530,8 @@ class GsheetsFeederDB(Feeder, Database):
                             "documents": [],
                             'metadata': {
                                 "description":[{"value":description}], 
-                                # "screenshot2":[{"value":screenshot}], 
                                 "screenshot2":screenshot2_alpha,
-                                
-                                # "screenshot": [{
-                                #         "value": {
-                                #             "label": "screenshot",
-                                #             "url": screenshot
-                                #         }
-                                #     }],
                                 "screenshot": screenshot_alpha,
-
                                 "video_url1":[{"value":video_url1}],
                                 "video_url2":[{"value":video_url2}],
                                 "image_url1":[{"value":image_url1}],
@@ -576,9 +542,12 @@ class GsheetsFeederDB(Feeder, Database):
                                 "generated_id":[{"value":entry_number}], 
                                 # "date_posted":[{"value":1644155025}], # 2022/02/06 13:43:45
                                 "date_posted":[{"value":unix_timestamp}], 
-                                    # "case": [{ "value": "06oxg0tt4m1m" } ],
-                                "case": [{ "value": case_id_mongo } ],
+                                # "case": [{ "value": "06oxg0tt4m1m" } ],
+                                # DM 10th Jun 25 - what if we can have a blank CASE_ID then just upload the content without the link to the case.
+                                # I need to send an empty array rather than the mongo id
+                                # "case": [{ "value": case_id_mongo } ],
                                 # "case":[],
+                                "case": [] if not case_id_mongo else [{ "value": case_id_mongo } ],
                                 "geolocation_geolocation": geolocation_geolocation,
                                 "upload_title":[{"value":upload_title}], 
                                 "hash":[{"value":hash}], 
@@ -760,6 +729,10 @@ class GsheetsFeederDB(Feeder, Database):
         if image_and_video_url_feature:
             # get first media
             # if there is no media then there will be a screenshot 
+            # TODO - how about using screenshot_ in filename?
+
+            # First media
+            first_media_url = None
             try:
                 first_media = all_media[0]
                 # a screenshot has no source, so this returns None.
@@ -782,6 +755,15 @@ class GsheetsFeederDB(Feeder, Database):
             except Exception as e:
                 pass
 
+            # DM 11th Jun 25 - if no first media then use screenshot
+            if first_media_url is None:
+                try:
+                    first_media_url = item.get_media_by_id("screenshot").urls[0]
+                    batch_if_valid('image_url1', first_media_url)
+                except:
+                    pass
+
+            # Second media
             try:
                 # if multiple videos then we have thumbnails which we don't want to consider
                 # so lets filter out any with properties of id thumbnail_
