@@ -19,6 +19,10 @@ class WaczExtractorEnricher(Enricher, Extractor):
     If used with [profiles](https://github.com/webrecorder/browsertrix-crawler#creating-and-using-browser-profiles)
     it can become quite powerful for archiving private content.
     When used as an archiver it will extract the media from the .WACZ archive so it can be enriched.
+
+    Special case for facebook.com that 
+    - gets high resolution images
+    - crawls the images if a post contains multiple
     """
 
     def setup(self) -> None:
@@ -51,6 +55,11 @@ class WaczExtractorEnricher(Enricher, Extractor):
             return True
 
         url = to_enrich.get_url()
+
+        # If url ends with a # then remove it as otherwise browsertrix will fail
+        # eg DM 13th Jun 25 - https://www.radiookapi.net/2025/06/12/actualite/securite/au-moins-35-civils-tues-dans-une-attaque-attribuee-aux-adf-banango#
+        if url.endswith('#'):
+            url = url[:-1]
 
         collection = self.crawl_id
         browsertrix_home_host = self.browsertrix_home_host or os.path.abspath(self.tmp_dir)
@@ -95,8 +104,7 @@ class WaczExtractorEnricher(Enricher, Extractor):
                 'x.com' in url or
                 'instagram.com' in url
             ):
-                # DM 26th May 2025 - this is more of a debug message rather than a warning
-                logger.debug(f"Facebook Part 1 - or Twitter/X and Instagram passed a cookie to the yt-dlp extractor for screenshotting, content and comments and profile.tar.gz to here for image extraction")
+                logger.debug(f"Facebook, Twitter/X or Instagram - should be a logged in secrets/profile.tar.gz. This is important for images and screenshot")
             else:
                 logger.warning(
                     "The WACZ enricher / Browsertrix does not support using the 'authentication' information for logging in. You should consider creating a Browser Profile for WACZ archiving. More information: https://auto-archiver.readthedocs.io/en/latest/modules/autogen/extractor/wacz_extractor_enricher.html#browsertrix-profiles"
@@ -144,9 +152,7 @@ class WaczExtractorEnricher(Enricher, Extractor):
             subprocess.run(cmd, check=True, env=my_env)
 
         except Exception as e:
-            # DM 3rd Jun 25 - this failed - https://www.facebook.com/story.php?story_fbid=1401076324561584&id=100039776898418&mibextid=wwXIfr&rdid=T67mPQhQnS6r4JU2# 
-            # worked without the #
-            logger.error(f"WACZ generation failed - have seen this fail with facebook and a # on the end of the url: {e}")
+            logger.error(f"WACZ generation failed: {e}")
             return False
 
         if self.docker_in_docker:
@@ -161,7 +167,9 @@ class WaczExtractorEnricher(Enricher, Extractor):
             return False
 
         to_enrich.add_media(Media(wacz_fn), "browsertrix")
+
         # DM 11th Jun 25 - the call to extract_media_from_wacz
+        # special case here for facebook.com
         if self.extract_media or self.extract_screenshot:
             if 'facebook.com/' in url:
                 self.facebook_extract_media_from_wacz(to_enrich, wacz_fn, url)
@@ -192,7 +200,7 @@ class WaczExtractorEnricher(Enricher, Extractor):
         """
         Facebook specific extractor
         Receives a .wacz archive, and extracts all relevant media from it, adding them to to_enrich.
-        Part 1 - extract images from the wacz. Only relevant for /photo (strategy 0) pages
+        Part 1 - extract images from the wacz. Only relevant for /photo (strategy 0) pages. This includes full resolution image so no need to crawl.
         Part 2 - 
         """
         logger.info(f"Facebook Part 1 - extracting media from {wacz_filename=}")
@@ -218,9 +226,9 @@ class WaczExtractorEnricher(Enricher, Extractor):
         counter_screenshots = 0
         seen_urls = set()
 
-        # setup linux_tmp_dir for Part 2
-        # using a separate tmp_dir to avoid confusion with the tmp_dir used for Part 1
-        linux_tmp_dir ='/home/dave/aatmp' 
+        # using a separate linux_tmp_dir for Part 2 to avoid confusion with the tmp_dir used for Part 1
+        linux_tmp_dir = os.path.expanduser('~/aatmp')
+
         # Check if the directory exists, and if not, create it
         if os.path.exists(linux_tmp_dir):
            logger.debug(f"Part 2 - deleting all files in {linux_tmp_dir}")
@@ -230,19 +238,48 @@ class WaczExtractorEnricher(Enricher, Extractor):
             logger.debug(f"Part 2 - creating directory {linux_tmp_dir}")
             os.makedirs(linux_tmp_dir)
 
+        # DM 13th Jun 2025
+        # for strategy 1 - we need the most prevalent set_id
+        # so we crawl the correct set as otherwise we may get wrong images
+        with open(warc_filename, "rb") as warc_stream:
+            list_of_set_ids = []
+            for record in ArchiveIterator(warc_stream):
+                if record.rec_type == "request": pass
+                else: continue 
+
+                uri = record.rec_headers.get_header('WARC-Target-URI')
+
+                if "bulk-route-definitions/" in uri:
+                    content = record.content_stream().read()
+                    foo = str(content)
+                    photo_string_start_pos = foo.find(f'photo%2F%3Ffbid%3D',0)
+
+                    if (photo_string_start_pos > 0):
+                        fbid_start_pos = photo_string_start_pos + 18
+                        middle_26_start_pos = foo.find(f'%26', fbid_start_pos)
+                        fb_id = foo[fbid_start_pos:middle_26_start_pos]
+                        set_end_pos = foo.find(f'%26', middle_26_start_pos+1)
+                        set_id = foo[middle_26_start_pos+13:set_end_pos]
+                        logger.info(f" found {set_id=} in bulk-route-definitions and adding to list so can calculate most prevalent")
+                        list_of_set_ids.append(set_id)
+
+        # get the most prevalent set_id
+        most_prevalent_set_id = max(set(list_of_set_ids), key=list_of_set_ids.count)
+        logger.info(f" calculated: {most_prevalent_set_id=}")
+
+
         with open(warc_filename, "rb") as warc_stream:
             full_crawl_done = False
             for record in ArchiveIterator(warc_stream):
                 # extract just the screenshot from the facebook page wacz
                 if (record.rec_type == "resource" and record.content_type == "image/png" and self.extract_screenshot):
-                # if (record.rec_type == "resource" and record.content_type == "image/png"):
                     fn = os.path.join(tmp_dir, f"warc-file-{counter_screenshots}.png")
                     with open(fn, "wb") as outf:
                         outf.write(record.raw_stream.read())
                     m = Media(filename=fn)
                     to_enrich.add_media(m, f"browsertrix-screenshot-{counter_screenshots}")
-                    logger.success(f"Part 1 - Added Screenshot")
-                    logger.debug(f"Part 1 - is a chance that will not be called browser-screenhot, as may have been added already.")
+                    logger.debug(f"Part 1 - Added Screenshot")
+                    logger.debug(f"Part 1 - is a chance that will not be called browser-screenshot, as may have been added already, and will get deleted in deduplication.")
                     counter_screenshots += 1
                     
                 # purely to make sure we get the screenshot
@@ -267,7 +304,7 @@ class WaczExtractorEnricher(Enricher, Extractor):
 
                 if crawl_and_get_media_from_sub_page:
                     if record.rec_type == "request": pass
-                    else: continue # to next record - we are only intereted in the request at the moment to get the fb_id and set_id
+                    else: continue # to next record - we are only interested in the request at the moment to get the fb_id and set_id
 
                     # CRAWL START
                     # logger.debug(f"Strategy 1 + - crawling the sub page to get the media")
@@ -292,7 +329,8 @@ class WaczExtractorEnricher(Enricher, Extractor):
                     
                     uri = record.rec_headers.get_header('WARC-Target-URI')
 
-                    # There are many instances of this
+                    # There are many instances of this and it is possible to get the wrong one.
+                    # DM 13th Jun 25 - we already know the most prevalent set_id that we want
                     if "bulk-route-definitions/" in uri:
                         content = record.content_stream().read()
                         foo = str(content)
@@ -316,6 +354,11 @@ class WaczExtractorEnricher(Enricher, Extractor):
                             set_end_pos = foo.find(f'%26', middle_26_start_pos+1)
 
                             set_id = foo[middle_26_start_pos+13:set_end_pos]
+
+                            if set_id == most_prevalent_set_id: pass
+                            else:
+                                logger.info(f"Part 1 - skipping set_id {set_id=} as not the most prevalent set_id {most_prevalent_set_id=}")
+                                continue # to next record
 
                             logger.info(f"  *** Part 1 - Strategy 1 {fb_id=} and {set_id=}")
                             # bar = f'https://www.facebook.com/photo/?fbid={fb_id}&set=pcb.{set_id}'
@@ -424,7 +467,7 @@ class WaczExtractorEnricher(Enricher, Extractor):
                 if ext == None : continue
 
                 logger.debug(f"Part 1 - Strategy 0 - saving the single relevant full resolution image from wacz")
-                logger.success(f"Part 1 - Added {fn} which is {fs} and extension {ext}")
+                logger.debug(f"Part 1 - Added {fn} which is {fs} and extension {ext}")
                 m = Media(filename=fn)
                 m.set("src", record_url)
 
@@ -448,7 +491,7 @@ class WaczExtractorEnricher(Enricher, Extractor):
 
             collection = random_str(8)
 
-            linux_tmp_dir ='/home/dave/aatmp' 
+            linux_tmp_dir = os.path.expanduser('~/aatmp')
 
             # DM 31st Oct 24 take out
             # hard_code_directory_for_wsl2 ='/mnt/c/dev/v6-auto-archiver' 
@@ -602,7 +645,7 @@ class WaczExtractorEnricher(Enricher, Extractor):
                         m.set("src", record_url)
                         m.set("src_alternative", record_url)
                         to_enrich.add_media(m, warc_fn)
-                        logger.success(f"Part 2 - Added {fn} which is {fs} bytes and extension {ext}")
+                        logger.debug(f"Part 2 - Added {fn} which is {fs} bytes and extension {ext}")
                         counter += 1 # starts at 100 and makes filename unique  
                         seen_urls.add(record_url)
                     else:
