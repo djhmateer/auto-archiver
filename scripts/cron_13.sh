@@ -55,14 +55,14 @@ cd /home/dave/auto-archiver
 
 # poetry run python src/auto_archiver --config secrets/orchestration-aa-demo-main.yaml
 
-poetry run python src/auto_archiver --config secrets/orchestration-cir-domain-cir-sahel.yaml
-sleep $TIME
+# poetry run python src/auto_archiver --config secrets/orchestration-cir-domain-cir-sahel.yaml
+# sleep $TIME
 
-poetry run python src/auto_archiver --config secrets/orchestration-cir-domain-cir-sudan.yaml
-sleep $TIME
+# poetry run python src/auto_archiver --config secrets/orchestration-cir-domain-cir-sudan.yaml
+# sleep $TIME
 
-poetry run python src/auto_archiver --config secrets/orchestration-cir-domain-aw.yaml
-sleep $TIME
+# poetry run python src/auto_archiver --config secrets/orchestration-cir-domain-aw.yaml
+# sleep $TIME
 
 poetry run python src/auto_archiver --config secrets/orchestration-cir-domain-mw.yaml
 sleep $TIME
