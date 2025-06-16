@@ -35,5 +35,15 @@
 			"justMyCode": true,
 			"args": ["--config","secrets/orchestration-glan-sheet1.yaml"]
 		},
+        {
+			"name": "CIR Domain EoR",
+			"type": "debugpy",
+			"request": "launch",
+			// "program": "src/auto_archiver",
+            "module": "src.auto_archiver",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","secrets/orchestration-cir-domain-eor.yaml"]
+		},
     ]
 }
