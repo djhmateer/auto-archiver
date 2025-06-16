@@ -263,6 +263,11 @@ class WaczExtractorEnricher(Enricher, Extractor):
                         logger.info(f" found {set_id=} in bulk-route-definitions and adding to list so can calculate most prevalent")
                         list_of_set_ids.append(set_id)
 
+        if list_of_set_ids: pass
+        else:
+            logger.debug("No set_ids found in bulk-route-definitions in any record. Have seen this if content is not available ie page has been taken down")
+            return
+
         # get the most prevalent set_id
         most_prevalent_set_id = max(set(list_of_set_ids), key=list_of_set_ids.count)
         logger.info(f" calculated: {most_prevalent_set_id=}")
@@ -399,9 +404,9 @@ class WaczExtractorEnricher(Enricher, Extractor):
                                     break # out of while
                                 
                             if len(fb_ids_requested) == 1:
-                                logger.warning("Probably the wrong fb_id url here in Part 2, as only 1 fb_ids_requested")
-                                logger.warning("so not the carousel we want")
-                                logger.warning("continuing to next record in root url (Part 1) ")
+                                logger.debug("Probably the wrong fb_id url here in Part 2, as only 1 fb_ids_requested")
+                                logger.debug("so not the carousel we want")
+                                logger.debug("continuing to next record in root url (Part 1) ")
                                 continue # to next record
 
                             logger.debug(f"Part 2 END of while loop")

@@ -31,7 +31,9 @@ class GenericExtractor(Extractor):
     _dropins = {}
 
     def setup(self):
-        self.check_for_extractor_updates()
+        # DM 16th June 2025 - disabled as may be causing issues with Docker the following day 
+        # I manually run poetry update then restart the cron job
+        # self.check_for_extractor_updates()
         self.setup_po_tokens()
 
     def check_for_extractor_updates(self):
