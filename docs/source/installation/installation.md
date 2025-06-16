@@ -80,14 +80,13 @@ sudo chown -R dave ~/auto-archiver
 # Poetry install 2.1.3 on 2nd June 25
 curl -sSL https://install.python-poetry.org | python3 -
 
-# had to restart shell here.. neither of below worked 
-# source ~/.bashrc
-# exec bash
-
-cd auto-archiver
+# had to restart here.. 
+sudo reboot
 
 # C++ compiler so pdqhash will install next
 sudo apt install build-essential python3-dev -y
+
+cd auto-archiver
 
 poetry install
 
@@ -157,7 +156,7 @@ sudo apt install libimage-exiftool-perl -y
 # the cron job running as user dave will execute the shell script
 # I have many scripts running from cron_11 upwards.
 # patch in the correct number
-sudo chmod +x ~/auto-archiver/scripts/cron_12.sh
+sudo chmod +x ~/auto-archiver/scripts/cron_15.sh
 
 # don't want service to run until a reboot otherwise problems with Gecko driver
 sudo service cron stop
@@ -165,7 +164,7 @@ sudo service cron stop
 # runs the script every minute
 # notice put in a # to disable so will have to manually start it.
 cat <<EOT >> run-auto-archive
-#*/1 * * * * dave /home/dave/auto-archiver/scripts/cron_12.sh
+#*/1 * * * * dave /home/dave/auto-archiver/scripts/cron_15.sh
 EOT
 
 sudo mv run-auto-archive /etc/cron.d
@@ -183,9 +182,7 @@ echo "alias c='sudo vim /etc/cron.d/run-auto-archive'" >> ~/.bashrc
 # orchestration.yaml - for aa config
 # service_account - for google spreadsheet
 # anon.session - for telethon so don't have to type in phone number
-# vk_config.v2.json - so don't have to login to vk again
 # profile.tar.gz - for wacz to have a logged in profile for facebook, x.com and instagram to get data
-
 
 # Youtube - POT Tokens
 # https://github.com/Brainicism/bgutil-ytdlp-pot-provider
@@ -196,119 +193,7 @@ docker run --name bgutil-provider --restart unless-stopped -d -p 4416:4416 brain
 cd ~/auto-archiver
 
 poetry run python src/auto_archiver --config secrets/orchestration-aa-demo-main.yaml
-
-
-
-
-
-
-## HERE
-
-## OLD
-sudo pip install pytest-playwright
-
-# x virtual frame buffer
-# for playwright (screenshotter) to run in headed mode
-sudo apt install xvfb -y
-
-sudo playwright install-deps
-
-sudo apt-get install libvpx7 -y
-
-TARGET_USER="dave"
-sudo -i -u $TARGET_USER bash << EOF
-playwright install 
-EOF
-
-#sudo apt-get install libgbm1
-
-cat <<EOT >> run-auto-archive
-*/2 * * * * dave /home/dave/auto-archiver/infra/cron_pluro.sh
-EOT
-
-sudo mv run-auto-archive /etc/cron.d
-
-sudo chown root /etc/cron.d/run-auto-archive
-sudo chmod 600 /etc/cron.d/run-auto-archive
-
-
-sudo reboot now
-
-
-## DM 16th Oct 2024
-# am using playwright as a general screenshotter
-# so need to install the dependencies for that
-
-sudo pip install pytest-playwright
-
-sudo apt install xvfb -y
-
-# playwright install
-
-
-
-
-
-
-
-
-##
-## FB Archiver from here down!!!!
-##
-
-# specialised version of the archiver which runs on proxmox currently only
-cat <<EOT >> fb-run-auto-archive
-#* * * * * dave /home/dave/auto-archiver/infra/cron_fb.sh
-EOT
-
-# docker
-# https://docs.docker.com/engine/install/ubuntu/
-sudo apt-get update -y
-sudo apt-get install ca-certificates curl gnupg lsb-release -y
-
-sudo mkdir -p /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-sudo apt-get update
-
-sudo chmod a+r /etc/apt/keyrings/docker.gpg
-sudo apt-get update
-
-
-sudo apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin -y
-
-# docker as non sudo https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user
-# cron runs as user dave
-sudo usermod -aG docker dave
-
-sudo pip install pytest-playwright
-
-# x virtual frame buffer
-# for playwright (screenshotter) to run in headed mode
-sudo apt install xvfb -y
-
-# **need to run playwright install to download chrome**
-# **NOT TESTED**
-##sudo playwright install-deps
-#sudo apt-get install libgbm1
-
-
-sudo reboot now
-
-
-
-
-# MONITORING
-# syslog in /var/log/syslog
-# cron output is in /home/dave/log.txt
-
-# sudo service cron restart
-
-
 ```
-
 
 
 ## Developer Install
