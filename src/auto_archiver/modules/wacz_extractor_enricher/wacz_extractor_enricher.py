@@ -266,6 +266,7 @@ class WaczExtractorEnricher(Enricher, Extractor):
         if list_of_set_ids: pass
         else:
             logger.debug("No set_ids found in bulk-route-definitions in any record. Have seen this if content is not available ie page has been taken down")
+            logger.debug("Have also seen this if there is a video on the FB page")
             return
 
         # get the most prevalent set_id
