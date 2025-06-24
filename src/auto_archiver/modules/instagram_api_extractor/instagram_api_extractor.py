@@ -305,6 +305,7 @@ class InstagramAPIExtractor(Extractor):
         # DM 29th May 2025 - this is a problem for INS029 a private post that hiker can't see.
         # but we can get via wacz enricher?
         # this throws an no archiver results.. .but we can't to revert to wayback machine?
+        # it is also when a post just isn't there.
         assert media, f"Image/video not found in {item=}"
 
         # posts with multiple items contain a resources list
