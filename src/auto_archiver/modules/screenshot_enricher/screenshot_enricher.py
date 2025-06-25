@@ -52,7 +52,7 @@ class ScreenshotEnricher(Enricher):
 
                 screenshot_file = os.path.join(self.tmp_dir, f"screenshot_{random_str(8)}.png")
                 driver.save_screenshot(screenshot_file)
-                to_enrich.add_media(Media(filename=screenshot_file), id="screenshot")
+                to_enrich.add_media(Media(filename=screenshot_file), id="webdriverscreenshot")
                 if self.save_to_pdf:
                     pdf_file = os.path.join(self.tmp_dir, f"pdf_{random_str(8)}.pdf")
                     pdf = driver.print_page(driver.print_options)

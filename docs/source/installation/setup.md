@@ -20,14 +20,14 @@ To get started with Auto Archiver, there are 3 main steps you need to complete.
 2. [Setup up your configuration](configurations.md) (if you are ok with the default settings, you can skip this step)
 3. Run the archiving process<a id="running"></a>
 
-The way you run the Auto Archiver depends on how you installed it (docker install or local install).
+The way you run the Auto Archiver depends on how you installed it (docker install or local install)
 
 ### Running a Docker Install
 
 If you installed Auto Archiver using docker, open up your terminal, and copy-paste / type the following command:
 
 ```bash
-docker run -it --rm -v $PWD/secrets:/app/secrets -v $PWD/local_archive:/app/local_archive bellingcat/auto-archiver -- "https://example.com"
+docker run -it --rm -v $PWD/secrets:/app/secrets -v $PWD/local_archive:/app/local_archive bellingcat/auto-archiver -- "https://example.com/1/"
 ```
 
 breaking this command down:
@@ -42,7 +42,7 @@ breaking this command down:
        1.  `-v` same as above, this is a volume instruction
        2.  `$PWD/local_archive` is a folder `local_archive/` in case you want to archive locally and have the files accessible outside docker
        3.  `/app/local_archive` is a folder inside docker that you can reference in your orchestration.yml file 
-   6. ` -- "https://example.com"` this will pass the URL to archive to the default [command line feeder](../modules/autogen/feeder/cli_feeder.md)
+   6. ` -- "https://example.com/1/"` this will pass the URL to archive to the default [command line feeder](../modules/autogen/feeder/cli_feeder.md)
 
 ### Example invocations
 

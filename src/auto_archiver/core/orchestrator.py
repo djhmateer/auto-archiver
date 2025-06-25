@@ -34,7 +34,7 @@ from .config import (
 from .module import ModuleFactory, LazyBaseModule
 from . import validators, Feeder, Extractor, Database, Storage, Formatter, Enricher
 from .consts import MODULE_TYPES, SetupError
-from auto_archiver.utils.url import check_url_or_raise
+from auto_archiver.utils.url import check_url_or_raise, clean
 
 if TYPE_CHECKING:
     from .base_module import BaseModule
@@ -249,7 +249,7 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
             action="store",
             dest="logging.level",
             choices=["INFO", "DEBUG", "ERROR", "WARNING"],
-            help="the logging level to use",
+            help="the logging level to use for the standard output and file logging",
             default="INFO",
             type=str.upper,
         )
@@ -262,6 +262,14 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
             dest="logging.rotation",
             help="the logging rotation to use",
             default=None,
+        )
+
+        parser.add_argument(
+            "--logging.each_level_in_separate_file",
+            action="store",
+            dest="logging.each_level_in_separate_file",
+            help="if set, writes each logging level to a separate file (ignores --logging.level), you must also set --logging.file. Each level will have a dedicate logs file matching your <file>.debug, <file>.info, etc.",
+            default=False,
         )
 
     def add_individual_module_args(
@@ -331,25 +339,26 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
         except ValueError:
             pass
 
-        # Only set up logging if it hasn't been set up before
-        if self.logger_id is None:
-            # Add stderr logger with configured level
-            self.logger_id = logger.add(sys.stderr, level=logging_config["level"])
-    
-            # Optionally add file logging if a log file is specified
-            log_file = logging_config.get("file")
-            if log_file:
-                # Add file logger with optional rotation
-                rotation = logging_config.get("rotation")
-                if rotation:
-                    # logger.add(log_file, rotation=rotation)
-                    logger.add("logs/1debug.log", level="DEBUG", rotation=rotation)
-                    logger.add("logs/2info.log", level="INFO", rotation=rotation)
-                    logger.add("logs/3success.log", level="SUCCESS", rotation=rotation)
-                    logger.add("logs/4warning.log", level="WARNING", rotation=rotation)
-                    logger.add("logs/5error.log", level="ERROR", rotation=rotation)
-                else:
-                    logger.add(log_file)
+        # add other logging info
+        if self.logger_id is None:  # note - need direct comparison to None since need to consider falsy value 0
+            use_level = logging_config["level"]
+            self.logger_id = logger.add(sys.stderr, level=use_level)
+
+            rotation = logging_config["rotation"]
+            log_file = logging_config["file"]
+
+            if logging_config.get("each_level_in_separate_file"):
+                assert logging_config["file"], (
+                    "You must set --logging.file if you want to use --logging.each_level_in_separate_file"
+                )
+                for i, level in enumerate(["DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR"], start=1):
+                    logger.add(
+                        f"{log_file}.{i}_{level.lower()}",
+                        filter=lambda rec, lvl=level: rec["level"].name == lvl,
+                        rotation=rotation,
+                    )
+            elif log_file:
+                logger.add(log_file, rotation=rotation, level=use_level)
 
     def install_modules(self, modules_by_type):
         """
@@ -472,7 +481,7 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
         This method should only ever be called once
         """
 
-        # DM 3rd Jun 25 - don't want log messages
+        # DM 3rd Jun 25 - don't want to check for updates
         # self.check_for_updates()
 
         if self.setup_finished:
@@ -585,12 +594,13 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
             raise e
 
         # 1 - sanitize - each archiver is responsible for cleaning/expanding its own URLs
-        url = original_url
+        url = clean(original_url)
         for a in self.extractors:
             url = a.sanitize_url(url)
 
         result.set_url(url)
         if original_url != url:
+            logger.debug(f"Sanitized URL from {original_url} to {url}")
             result.set("original_url", original_url)
 
         # 2 - notify start to DBs, propagate already archived if feature enabled in DBs

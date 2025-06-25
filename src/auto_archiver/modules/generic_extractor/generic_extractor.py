@@ -1,4 +1,3 @@
-import mimetypes
 import shutil
 import sys
 import datetime
@@ -20,6 +19,7 @@ from loguru import logger
 from auto_archiver.core.extractor import Extractor
 from auto_archiver.core import Metadata, Media
 from auto_archiver.utils import get_datetime_from_str
+from auto_archiver.utils.misc import ydl_entry_to_filename
 from .dropin import GenericDropin
 
 
@@ -35,6 +35,9 @@ class GenericExtractor(Extractor):
         # I manually run poetry update then restart the cron job
         # self.check_for_extractor_updates()
         self.setup_po_tokens()
+        # TODO: figure out why the following is not properly recognised by yt-dlp:
+        # if "generic" not in self.extractor_args:
+        #     self.extractor_args["generic"] = "impersonate"
 
     def check_for_extractor_updates(self):
         """Checks whether yt-dlp or its plugins need updating and triggers a restart if so."""
@@ -305,14 +308,12 @@ class GenericExtractor(Extractor):
             result.set_url(url)
 
         if "description" in video_data and not result.get("content"):
-            result.set_content(video_data.pop("description"))
+            result.set_content(video_data.get("description"))
         # extract comments if enabled
-        if self.comments:
-            # If self.comments are true but no comments in the video_data
-            if video_data.get("comments", []) is not None:
-                result.set(
-                    "comments",
-                    [
+        if self.comments and video_data.get("comments", []) is not None:
+            result.set(
+                "comments",
+                [
                     {
                         "text": c["text"],
                         "author": c["author"],
@@ -371,47 +372,22 @@ class GenericExtractor(Extractor):
         try:
             data = ydl.extract_info(url, ie_key=info_extractor.ie_key(), download=True)
         except MaxDownloadsReached:  # proceed as normal once MaxDownloadsReached is raised
-            logger.info(f"MaxDownloadsReached for {url=}")  
             pass
-        # logger.debug(data)
 
         if "entries" in data:
             entries = data.get("entries", [])
             if not len(entries):
-                # DM 3rd Jun 25 - demoting to info as Instragram image only posts get trapped here which is fine.
                 logger.info("YoutubeDLArchiver could not find any video")
                 return False
         else:
             entries = [data]
         result = Metadata()
 
-        def _helper_get_filename(entry: dict) -> str:
-            entry_url = entry.get("url")
-
-            filename = ydl.prepare_filename(entry)
-            base_filename, _ = os.path.splitext(filename)  # '/get/path/to/file' ignore '.ext'
-            directory = os.path.dirname(base_filename)  # '/get/path/to'
-            basename = os.path.basename(base_filename)  # 'file'
-            for f in os.listdir(directory):
-                if (
-                    f.startswith(basename)
-                    or (entry_url and os.path.splitext(f)[0] in entry_url)
-                    and "video/" in (mimetypes.guess_type(f)[0] or "")
-                ):
-                    # DM 4th Jun 25 
-                    # https://twitter.com/EverestToday/status/1546152848819232768
-                    # case where there are captions on a twitter video - we want the video
-                    if f.endswith(".vtt"):
-                        logger.info(f"Skipping vtt file {f} as we want the video")
-                        continue
-                    return os.path.join(directory, f)
-            return False
-
         for entry in entries:
             try:
-                filename = _helper_get_filename(entry)
+                filename = ydl_entry_to_filename(ydl, entry)
 
-                if not filename or not os.path.exists(filename):
+                if not filename:
                     # file was not downloaded or could not be retrieved, example: sensitive videos on YT without using cookies.
                     continue
 
@@ -604,11 +580,11 @@ class GenericExtractor(Extractor):
         # Applying user-defined extractor_args
         if self.extractor_args:
             for key, args in self.extractor_args.items():
-                logger.debug(f"Setting extractor_args: {key}")
                 if isinstance(args, dict):
                     arg_str = ";".join(f"{k}={v}" for k, v in args.items())
                 else:
                     arg_str = str(args)
+                logger.debug(f"Setting extractor_args: {key}:{arg_str}")
                 ydl_options.extend(["--extractor-args", f"{key}:{arg_str}"])
 
         if self.ytdlp_args:

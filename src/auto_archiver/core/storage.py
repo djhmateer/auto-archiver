@@ -32,6 +32,7 @@ from auto_archiver.utils.misc import random_str
 from auto_archiver.core import Media, BaseModule, Metadata
 from auto_archiver.modules.hash_enricher.hash_enricher import HashEnricher
 
+
 class Storage(BaseModule):
     """
     Base class for implementing storage modules in the media archiving framework.

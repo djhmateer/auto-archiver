@@ -99,15 +99,15 @@ class GDriveStorage(Storage):
         try:
             media = MediaFileUpload(media.filename, resumable=True)
             gd_file = (
-                         self.service.files()
-                        .create(supportsAllDrives=True, body=file_metadata, media_body=media, fields="id")
-                        .execute()
-                    )
+                self.service.files()
+                .create(supportsAllDrives=True, body=file_metadata, media_body=media, fields="id")
+                .execute()
+            )
             logger.debug(f"uploadf: uploaded file {gd_file['id']} successfully in folder={upload_to}")
         except FileNotFoundError as e:
-            logger.error(f'gd uploadf: file not found {media.filename} - {e}')
+            logger.error(f"gd uploadf: file not found {media.filename=} - {e}")
         except Exception as e:
-            logger.error(f'gd uploadf: error uploading {media.filename} to {upload_to} - {e}')
+            logger.error(f"gd uploadf: error uploading {media.filename=} to {upload_to} - {e}")
 
     # must be implemented even if unused
     def uploadf(self, file: IO[bytes], key: str, **kwargs: dict) -> bool:

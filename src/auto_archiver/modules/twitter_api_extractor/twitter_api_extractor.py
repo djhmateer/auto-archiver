@@ -1,3 +1,4 @@
+from datetime import timezone
 import json
 import re
 import mimetypes
@@ -5,6 +6,7 @@ import requests
 
 from loguru import logger
 from pytwitter import Api
+from pytwitter.error import PyTwitterError 
 from slugify import slugify
 
 from auto_archiver.core import Extractor
@@ -85,13 +87,21 @@ class TwitterApiExtractor(Extractor):
                 tweet_fields=["attachments", "author_id", "created_at", "entities", "id", "text", "possibly_sensitive"],
             )
             logger.debug(tweet)
+        except PyTwitterError as e:
+            if "Too Many Requests" in str(e): 
+                logger.error(f"PyTwitter API: Too Many Requests: {e}")
+            else:
+                logger.error(f"PyTwitter API: Could not get tweet: {e}")
+            return False
         except Exception as e:
             logger.error(f"Could not get tweet: {e}")
             return False
 
         result = Metadata()
         result.set_title(tweet.data.text)
-        result.set_timestamp(get_datetime_from_str(tweet.data.created_at, "%Y-%m-%dT%H:%M:%S.%fZ"))
+        result.set_timestamp(
+            get_datetime_from_str(tweet.data.created_at, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
+        )
 
         urls = []
         if tweet.includes:
