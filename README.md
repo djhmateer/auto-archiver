@@ -1,3 +1,11 @@
+<h1>This Fork</h1>
+
+Main branch represents what I have in production. Currently 1.1.0+dm.3
+
+This is upstream 1.1.0 with added Uwazi integration and Facebook crawling. Also various tweak like overwriting allowed on spreadsheets cells, and updates turned off (as may affect prod - have seen unusual behaviour)
+
+Dev branch is what I'm working on.
+
 <h1 align="center">Auto Archiver</h1>
 
 [![Documentation Status](https://readthedocs.org/projects/auto-archiver/badge/?version=latest)](https://auto-archiver.readthedocs.io/en/latest/?badge=latest)
