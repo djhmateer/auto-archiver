@@ -166,7 +166,8 @@ class InstagramAPIExtractor(Extractor):
             post = self.call_api("v1/media/by/code", {"code": code})
         assert post, f"Post {id or code} not found"
 
-        result.set("data", post)
+        # add the entire data from the API call to the metadata for future automated parsing via metadata.json
+        result.set("raw_data", post)
 
         if caption_text := post.get("caption_text"):
             result.set_title(caption_text)

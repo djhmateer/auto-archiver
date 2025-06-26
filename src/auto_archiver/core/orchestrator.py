@@ -351,12 +351,20 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
                 assert logging_config["file"], (
                     "You must set --logging.file if you want to use --logging.each_level_in_separate_file"
                 )
-                for i, level in enumerate(["DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR"], start=1):
-                    logger.add(
-                        f"{log_file}.{i}_{level.lower()}",
-                        filter=lambda rec, lvl=level: rec["level"].name == lvl,
-                        rotation=rotation,
-                    )
+                # This gives logs/auto_arcvhiver.log.1_debug as a log file name
+                # for i, level in enumerate(["DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR"], start=1):
+                #     logger.add(
+                #         f"{log_file}.{i}_{level.lower()}",
+                #         filter=lambda rec, lvl=level: rec["level"].name == lvl,
+                #         rotation=rotation,
+                #     )
+                # DM 25th Jun - I prefer this as am used to it, and it gives colour coded logs
+                # also my cron job looks at the output of 1debug.log which is critical.
+                logger.add("logs/1debug.log", level="DEBUG", rotation=rotation)
+                logger.add("logs/2info.log", level="INFO", rotation=rotation)
+                logger.add("logs/3success.log", level="SUCCESS", rotation=rotation)
+                logger.add("logs/4warning.log", level="WARNING", rotation=rotation)
+                logger.add("logs/5error.log", level="ERROR", rotation=rotation)
             elif log_file:
                 logger.add(log_file, rotation=rotation, level=use_level)
 

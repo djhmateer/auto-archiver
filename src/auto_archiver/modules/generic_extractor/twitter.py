@@ -43,7 +43,11 @@ class Twitter(GenericDropin):
             logger.warning(f"Unable to parse tweet: {str(ex)}\nRetreived tweet data: {tweet}")
             return False
 
-        full_text = tweet.pop("full_text", "")
+        # add the entire data from the API call to the metadata for future automated parsing via metadata.json
+        result.set("raw_data", tweet)
+
+        full_text = tweet.get("full_text", "")
+
         author = tweet["user"].get("name", "")
         result.set("author", author).set_url(url)
 

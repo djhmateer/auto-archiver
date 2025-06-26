@@ -22,6 +22,13 @@ class MetaEnricher(Enricher):
         self.enrich_file_sizes(to_enrich)
         self.enrich_archive_duration(to_enrich)
 
+        self.reorder_metadata(to_enrich)
+
+    def reorder_metadata(self, to_enrich: Metadata) -> None:
+        if "raw_data" in to_enrich.metadata:
+            raw_data = to_enrich.metadata.pop("raw_data")
+            to_enrich.metadata["raw_data"] = raw_data
+
     def enrich_file_sizes(self, to_enrich: Metadata):
         logger.debug(
             f"calculating archive file sizes for url={to_enrich.get_url()} ({len(to_enrich.media)} media files)"

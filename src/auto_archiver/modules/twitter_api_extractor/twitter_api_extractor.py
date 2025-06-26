@@ -89,9 +89,11 @@ class TwitterApiExtractor(Extractor):
             logger.debug(tweet)
         except PyTwitterError as e:
             if "Too Many Requests" in str(e): 
-                logger.error(f"PyTwitter API: Too Many Requests: {e}")
+                logger.info(f"PyTwitter API: Too Many Requests: {e}")
+                logger.info(f"This is normal behaviour if we've called the API in the last 15 minutes as we don't pay for it anymore. Should failover to the wacz_extractor_enricher as an extractor so we get a good success result.")
             else:
                 logger.error(f"PyTwitter API: Could not get tweet: {e}")
+                logger.error(f"Has the tweet been deleted?")
             return False
         except Exception as e:
             logger.error(f"Could not get tweet: {e}")
@@ -139,6 +141,12 @@ class TwitterApiExtractor(Extractor):
                 indent=4,
             )
         )
+
+        # result.set("raw_data", tweet.data)
+        # Convert the entire tweet.data object to a dictionary and serialize it
+        tweet_data_dict = vars(tweet.data)  # or tweet.data.__dict__
+        result.set("raw_data", json.dumps(tweet_data_dict, ensure_ascii=False, indent=4, default=str))
+
         return result.success("twitter-api")
 
     def choose_variant(self, variants):
