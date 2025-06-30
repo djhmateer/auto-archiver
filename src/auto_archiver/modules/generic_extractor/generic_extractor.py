@@ -528,6 +528,9 @@ class GenericExtractor(Extractor):
             else:
                 result.status = extractor_name
 
+        # HERE
+        # hmm - getting a lot of data
+        # result.set("raw_data", data)
         return result
 
     def download(self, item: Metadata) -> Metadata:
