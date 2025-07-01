@@ -16,7 +16,7 @@ from typing import Tuple, Union, Iterator
 from urllib.parse import quote
 
 import gspread
-from loguru import logger
+from auto_archiver.utils.custom_logger import logger
 from slugify import slugify
 from retrying import retry
 
@@ -58,7 +58,7 @@ class GsheetsFeederDB(Feeder, Database):
         # for ii, worksheet in enumerate(sh.worksheets()):
         for ii, worksheet in enumerate(sorted_worksheets):
             if not self.should_process_sheet(worksheet.title):
-                logger.debug(f"SKIPPED worksheet '{worksheet.title}' due to allow/block rules")
+                logger.debug(f"Skipped worksheet '{worksheet.title}' due to allow/block rules")
                 continue
             logger.info(f"Opening worksheet {ii=}: {worksheet.title=} header={self.header}")
             gw = GWorksheet(worksheet, header_row=self.header, columns=self.columns)
@@ -71,13 +71,15 @@ class GsheetsFeederDB(Feeder, Database):
                continue
 
             if len(missing_cols := self.missing_required_columns(gw)):
-                logger.warning(
-                    f"SKIPPED worksheet '{worksheet.title}' due to missing required column(s) for {missing_cols}"
+                logger.debug(
+                    f"Skipped worksheet '{worksheet.title}' due to missing required column(s) for {missing_cols}"
                 )
                 continue
-
-            # process and yield metadata here:
-            yield from self._process_rows(gw)
+				
+			# DM 30th Jun - this is a new wrapper for logging to explore
+            with logger.contextualize(worksheet=f"{sh.title}:{worksheet.title}"):
+                # process and yield metadata here:
+                yield from self._process_rows(gw)
             logger.info(f"Finished worksheet {worksheet.title}")
 
     # DM 10th Jun 25 
@@ -601,7 +603,10 @@ class GsheetsFeederDB(Feeder, Database):
             # All checks done - archival process starts here
             m = Metadata().set_url(url)
             self._set_context(m, gw, row)
-            yield m
+
+			# DM 30th Jun new wrapper
+            with logger.contextualize(row=row):
+                yield m
 
     def _set_context(self, m: Metadata, gw: GWorksheet, row: int) -> Metadata:
         # TODO: Check folder value not being recognised
@@ -631,17 +636,17 @@ class GsheetsFeederDB(Feeder, Database):
         return missing
 
     def started(self, item: Metadata) -> None:
-        logger.info(f"STARTED {item}")
+        logger.info("STARTED")
         gw, row = self._retrieve_gsheet(item)
         gw.set_cell(row, "status", "Archive in progress")
         logger.info(f" row: {row} on {gw.wks.spreadsheet.title} : {gw.wks.title}")
 
     def failed(self, item: Metadata, reason: str) -> None:
-        logger.error(f"FAILED {item}")
+        logger.error("FAILED")
         self._safe_status_update(item, f"Archive failed {reason}")
 
     def aborted(self, item: Metadata) -> None:
-        logger.warning(f"ABORTED {item}")
+        logger.warning("ABORTED")
         self._safe_status_update(item, "")
 
     def fetch(self, item: Metadata) -> Union[Metadata, bool]:
@@ -662,6 +667,8 @@ class GsheetsFeederDB(Feeder, Database):
 
         cell_updates = []
         row_values = gw.get_row(row)
+
+        logger.info("DONE")
 
         def batch_if_valid(col, val, final_value=None):
             final_value = final_value or val
@@ -812,13 +819,12 @@ class GsheetsFeederDB(Feeder, Database):
         #        time.sleep(5 * attempt) # linear backoff
 				
         @retry(
-            wait_incrementing_start=1000,
-            wait_incrementing_increment=3000,
-            wait_incrementing_max=20_000,
+            wait_exponential_multiplier=1,
             stop_max_attempt_number=5,
         )
         def batch_set_cell_with_retry(gw, cell_updates: list):
             gw.batch_set_cell(cell_updates)
+
         batch_set_cell_with_retry(gw, cell_updates)
 
     def _safe_status_update(self, item: Metadata, new_status: str) -> None:
@@ -826,15 +832,13 @@ class GsheetsFeederDB(Feeder, Database):
             gw, row = self._retrieve_gsheet(item)
             gw.set_cell(row, "status", new_status)
         except Exception as e:
-            logger.debug(f"Unable to update sheet: {e}")
+            logger.debug(f"Unable to update sheet: {e}: {traceback.format_exc()}")
 
     def _retrieve_gsheet(self, item: Metadata) -> Tuple[GWorksheet, int]:
         if gsheet := item.get_context("gsheet"):
             gw: GWorksheet = gsheet.get("worksheet")
             row: int = gsheet.get("row")
         elif self.sheet_id:
-            logger.error(
-                f"Unable to retrieve Gsheet for {item.get_url()}, GsheetDB must be used alongside GsheetFeeder."
-            )
+            logger.error("Unable to retrieve Gsheet, GsheetDB must be used alongside GsheetFeeder.")
 
         return gw, row

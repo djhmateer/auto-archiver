@@ -17,7 +17,8 @@ from selenium.common import exceptions as selenium_exceptions
 from selenium.webdriver.common.print_page_options import PrintOptions
 from selenium.webdriver.common.by import By
 
-from loguru import logger
+# from loguru import logger
+from auto_archiver.utils.custom_logger import logger
 
 
 class CookieSettingDriver(webdriver.Firefox):

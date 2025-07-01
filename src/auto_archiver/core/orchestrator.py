@@ -15,8 +15,10 @@ import traceback
 from copy import copy
 
 from rich_argparse import RichHelpFormatter
-from loguru import logger
+from auto_archiver.utils.custom_logger import format_for_human_readable_console, logger
 import requests
+
+from auto_archiver.utils.misc import random_str
 
 from .metadata import Metadata, Media
 from auto_archiver.version import __version__
@@ -342,7 +344,14 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
         # add other logging info
         if self.logger_id is None:  # note - need direct comparison to None since need to consider falsy value 0
             use_level = logging_config["level"]
-            self.logger_id = logger.add(sys.stderr, level=use_level)
+            self.logger_id = logger.add(
+                sys.stderr,
+                level=use_level,
+                catch=True,
+                format="<level>{extra[serialized]}</level>"
+                if logging_config.get("format", "").lower() == "json"
+                else format_for_human_readable_console(),
+            )
 
             rotation = logging_config["rotation"]
             log_file = logging_config["file"]
@@ -360,13 +369,13 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
                 #     )
                 # DM 25th Jun - I prefer this as am used to it, and it gives colour coded logs
                 # also my cron job looks at the output of 1debug.log which is critical.
-                logger.add("logs/1debug.log", level="DEBUG", rotation=rotation)
-                logger.add("logs/2info.log", level="INFO", rotation=rotation)
-                logger.add("logs/3success.log", level="SUCCESS", rotation=rotation)
-                logger.add("logs/4warning.log", level="WARNING", rotation=rotation)
-                logger.add("logs/5error.log", level="ERROR", rotation=rotation)
+                logger.add("logs/1debug.log", level="DEBUG", rotation=rotation, format="{extra[serialized]}")
+                logger.add("logs/2info.log", level="INFO", rotation=rotation, format="{extra[serialized]}")
+                logger.add("logs/3success.log", level="SUCCESS", rotation=rotation, format="{extra[serialized]}")
+                logger.add("logs/4warning.log", level="WARNING", rotation=rotation, format="{extra[serialized]}")
+                logger.add("logs/5error.log", level="ERROR", rotation=rotation, format="{extra[serialized]}")
             elif log_file:
-                logger.add(log_file, rotation=rotation, level=use_level)
+                logger.add(log_file, rotation=rotation, level=use_level, format="{extra[serialized]}")
 
     def install_modules(self, modules_by_type):
         """
@@ -474,13 +483,9 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
                 update_cmd = "`docker pull bellingcat/auto-archiver:latest`"
             else:
                 update_cmd = "`pip install --upgrade auto-archiver`"
-            logger.warning("")
-            logger.warning("********* IMPORTANT: UPDATE AVAILABLE ********")
             logger.warning(
-                f"A new version of auto-archiver is available (v{latest_version}, you have v{current_version})"
+                f"\n********* IMPORTANT: UPDATE AVAILABLE ********\nA new version of auto-archiver is available (v{latest_version}, you have v{current_version})\nMake sure to update to the latest version using: {update_cmd}\n"
             )
-            logger.warning(f"Make sure to update to the latest version using: {update_cmd}")
-            logger.warning("")
 
     def setup(self, args: list):
         """
@@ -531,7 +536,7 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
             self.setup(args)
             return self.feed()
         except Exception as e:
-            logger.error(e)
+            logger.error(f"{e}: {traceback.format_exc()}")
             exit(1)
 
     def cleanup(self) -> None:
@@ -543,8 +548,10 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
         url_count = 0
         for feeder in self.feeders:
             for item in feeder:
-                yield self.feed_item(item)
-                url_count += 1
+                with logger.contextualize(url=item.get_url(), trace=random_str(12)):
+                    logger.info("Started processing")
+                    yield self.feed_item(item)
+                    url_count += 1
 
         logger.info(f"Processed {url_count} URL(s)")
         self.cleanup()
@@ -564,13 +571,13 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
             return self.archive(item)
         except KeyboardInterrupt:
             # catches keyboard interruptions to do a clean exit
-            logger.warning(f"caught interrupt on {item=}")
+            logger.warning("Caught interrupt")
             for d in self.databases:
                 d.aborted(item)
             self.cleanup()
             exit()
         except Exception as e:
-            logger.error(f"Got unexpected error on item {item}: {e}\n{traceback.format_exc()}")
+            logger.error(f"Got unexpected error: {e}\n{traceback.format_exc()}")
             for d in self.databases:
                 if isinstance(e, AssertionError):
                     d.failed(item, str(e))
@@ -598,7 +605,7 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
         try:
             check_url_or_raise(original_url)
         except ValueError as e:
-            logger.error(f"Error archiving URL {original_url}: {e}")
+            logger.error(f"Error archiving: {e}")
             raise e
 
         # 1 - sanitize - each archiver is responsible for cleaning/expanding its own URLs
@@ -608,7 +615,7 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
 
         result.set_url(url)
         if original_url != url:
-            logger.debug(f"Sanitized URL from {original_url} to {url}")
+            logger.debug(f"Sanitized URL to {url}")
             result.set("original_url", original_url)
 
         # 2 - notify start to DBs, propagate already archived if feature enabled in DBs
@@ -623,25 +630,25 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
                 try:
                     d.done(cached_result, cached=True)
                 except Exception as e:
-                    logger.error(f"ERROR database {d.name}: {e}: {traceback.format_exc()}")
+                    logger.error(f"Database {d.name}: {e}: {traceback.format_exc()}")
             return cached_result
 
         # 3 - call extractors until one succeeds
         for a in self.extractors:
-            logger.info(f"Trying extractor {a.name} for {url}")
+            logger.info(f"Trying extractor {a.name}")
             try:
                 result.merge(a.download(result))
                 if result.is_success():
                     break
             except Exception as e:
-                logger.error(f"ERROR archiver {a.name}: {e}: {traceback.format_exc()}")
+                logger.error(f"Extractor {a.name}: {e}: {traceback.format_exc()}")
 
         # 4 - call enrichers to work with archived content
         for e in self.enrichers:
             try:
                 e.enrich(result)
             except Exception as exc:
-                logger.error(f"ERROR enricher {e.name}: {exc}: {traceback.format_exc()}")
+                logger.error(f"Enricher {e.name}: {exc}: {traceback.format_exc()}")
 
         # 5 - store all downloaded/generated media
         result.store(storages=self.storages)
@@ -660,7 +667,7 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
             try:
                 d.done(result)
             except Exception as e:
-                logger.error(f"ERROR database {d.name}: {e}: {traceback.format_exc()}")
+                logger.error(f"Database {d.name}: {e}: {traceback.format_exc()}")
 
         return result
 

@@ -117,6 +117,7 @@ def is_relevant_url(url: str) -> bool:
         ("static.licdn.com",),
     ]
 
+    # TODO: make these globally configurable
     IRRELEVANT_ENDS_WITH = [
         ".svg",  # ignore SVGs
         ".ico",  # ignore icons

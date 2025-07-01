@@ -74,6 +74,8 @@ sudo apt-get install -f
 # to test
 # google-chrome
 
+# I've seen this fail when a chrome update is available. To fix a restart is required and reinstall of chrome.
+
 ## Gecko driver
 # check version numbers for new ones
 # https://github.com/mozilla/geckodriver/releases/

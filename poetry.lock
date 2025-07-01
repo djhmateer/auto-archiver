@@ -193,18 +193,18 @@ files = [
 
 [[package]]
 name = "boto3"
-version = "1.38.46"
+version = "1.39.0"
 description = "The AWS SDK for Python"
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "boto3-1.38.46-py3-none-any.whl", hash = "sha256:9c8e88a32a6465e5905308708cff5b17547117f06982908bdfdb0108b4a65079"},
-    {file = "boto3-1.38.46.tar.gz", hash = "sha256:d1ca2b53138afd0341e1962bd52be6071ab7a63c5b4f89228c5ef8942c40c852"},
+    {file = "boto3-1.39.0-py3-none-any.whl", hash = "sha256:6257f6f7bb87b66342564eab579ce1f0f63a4c1a6f701492f959e59bd7af68e5"},
+    {file = "boto3-1.39.0.tar.gz", hash = "sha256:52a9f07fb9fa60ec6a2be07cd1586a97d8adae2be750121d4c032349cd113221"},
 ]
 
 [package.dependencies]
-botocore = ">=1.38.46,<1.39.0"
+botocore = ">=1.39.0,<1.40.0"
 jmespath = ">=0.7.1,<2.0.0"
 s3transfer = ">=0.13.0,<0.14.0"
 
@@ -213,14 +213,14 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.38.46"
+version = "1.39.0"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "botocore-1.38.46-py3-none-any.whl", hash = "sha256:89ca782ffbf2e8769ca9c89234cfa5ca577f1987d07d913ee3c68c4776b1eb5b"},
-    {file = "botocore-1.38.46.tar.gz", hash = "sha256:8798e5a418c27cf93195b077153644aea44cb171fcd56edc1ecebaa1e49e226e"},
+    {file = "botocore-1.39.0-py3-none-any.whl", hash = "sha256:d8e72850d3450aeca355b654efb32c8370bf824c1945a61cad2395dc2688581e"},
+    {file = "botocore-1.39.0.tar.gz", hash = "sha256:2b8701e529a80241b989d83262a629d0d91fbd7a06ded63ecc1c9d529a383d57"},
 ]
 
 [package.dependencies]
@@ -4160,14 +4160,14 @@ h11 = ">=0.9.0,<1"
 
 [[package]]
 name = "yt-dlp"
-version = "2025.6.25"
+version = "2025.6.30"
 description = "A feature-rich command-line audio/video downloader"
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "yt_dlp-2025.6.25-py3-none-any.whl", hash = "sha256:1eb31c9a47d56c7433be23a6ae084c640bd4e14961ad43076927ef05280871ea"},
-    {file = "yt_dlp-2025.6.25.tar.gz", hash = "sha256:242b648e1a18ab04bdd4cc175a317fe8ec3ad7d0175eee9f981912624b3d6c8b"},
+    {file = "yt_dlp-2025.6.30-py3-none-any.whl", hash = "sha256:541becc29ed7b7b3a08751c0a66da4b7f8ee95cb81066221c78e83598bc3d1f3"},
+    {file = "yt_dlp-2025.6.30.tar.gz", hash = "sha256:6d0ae855c0a55bfcc28dffba804ec8525b9b955d34a41191a1561a4cec03d8bd"},
 ]
 
 [package.dependencies]
@@ -4194,4 +4194,4 @@ test = ["pytest (>=8.1,<9.0)", "pytest-rerunfailures (>=14.0,<15.0)"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.13"
-content-hash = "f142f1b7907266898024fbab926401f52bc4b281aef5f52e96382ce21afca1d1"
+content-hash = "d744bc47b16b57561c2da3c92c389f3e2c672c7f4c19c286341093d7d3a10362"

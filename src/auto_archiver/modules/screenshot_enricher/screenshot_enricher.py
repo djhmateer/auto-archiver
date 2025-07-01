@@ -1,4 +1,5 @@
-from loguru import logger
+# from loguru import logger
+from auto_archiver.utils.custom_logger import logger
 import time
 import os
 import base64

@@ -1,5 +1,5 @@
 import json
-from loguru import logger
+from auto_archiver.utils.custom_logger import logger
 import time
 import requests
 
@@ -31,20 +31,19 @@ class WaybackExtractorEnricher(Enricher, Extractor):
 
         url = to_enrich.get_url()
         if UrlUtil.is_auth_wall(url):
-            logger.debug(f"[SKIP] WAYBACK since url is behind AUTH WALL: {url=}")
+            logger.debug("[SKIP] WAYBACK since url is behind AUTH WALL")
             return
-
-        logger.debug(f"POSTing to wayback /save for {url=}")
 
         if to_enrich.get("wayback"):
             logger.info(f"Wayback enricher had already been executed: {to_enrich.get('wayback')}")
             return True
 
+        logger.debug("Calling Wayback")
+
         ia_headers = {"Accept": "application/json", "Authorization": f"LOW {self.key}:{self.secret}"}
         post_data = {"url": url}
         if self.if_not_archived_within:
             post_data["if_not_archived_within"] = self.if_not_archived_within
-
         # see https://docs.google.com/document/d/1Nsv52MvSjbLb2PCpHlat0gkzw0EvtSgpKHu4mk0MnrA for more options
         # DM 4th Jun 25 - the post timeout will be 4:35 with 10 attempts.
         # we need this to be successful as need the job_id to check the status to put in the metadata.
@@ -76,7 +75,7 @@ class WaybackExtractorEnricher(Enricher, Extractor):
             to_enrich.set("wayback", em)
             return False
 
-        # check wayback job status
+        # check job status
         try:
             job_id = r.json().get("job_id")
             if not job_id:
@@ -97,7 +96,7 @@ class WaybackExtractorEnricher(Enricher, Extractor):
         attempt = 1
         while not wayback_url and time.time() - start_time <= self.timeout:
             try:
-                logger.debug(f"GETting status for {job_id=} on {url=} ({attempt=})")
+                logger.debug(f"GETting status for {job_id=} ({attempt=})")
                 r_status = requests.get(
                     f"https://web.archive.org/save/status/{job_id}", headers=ia_headers, proxies=proxies
                 )
@@ -112,10 +111,10 @@ class WaybackExtractorEnricher(Enricher, Extractor):
                 logger.info(f"If after {self.timeout} seconds the wayback url is not found, then we will just put the check status link in the metadata")
                 break
             except json.decoder.JSONDecodeError:
-                logger.error(f"Expected a JSON from Wayback and got {r.text} for {url=}")
+                logger.error(f"Expected a JSON from Wayback and got {r.text}")
                 break
             except Exception as e:
-                logger.warning(f"error fetching status for {url=} due to: {e}")
+                logger.warning(f"error fetching status due to: {e}")
             if not wayback_url:
                 attempt += 1
                 # if we try too many times here it will affect the next POST to wayback
@@ -123,12 +122,9 @@ class WaybackExtractorEnricher(Enricher, Extractor):
                 # for 30seconds timeout (in yaml) this gives 3 attempts
                 time.sleep(5 * attempt)  # linear backoff. todo: exponential backoff
 
-
         if wayback_url:
-            logger.info(f"Wayback GET status successful - {wayback_url=}")
             to_enrich.set("wayback", wayback_url)
         else:
-            logger.info(f"Wayback GET status failed so reverting to check status link")
             to_enrich.set(
                 "wayback", {"job_id": job_id, "check_status": f"https://web.archive.org/save/status/{job_id}"}
             )
