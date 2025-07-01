@@ -344,13 +344,18 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
         # add other logging info
         if self.logger_id is None:  # note - need direct comparison to None since need to consider falsy value 0
             use_level = logging_config["level"]
+            # self.logger_id = logger.add(
+            #     sys.stderr,
+            #     level=use_level,
+            #     catch=True,
+            #     format="<level>{extra[serialized]}</level>"
+            #     if logging_config.get("format", "").lower() == "json"
+            #     else format_for_human_readable_console(),
+            # )
+            # DM want normal logs
             self.logger_id = logger.add(
                 sys.stderr,
                 level=use_level,
-                catch=True,
-                format="<level>{extra[serialized]}</level>"
-                if logging_config.get("format", "").lower() == "json"
-                else format_for_human_readable_console(),
             )
 
             rotation = logging_config["rotation"]
@@ -369,7 +374,9 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
                 #     )
                 # DM 25th Jun - I prefer this as am used to it, and it gives colour coded logs
                 # also my cron job looks at the output of 1debug.log which is critical.
-                logger.add("logs/1debug.log", level="DEBUG", rotation=rotation, format="{extra[serialized]}")
+                # logger.add("logs/1debug.log", level="DEBUG", rotation=rotation, format="{extra[serialized]}")
+                logger.add("logs/1debug.log", level="DEBUG", rotation=rotation)
+
                 logger.add("logs/2info.log", level="INFO", rotation=rotation, format="{extra[serialized]}")
                 logger.add("logs/3success.log", level="SUCCESS", rotation=rotation, format="{extra[serialized]}")
                 logger.add("logs/4warning.log", level="WARNING", rotation=rotation, format="{extra[serialized]}")

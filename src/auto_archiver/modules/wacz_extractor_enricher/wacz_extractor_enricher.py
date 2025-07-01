@@ -251,10 +251,12 @@ class WaczExtractorEnricher(Enricher, Extractor):
                 if "bulk-route-definitions/" in uri:
                     content = record.content_stream().read()
                     foo = str(content)
-                    photo_string_start_pos = foo.find(f'photo%2F%3Ffbid%3D',0)
+                    # photo_string_start_pos = foo.find(f'photo%2F%3Ffbid%3D',0)
+                    photo_string_start_pos = foo.find(f'photo%3Ffbid%3D',0)
 
                     if (photo_string_start_pos > 0):
-                        fbid_start_pos = photo_string_start_pos + 18
+                        # fbid_start_pos = photo_string_start_pos + 18
+                        fbid_start_pos = photo_string_start_pos + 15
                         middle_26_start_pos = foo.find(f'%26', fbid_start_pos)
                         fb_id = foo[fbid_start_pos:middle_26_start_pos]
                         set_end_pos = foo.find(f'%26', middle_26_start_pos+1)
@@ -270,6 +272,7 @@ class WaczExtractorEnricher(Enricher, Extractor):
 
         # get the most prevalent set_id
         most_prevalent_set_id = max(set(list_of_set_ids), key=list_of_set_ids.count)
+        # most_prevalent_setid=1646726145764725 should be for 3 images set
         logger.info(f" calculated: {most_prevalent_set_id=}")
 
 
@@ -345,12 +348,14 @@ class WaczExtractorEnricher(Enricher, Extractor):
                         # writing in table image 
                         # fbid = 1646726009098072
                         # set = pcb.1646726145764725
-                        photo_string_start_pos = foo.find(f'photo%2F%3Ffbid%3D',0)
+                        # photo_string_start_pos = foo.find(f'photo%2F%3Ffbid%3D',0)
+                        photo_string_start_pos = foo.find(f'photo%3Ffbid%3D',0)
 
                         if (photo_string_start_pos > 0):
                             logger.debug("Part 1 - found photo string so get the fb_id and set_id so can request it to get full res image")
                             logger.debug("   and then the next fb_id from the carousel")
-                            fbid_start_pos = photo_string_start_pos + 18
+                            # fbid_start_pos = photo_string_start_pos + 18
+                            fbid_start_pos = photo_string_start_pos + 15
 
                             middle_26_start_pos = foo.find(f'%26', fbid_start_pos)
 
@@ -498,21 +503,6 @@ class WaczExtractorEnricher(Enricher, Extractor):
 
             linux_tmp_dir = os.path.expanduser('~/aatmp')
 
-            # DM 31st Oct 24 take out
-            # hard_code_directory_for_wsl2 ='/mnt/c/dev/v6-auto-archiver' 
-            # browsertrix_home = ""
-            # tmp_dir = ArchivingContext.get_tmp_dir()
-            # try:
-            #     # DM get strange AttributeError if include self.browsertrix_home - taken out for now 
-            #     # browsertrix_home = self.browsertrix_home or os.path.abspath(ArchivingContext.get_tmp_dir())
-            #     # browsertrix_home = os.path.abspath(ArchivingContext.get_tmp_dir())
-            #     browsertrix_home = os.path.abspath(tmp_dir)
-            # except FileNotFoundError: 
-            #     logger.debug(f'Dev found in function 2')
-            #     # tmp_dir = ArchivingContext.get_tmp_dir()
-            #     foo = tmp_dir[1:]
-            #     browsertrix_home = f'{hard_code_directory_for_wsl2}{foo}'
-
             browsertrix_home = linux_tmp_dir
 
             docker_commands = ["docker", "run", "--rm", "-v", f"{browsertrix_home}:/crawls/", "webrecorder/browsertrix-crawler"]
@@ -571,12 +561,13 @@ class WaczExtractorEnricher(Enricher, Extractor):
                             # photo%2F%3Ffbid%3D1646726009098072%26set%3Dpcb.1646726145764725%26
                             # fbid = 1646726009098072
                             # set = pcb.1646726145764725
-                            photo_string_start_pos = foo.find(f'photo%2F%3Ffbid%3D',0)
-                            # photo_string_start_pos = foo.find(f'%2Fphotos%2Fpcb.',0)
+                            # photo_string_start_pos = foo.find(f'photo%2F%3Ffbid%3D',0)
+                            # photo_string_start_pos = foo.find(f'%2Fphoto%2Fpcb.',0)
+                            photo_string_start_pos = foo.find(f'photo%3Ffbid%3D',0)
   
-
                             if (photo_string_start_pos > 0):
-                                fbid_start_pos = photo_string_start_pos + 18
+                                # fbid_start_pos = photo_string_start_pos + 18
+                                fbid_start_pos = photo_string_start_pos + 15
 
                                 middle_26_start_pos = foo.find(f'%26', fbid_start_pos)
     
