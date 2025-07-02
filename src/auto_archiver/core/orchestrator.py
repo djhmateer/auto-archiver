@@ -352,7 +352,8 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
             #     if logging_config.get("format", "").lower() == "json"
             #     else format_for_human_readable_console(),
             # )
-            # DM want normal logs
+            
+            # DM want normal logs for console
             self.logger_id = logger.add(
                 sys.stderr,
                 level=use_level,

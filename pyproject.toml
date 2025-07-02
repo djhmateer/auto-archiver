@@ -58,7 +58,9 @@ dependencies = [
     "yt-dlp[curl-cffi,default] (>=2025.5.22,<2026.0.0)",
     "secretstorage (>=3.3.3,<4.0.0)",
     "seleniumbase (>=4.36.4,<5.0.0)",
-    #"pyautogui (>=0.9.54,<0.10.0)",
+    # took out as getting install errors using python3.12 on prod
+    # this is just used for testing
+    #pyautogui (>=0.9.54,<0.10.0)",
 ]
 
 # uwazi API https://github.com/huridocs/python_uwazi_API
