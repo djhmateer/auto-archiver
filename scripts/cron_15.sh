@@ -55,6 +55,8 @@ cd /home/dave/auto-archiver
 
 # poetry run python src/auto_archiver --config secrets/orchestration-aa-demo-main.yaml
 
+# poetry run python src/auto_archiver --config secrets/orchestration-auto-archiver-features.yaml
+
 poetry run python src/auto_archiver --config secrets/orchestration-glan-sheet2.yaml
 sleep $TIME
 
