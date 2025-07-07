@@ -193,18 +193,18 @@ files = [
 
 [[package]]
 name = "boto3"
-version = "1.39.1"
+version = "1.39.3"
 description = "The AWS SDK for Python"
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "boto3-1.39.1-py3-none-any.whl", hash = "sha256:beb945ec1ab4bb48d39640ce7d3054b7e4ab2020ef3259034c039195ae04b2f7"},
-    {file = "boto3-1.39.1.tar.gz", hash = "sha256:3f89d6f05ab7d3a6f6807b45e9456a1a0db53bb47b1758cf5e0a3479cdd6d734"},
+    {file = "boto3-1.39.3-py3-none-any.whl", hash = "sha256:056cfa2440fe1a157a7c2be897c749c83e1a322144aa4dad889f2fca66571019"},
+    {file = "boto3-1.39.3.tar.gz", hash = "sha256:0a367106497649ae3d8a7b571b8c3be01b7b935a0fe303d4cc2574ed03aecbb4"},
 ]
 
 [package.dependencies]
-botocore = ">=1.39.1,<1.40.0"
+botocore = ">=1.39.3,<1.40.0"
 jmespath = ">=0.7.1,<2.0.0"
 s3transfer = ">=0.13.0,<0.14.0"
 
@@ -213,14 +213,14 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.39.1"
+version = "1.39.3"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "botocore-1.39.1-py3-none-any.whl", hash = "sha256:912d518ac3096460e54d2cf80899943a521a586fd5c075568e807f3c35623318"},
-    {file = "botocore-1.39.1.tar.gz", hash = "sha256:ac829b46b30bd837392c9792cdf63b44d290a4691c028b5e66ab471ced1b8305"},
+    {file = "botocore-1.39.3-py3-none-any.whl", hash = "sha256:66a81cfac18ad5e9f47696c73fdf44cdbd8f8ca51ab3fca1effca0aabf61f02f"},
+    {file = "botocore-1.39.3.tar.gz", hash = "sha256:da8f477e119f9f8a3aaa8b3c99d9c6856ed0a243680aa3a3fbbfc15a8d4093fb"},
 ]
 
 [package.dependencies]
@@ -966,14 +966,14 @@ grpcio-gcp = ["grpcio-gcp (>=0.2.2,<1.0.0)"]
 
 [[package]]
 name = "google-api-python-client"
-version = "2.174.0"
+version = "2.175.0"
 description = "Google API Client Library for Python"
 optional = false
 python-versions = ">=3.7"
 groups = ["main"]
 files = [
-    {file = "google_api_python_client-2.174.0-py3-none-any.whl", hash = "sha256:f695205ceec97bfaa1590a14282559c4109326c473b07352233a3584cdbf4b89"},
-    {file = "google_api_python_client-2.174.0.tar.gz", hash = "sha256:9eb7616a820b38a9c12c5486f9b9055385c7feb18b20cbafc5c5a688b14f3515"},
+    {file = "google_api_python_client-2.175.0-py3-none-any.whl", hash = "sha256:5f4313a914d11d2b0840d1daa336caef3f53e28e8234077c139f7b236fba9622"},
+    {file = "google_api_python_client-2.175.0.tar.gz", hash = "sha256:f6d5b5c0141194a72cebef33feb1377fa668b3f14dc90a2fae258dbbbdcdb30c"},
 ]
 
 [package.dependencies]
@@ -2893,34 +2893,34 @@ jeepney = ">=0.6"
 
 [[package]]
 name = "selenium"
-version = "4.33.0"
+version = "4.34.0"
 description = "Official Python bindings for Selenium WebDriver"
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "selenium-4.33.0-py3-none-any.whl", hash = "sha256:af9ea757813918bddfe05cc677bf63c8a0cd277ebf8474b3dd79caa5727fca85"},
-    {file = "selenium-4.33.0.tar.gz", hash = "sha256:d90974db95d2cdeb34d2fb1b13f03dc904f53e6c5d228745b0635ada10cd625d"},
+    {file = "selenium-4.34.0-py3-none-any.whl", hash = "sha256:fc3535cfd99a073c21bf9091519b48ed31b34bf2cbd132f62e8c732b2e815b2d"},
+    {file = "selenium-4.34.0.tar.gz", hash = "sha256:8b7eb05a0ed22f9bb2187fd256c28630824ad01d8397b4e68bc0af7dabf26c80"},
 ]
 
 [package.dependencies]
 certifi = ">=2025.4.26"
 trio = ">=0.30.0,<0.31.0"
 trio-websocket = ">=0.12.2,<0.13.0"
-typing_extensions = ">=4.13.2,<4.14.0"
+typing_extensions = ">=4.14.0,<4.15.0"
 urllib3 = {version = ">=2.4.0,<2.5.0", extras = ["socks"]}
 websocket-client = ">=1.8.0,<1.9.0"
 
 [[package]]
 name = "seleniumbase"
-version = "4.39.6"
+version = "4.40.0"
 description = "A complete web automation framework for end-to-end testing."
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "seleniumbase-4.39.6-py3-none-any.whl", hash = "sha256:c5b7c2987e9955b47b68c0278b526c5703e8cc2fe05bc146a5fb6707d7331e66"},
-    {file = "seleniumbase-4.39.6.tar.gz", hash = "sha256:190f6963ad7d6f441f96f247de916e9336ce3a7089a79f15498ba0fed2f7affd"},
+    {file = "seleniumbase-4.40.0-py3-none-any.whl", hash = "sha256:dcdd2ddf08e8901928a4a0bea0e9e1a1e512b9bd796e55ede24744300a1ac44e"},
+    {file = "seleniumbase-4.40.0.tar.gz", hash = "sha256:fdfacf2204327f70444f3cc59b5f4bbc8d46675b91ba50c53d1f425e3accf3d6"},
 ]
 
 [package.dependencies]
@@ -2968,7 +2968,7 @@ pyyaml = ">=6.0.2"
 requests = "2.32.4"
 rich = ">=14.0.0,<15"
 sbvirtualdisplay = ">=1.4.0"
-selenium = {version = "4.33.0", markers = "python_version >= \"3.10\""}
+selenium = {version = "4.34.0", markers = "python_version >= \"3.10\""}
 setuptools = {version = ">=80.9.0", markers = "python_version >= \"3.10\""}
 six = ">=1.17.0"
 sniffio = "1.3.1"
@@ -2986,11 +2986,11 @@ wsproto = "1.2.0"
 
 [package.extras]
 allure = ["allure-behave (>=2.13.5)", "allure-pytest (>=2.13.5)", "allure-python-commons (>=2.13.5)"]
-coverage = ["coverage (>=7.6.1) ; python_version < \"3.9\"", "coverage (>=7.9.1) ; python_version >= \"3.9\"", "pytest-cov (>=5.0.0) ; python_version < \"3.9\"", "pytest-cov (>=6.2.1) ; python_version >= \"3.9\""]
+coverage = ["coverage (>=7.6.1) ; python_version < \"3.9\"", "coverage (>=7.9.2) ; python_version >= \"3.9\"", "pytest-cov (>=5.0.0) ; python_version < \"3.9\"", "pytest-cov (>=6.2.1) ; python_version >= \"3.9\""]
 flake8 = ["flake8 (==5.0.4) ; python_version < \"3.9\"", "flake8 (==7.3.0) ; python_version >= \"3.9\"", "mccabe (==0.7.0)", "pycodestyle (==2.14.0) ; python_version >= \"3.9\"", "pycodestyle (==2.9.1) ; python_version < \"3.9\"", "pyflakes (==2.5.0) ; python_version < \"3.9\"", "pyflakes (==3.4.0) ; python_version >= \"3.9\""]
 ipdb = ["ipdb (==0.13.13)", "ipython (==7.34.0)"]
 mss = ["mss (==10.0.0) ; python_version >= \"3.9\"", "mss (==9.0.2) ; python_version < \"3.9\""]
-pdfminer = ["cffi (==1.17.1)", "cryptography (==39.0.2) ; python_version < \"3.9\"", "cryptography (==45.0.4) ; python_version >= \"3.9\"", "pdfminer.six (==20250324) ; python_version < \"3.9\"", "pdfminer.six (==20250506) ; python_version >= \"3.9\"", "pycparser (==2.22)"]
+pdfminer = ["cffi (==1.17.1)", "cryptography (==39.0.2) ; python_version < \"3.9\"", "cryptography (==45.0.5) ; python_version >= \"3.9\"", "pdfminer.six (==20250324) ; python_version < \"3.9\"", "pdfminer.six (==20250506) ; python_version >= \"3.9\"", "pycparser (==2.22)"]
 pillow = ["Pillow (>=10.4.0) ; python_version < \"3.9\"", "Pillow (>=11.3.0) ; python_version >= \"3.9\""]
 pip-system-certs = ["pip-system-certs (==4.0) ; platform_system == \"Windows\""]
 proxy = ["proxy.py (==2.4.3)"]
@@ -3528,14 +3528,14 @@ wsproto = ">=0.14"
 
 [[package]]
 name = "typing-extensions"
-version = "4.13.2"
-description = "Backported and Experimental Type Hints for Python 3.8+"
+version = "4.14.1"
+description = "Backported and Experimental Type Hints for Python 3.9+"
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.9"
 groups = ["main", "dev", "docs"]
 files = [
-    {file = "typing_extensions-4.13.2-py3-none-any.whl", hash = "sha256:a439e7c04b49fec3e5d3e2beaa21755cadbbdc391694e28ccdd36ca4a1408f8c"},
-    {file = "typing_extensions-4.13.2.tar.gz", hash = "sha256:e6c81219bd689f51865d9e372991c540bda33a0379d5573cddb9a3a23f7caaef"},
+    {file = "typing_extensions-4.14.1-py3-none-any.whl", hash = "sha256:d1e1e3b58374dc93031d6eda2420a48ea44a36c2b4766a4fdeb3710755731d76"},
+    {file = "typing_extensions-4.14.1.tar.gz", hash = "sha256:38b39f4aeeab64884ce9f74c94263ef78f3c22467c8724005483154c26648d36"},
 ]
 markers = {dev = "python_version == \"3.10\""}
 

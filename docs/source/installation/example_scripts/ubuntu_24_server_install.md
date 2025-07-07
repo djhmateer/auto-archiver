@@ -16,7 +16,10 @@ sudo apt update -y
 sudo apt upgrade -y
 
 # Clone only my latest branch
-git clone -b v1-test --single-branch https://github.com/djhmateer/auto-archiver
+# git clone -b v1-test --single-branch https://github.com/djhmateer/auto-archiver
+
+# I was using a single branch but prefer multiple as am using main for prod now, and possibly need to run other branches
+git clone https://github.com/djhmateer/auto-archiver
 
 mkdir ~/auto-archiver/secrets
 sudo chown -R dave ~/auto-archiver
