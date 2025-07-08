@@ -1,8 +1,17 @@
 <h1>This Fork</h1>
 
-Main branch represents what I (should) have in production. Currently 1.1.1+dm.5. As of 7th Jun I am still behind this, but will be up to date soon.
+Main branch represents what I (should) have in production. Currently 1.1.2+dm.6. As of 8th Jul
 
-This is upstream 1.1.1 with added Uwazi integration and Facebook crawling. Also various tweak like overwriting allowed on spreadsheets cells, and updates turned off (as may affect prod - have seen unusual behaviour). wacz image sizes to prevent small gifs etc.. metadata.json hardcoded filename to stay the same so easier to automate further analysis. Log files hardcoded to logs/1debug.log etc.. as I prefer this.
+This is upstream 1.1.2 with added 
+
+- Uwazi integration
+- Facebook crawling. 
+- Also various tweak like overwriting allowed on spreadsheets cells
+- updates turned off (as may affect prod - have seen unusual behaviour). 
+- wacz image sizes to prevent small gifs etc.. 
+- metadata.json hardcoded filename to stay the same so easier to automate further analysis. 
+- Log files hardcoded to logs/1debug.log etc.. as I prefer this.
+
 
 
 <h1 align="center">Auto Archiver</h1>

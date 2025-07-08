@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [project]
 name = "auto-archiver"
-version = "1.1.1+dm.5"
+version = "1.1.2+dm.6"
 description = "Automatically archive links to videos, images, and social media content from Google Sheets (and more)."
 
 requires-python = ">=3.10,<3.13"
@@ -60,7 +60,10 @@ dependencies = [
     "seleniumbase (>=4.36.4,<5.0.0)",
     # took out as getting install errors using python3.12 on prod
     # this is just used for testing
-    #pyautogui (>=0.9.54,<0.10.0)",
+    
+    # works on dev as as long as I dont include pyperclip below.. 
+    "pyautogui (>=0.9.54,<0.10.0)",
+    #"pyperclip (==1.8.2)", 
 ]
 
 # uwazi API https://github.com/huridocs/python_uwazi_API

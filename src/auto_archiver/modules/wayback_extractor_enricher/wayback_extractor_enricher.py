@@ -2,7 +2,7 @@ import json
 from auto_archiver.utils.custom_logger import logger
 import time
 import requests
-
+from urllib3.exceptions import MaxRetryError
 from auto_archiver.core import Extractor, Enricher
 from auto_archiver.utils import url as UrlUtil
 from auto_archiver.core import Metadata
@@ -45,6 +45,7 @@ class WaybackExtractorEnricher(Enricher, Extractor):
         if self.if_not_archived_within:
             post_data["if_not_archived_within"] = self.if_not_archived_within
         # see https://docs.google.com/document/d/1Nsv52MvSjbLb2PCpHlat0gkzw0EvtSgpKHu4mk0MnrA for more options
+		# DM 8th July 25 - are retries enabled on requests.post???
         # DM 4th Jun 25 - the post timeout will be 4:35 with 10 attempts.
         # we need this to be successful as need the job_id to check the status to put in the metadata.
         attempt = 1
@@ -104,6 +105,9 @@ class WaybackExtractorEnricher(Enricher, Extractor):
                 if r_status.status_code == 200 and r_json["status"] == "success":
                     wayback_url = f"https://web.archive.org/web/{r_json['timestamp']}/{r_json['original_url']}"
                 elif r_status.status_code != 200 or r_json["status"] != "pending":
+                    if r_json.get("status_ext") in ["error:blocked-url", "error:unauthorized"]:
+                        logger.warning("Wayback cannot currently archive the URL, skipping.")
+                        to_enrich.set("wayback", r_json.get("status_ext"))
                     logger.error(f"Wayback failed with {r_json}")
                     return False
             except requests.exceptions.RequestException as e:

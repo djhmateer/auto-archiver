@@ -12,6 +12,7 @@ The filtered rows are processed into `Metadata` objects.
 from datetime import datetime, timezone
 import time
 import os
+import traceback
 from typing import Tuple, Union, Iterator
 from urllib.parse import quote
 
@@ -27,7 +28,6 @@ from auto_archiver.utils.misc import get_current_timestamp
 
 from auto_archiver.uwazi_api.UwaziAdapter import UwaziAdapter
 
-
 class GsheetsFeederDB(Feeder, Database):
     def setup(self) -> None:
         self.gsheets_client = gspread.service_account(filename=self.service_account)
@@ -35,17 +35,28 @@ class GsheetsFeederDB(Feeder, Database):
         if not self.sheet and not self.sheet_id:
             raise ValueError("You need to define either a 'sheet' name or a 'sheet_id' in your manifest.")
 
-    def open_sheet(self):
+    @retry(
+        wait_exponential_multiplier=1,
+        stop_max_attempt_number=6,
+    )
+    def open_sheet(self) -> gspread.Spreadsheet:
         if self.sheet:
             return self.gsheets_client.open(self.sheet)
         else:
             return self.gsheets_client.open_by_key(self.sheet_id)
 
-    
-    # def __iter__(self) -> Metadata:
+    @retry(
+        wait_exponential_multiplier=1,
+        stop_max_attempt_number=6,
+    )
+    def enumerate_sheets(self, sheet) -> Iterator[gspread.Worksheet]:
+        for worksheet in sheet.worksheets():
+            yield worksheet
+
     def __iter__(self) -> Iterator[Metadata]:
         # DM 10th Jun 25 - This is the 1.Feeder step ie opening the spreadsheet and iterating over the worksheets
-        sh = self.open_sheet()
+        #sh = self.open_sheet()
+        spreadsheet = self.open_sheet()
 
         # DM 10th Jun 25 - make sure Incidents worksheet is enumerated first if exists
         # This is for Uwazi integration
@@ -53,31 +64,33 @@ class GsheetsFeederDB(Feeder, Database):
             #Prioritize 'Incidents' by giving it a lower sort value
             return (0 if wks.title == 'Incidents' else 1, wks.title)
 
-        sorted_worksheets = sorted(sh.worksheets(), key=custom_sort)
+        #sorted_worksheets = sorted(sh.worksheets(), key=custom_sort)
+        sorted_worksheets = sorted(spreadsheet.worksheets(), key=custom_sort)
         
         # for ii, worksheet in enumerate(sh.worksheets()):
-        for ii, worksheet in enumerate(sorted_worksheets):
-            if not self.should_process_sheet(worksheet.title):
-                logger.debug(f"Skipped worksheet '{worksheet.title}' due to allow/block rules")
-                continue
-            logger.info(f"Opening worksheet {ii=}: {worksheet.title=} header={self.header}")
-            gw = GWorksheet(worksheet, header_row=self.header, columns=self.columns)
+        #for ii, worksheet in enumerate(sorted_worksheets):
+        for worksheet in sorted_worksheets:
+            with logger.contextualize(worksheet=f"{spreadsheet.title}:{worksheet.title}"):
+                if not self.should_process_sheet(worksheet.title):
+                    logger.debug(f"Skipped worksheet '{worksheet.title}' due to allow/block rules")
+                    continue
+                logger.debug(f"Opening worksheet '{worksheet.title}' header={self.header}")
+                gw = GWorksheet(worksheet, header_row=self.header, columns=self.columns)
 
-            # DM 10th Jun 25 - Uwazi part 1 special case to process the Incidents tab
-            if self.uwazi_integration == True and worksheet.title == "Incidents":
-               logger.debug("Found uwazi integration Incidents (CASES) tab to process - doing this first before Sheet1")
-               self._process_uwazi_incidents_tab(gw)
-               # don't do the normal processing and yield metadata for Uwazi Incidents tab
-               continue
+                # DM 10th Jun 25 - Uwazi part 1 special case to process the Incidents tab
+                if self.uwazi_integration == True and worksheet.title == "Incidents":
+                    logger.debug("Found uwazi integration Incidents (CASES) tab to process - doing this first before Sheet1")
+                    self._process_uwazi_incidents_tab(gw)
+                    # don't do the normal processing and yield metadata for Uwazi Incidents tab
+                    continue
 
-            if len(missing_cols := self.missing_required_columns(gw)):
-                logger.debug(
-                    f"Skipped worksheet '{worksheet.title}' due to missing required column(s) for {missing_cols}"
-                )
-                continue
-				
-			# DM 30th Jun - this is a new wrapper for logging to explore
-            with logger.contextualize(worksheet=f"{sh.title}:{worksheet.title}"):
+                if len(missing_cols := self.missing_required_columns(gw)):
+                    #logger.debug(f"Skipped worksheet '{worksheet.title}' due to missing required column(s) for {missing_cols}")
+                    logger.debug(f"Skipped worksheet due to missing required column(s) for {missing_cols}")
+                    continue
+                
+                # DM 30th Jun - this is a new wrapper for logging to explore
+                #with logger.contextualize(worksheet=f"{sh.title}:{worksheet.title}"):
                 # process and yield metadata here:
                 yield from self._process_rows(gw)
             logger.info(f"Finished worksheet {worksheet.title}")
