@@ -55,21 +55,6 @@ test = ["anyio[trio]", "blockbuster (>=1.5.23)", "coverage[toml] (>=7)", "except
 trio = ["trio (>=0.26.1)"]
 
 [[package]]
-name = "astroid"
-version = "3.3.10"
-description = "An abstract syntax tree for Python with inference support."
-optional = false
-python-versions = ">=3.9.0"
-groups = ["docs"]
-files = [
-    {file = "astroid-3.3.10-py3-none-any.whl", hash = "sha256:104fb9cb9b27ea95e847a94c003be03a9e039334a8ebca5ee27dafaf5c5711eb"},
-    {file = "astroid-3.3.10.tar.gz", hash = "sha256:c332157953060c6deb9caa57303ae0d20b0fbdb2e59b4a4f2a6ba49d0a7961ce"},
-]
-
-[package.dependencies]
-typing-extensions = {version = ">=4", markers = "python_version < \"3.11\""}
-
-[[package]]
 name = "attrs"
 version = "25.3.0"
 description = "Classes Without Boilerplate"
@@ -2266,13 +2251,13 @@ diagrams = ["jinja2", "railroad-diagrams"]
 
 [[package]]
 name = "pyperclip"
-version = "1.9.0"
+version = "1.8.2"
 description = "A cross-platform clipboard module for Python. (Only handles plain text for now.)"
 optional = false
 python-versions = "*"
 groups = ["main"]
 files = [
-    {file = "pyperclip-1.9.0.tar.gz", hash = "sha256:b7de0142ddc81bfc5c7507eea19da920b92252b548b96186caf94a5e2527d310"},
+    {file = "pyperclip-1.8.2.tar.gz", hash = "sha256:105254a8b04934f0bc84e9c24eb360a591aaf6535c9def5f29d92af107a9bf57"},
 ]
 
 [[package]]
@@ -3362,27 +3347,6 @@ lint = ["betterproto (==2.0.0b6)", "mypy (==1.15.0)", "pypi-attestations (==0.0.
 test = ["cython (>=3.0)", "defusedxml (>=0.7.1)", "pytest (>=8.0)", "pytest-xdist[psutil] (>=3.4)", "setuptools (>=70.0)", "typing_extensions (>=4.9)"]
 
 [[package]]
-name = "sphinx-autoapi"
-version = "3.6.0"
-description = "Sphinx API documentation generator"
-optional = false
-python-versions = ">=3.9"
-groups = ["docs"]
-files = [
-    {file = "sphinx_autoapi-3.6.0-py3-none-any.whl", hash = "sha256:f3b66714493cab140b0e896d33ce7137654a16ac1edb6563edcbd47bf975f711"},
-    {file = "sphinx_autoapi-3.6.0.tar.gz", hash = "sha256:c685f274e41d0842ae7e199460c322c4bd7fec816ccc2da8d806094b4f64af06"},
-]
-
-[package.dependencies]
-astroid = [
-    {version = ">=2.7", markers = "python_version < \"3.12\""},
-    {version = ">=3", markers = "python_version >= \"3.12\""},
-]
-Jinja2 = "*"
-PyYAML = "*"
-sphinx = ">=7.4.0"
-
-[[package]]
 name = "sphinx-autobuild"
 version = "2024.10.3"
 description = "Rebuild Sphinx documentation on changes, with hot reloading in the browser."
@@ -4198,4 +4162,4 @@ test = ["pytest (>=8.1,<9.0)", "pytest-rerunfailures (>=14.0,<15.0)"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.13"
-content-hash = "d744bc47b16b57561c2da3c92c389f3e2c672c7f4c19c286341093d7d3a10362"
+content-hash = "23458941788b4e659302b4f6ffbe00250d92dc6a36cec58e10267574891522b0"

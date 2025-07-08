@@ -114,11 +114,12 @@ class GDriveStorage(Storage):
     # this does slow down other calls - the retires 3, and sleep 30 - but lets see if it gets rid of transient google drive errors
     # problem is that it retries 3 times to see if the folder is there (and it shouldn't be ie we haven't 
     # tried to create it yet)
+    # DM 8th July 2025 - I've increased the retries to 4 for MW errors
     def _get_id_from_parent_and_name(
         self,
         parent_id: str,
         name: str,
-        retries: int = 3, # was 1
+        retries: int = 4, # was 1
         sleep_seconds: int = 30, # was 10 in old code
         use_mime_type: bool = False,
         raise_on_missing: bool = True,

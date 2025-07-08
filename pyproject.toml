@@ -63,7 +63,7 @@ dependencies = [
     
     # works on dev as as long as I dont include pyperclip below.. 
     "pyautogui (>=0.9.54,<0.10.0)",
-    #"pyperclip (==1.8.2)", 
+    "pyperclip (==1.8.2)", 
 ]
 
 # uwazi API https://github.com/huridocs/python_uwazi_API
@@ -81,8 +81,8 @@ ruff = "^0.9.10"
 pre-commit = "^4.1.0"
 
 [tool.poetry.group.docs.dependencies]
-sphinx = "^8.1.3"
-sphinx-autoapi = "^3.4.0"
+#sphinx = "^8.1.3"
+#sphinx-autoapi = "^3.4.0"
 sphinxcontrib-mermaid = "^1.0.0"
 sphinx-autobuild = "^2024.10.3"
 sphinx-copybutton = "^0.5.2"
