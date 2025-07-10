@@ -687,14 +687,20 @@ class GsheetsFeederDB(Feeder, Database):
             final_value = final_value or val
             try:
                 # if val and gw.col_exists(col) and gw.get_cell(row_values, col) == "":
-
-                # DM allow overwriting of cells in spreadsheet and log if it happens
+                
                 if val and gw.col_exists(col):
+                    # bug - thumbnail column will always come back as no value
+                    # it is a formula eg =IMAGE("https://autoarchiverfeatures.fra1.cdn.digitaloceanspaces.com/aaf001/eb6625005b563ece063e8bd2.webp")
                     existing_value = gw.get_cell(row_values, col)
                     if existing_value:
-                        logger.info(f"Overwriting spreadsheet cell {col}={existing_value} with {final_value} in {gw.wks.title} row {row}")
+                        if self.allow_overwrite_of_spreadsheet_cells:
+                            logger.info(f"Overwriting spreadsheet cell {col}={existing_value} with {final_value}")
+                        else:
+                            # logger.warning(f"NOT overwriting spreadsheet cell {col}={existing_value} with {final_value}")
+                            return
+                    # else:
+                        # logger.info(f"No existing value for {col}")
                     
-                    # always update the cell to new value even if it already had a value
                     cell_updates.append((row, col, final_value))
             except Exception as e:
                 logger.error(f"Unable to batch {col}={final_value} due to {e}")

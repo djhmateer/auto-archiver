@@ -30,6 +30,9 @@ sudo apt upgrade -y
 ## Python 3.12.3 comes with Ubuntu 24.04.2
 
 # Poetry install 2.1.3 on 2nd June 25
+# If you ever see strange errors on poetry eg posix, try unintall and reinstall
+# curl -sSL https://install.python-poetry.org | python3 - --uninstall
+
 curl -sSL https://install.python-poetry.org | python3 -
 
 # had to restart here.. 

@@ -374,10 +374,10 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
                 #         rotation=rotation,
                 #     )
                 # DM 25th Jun - I prefer this as am used to it, and it gives colour coded logs
-                # also my cron job looks at the output of 1debug.log which is critical.
-                # logger.add("logs/1debug.log", level="DEBUG", rotation=rotation, format="{extra[serialized]}")
+                # also my cron job looks at the output of 1debug.log which is critical (todo - maybe not so critical anymore)
                 logger.add("logs/1debug.log", level="DEBUG", rotation=rotation)
 
+                logger.add("logs/x1debug.log", level="DEBUG", rotation=rotation, format="{extra[serialized]}")
                 logger.add("logs/2info.log", level="INFO", rotation=rotation, format="{extra[serialized]}")
                 logger.add("logs/3success.log", level="SUCCESS", rotation=rotation, format="{extra[serialized]}")
                 logger.add("logs/4warning.log", level="WARNING", rotation=rotation, format="{extra[serialized]}")

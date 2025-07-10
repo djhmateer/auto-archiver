@@ -63,7 +63,8 @@ dependencies = [
     
     # works on dev as as long as I dont include pyperclip below.. 
     "pyautogui (>=0.9.54,<0.10.0)",
-    "pyperclip (==1.8.2)", 
+    #"pyperclip (==1.8.2)", 
+    "pyperclip (>=0.0.0)", 
 ]
 
 # uwazi API https://github.com/huridocs/python_uwazi_API

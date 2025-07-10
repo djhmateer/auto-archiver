@@ -9,6 +9,7 @@ data, reducing JSON output size, and handling large profiles.
 """
 
 import math
+import random
 import re
 from datetime import datetime
 import traceback
@@ -327,7 +328,12 @@ class InstagramAPIExtractor(Extractor):
         if not resources_metadata.is_empty():
             media.set("other media", resources_metadata.media)
 
-        result.add_media(media, id=media_id)
+        # DM 10th Jul 25 - Have seen duplicates returned which causes an error with the aa as can't have 
+        # multiple media with the same id. Get's deduplicated later by aa, but with this, no error.
+        id_with_random_suffix = f"{media_id}_{random.randint(1, 1000000)}"
+        
+        # result.add_media(media, id=media_id)
+        result.add_media(media, id=id_with_random_suffix)
         return item
 
     def scrape_media(self, item: dict, context: str) -> tuple[dict, Media, str]:
