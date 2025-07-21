@@ -166,3 +166,30 @@ cd ~/auto-archiver
 
 poetry run python src/auto_archiver --config secrets/orchestration-aa-demo-main.yaml
 ```
+
+## Brave-Browser
+
+To create a profile for docker I use brave-browser on a local ubuntu install 
+
+https://brave.com/linux/
+
+Inside browsertrix it is using chromium (brave?)
+
+```bash
+sudo curl -fsSLo /usr/share/keyrings/brave-browser-archive-keyring.gpg https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg
+
+sudo curl -fsSLo /etc/apt/sources.list.d/brave-browser-release.sources https://brave-browser-apt-release.s3.brave.com/brave-browser.sources
+
+sudo apt update
+
+## 19th Jul 2025 this is the version that browsertrix uses
+## see Dockerfile: https://github.com/webrecorder/browsertrix-crawler/blob/main/Dockerfile
+
+sudo apt install brave-browser=1.78.102
+
+
+# to hold it and not update
+sudo apt-mark hold brave-browser
+apt-mark showhold
+sudo apt-mark unhold brave-browser
+```

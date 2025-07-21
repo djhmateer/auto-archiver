@@ -143,6 +143,12 @@ class Facebook(GenericDropin):
         return result
 
     def suitable(self, url, info_extractor: FacebookIE):
+        # This Generic Dropin is causing problems with FB reels
+        # Force it to ignore and just use the ytdlp InfoExtractor which works
+        if "facebook.com/reel" in url:
+            return False
+
+        # possible invalid || - maybe | 
         regex = r"(?:https?://(?:[\w-]+\.)?(?:facebook\.com||facebookwkhpilnemxj7asaniu7vnjjbiltxjqhye3mhbshg7kx5tfyd\.onion)/)"
         return re.match(regex, url)
 
