@@ -52,13 +52,17 @@ No URL available for {{ m.key }}.
 {% elif 'text' in m.mimetype %}
 <div>PREVIEW:<br/><code><pre class="text-preview" url="{{url}}"></pre></code></div>
 
+{% elif m.filename | get_extension == ".mhtml" %}
+<div><a href="{{ url }}" download="">download</a> to view offline in browser</div>
+
 {% else %}
 No preview available for <code>{{ m.key }}</code>.
 {% endif %}
 {% else %}
 {{ m.url | urlize }}
 {% endif %}
-{% if links %}
+<!-- don't show links for mhtml files as rendered above -->
+{% if links and m.filename | get_extension != ".mhtml" %}
 <a href="{{ url }}">open</a> or
 <a href="{{ url }}" download="">download</a> or
 {{ copy_urlize(url, "copy") }}

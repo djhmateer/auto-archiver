@@ -76,14 +76,14 @@ tests-mypy = ["mypy (>=1.11.1) ; platform_python_implementation == \"CPython\" a
 
 [[package]]
 name = "authlib"
-version = "1.6.0"
+version = "1.6.1"
 description = "The ultimate Python library in building OAuth and OpenID Connect servers and clients."
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "authlib-1.6.0-py2.py3-none-any.whl", hash = "sha256:91685589498f79e8655e8a8947431ad6288831d643f11c55c2143ffcc738048d"},
-    {file = "authlib-1.6.0.tar.gz", hash = "sha256:4367d32031b7af175ad3a323d571dc7257b7099d55978087ceae4a0d88cd3210"},
+    {file = "authlib-1.6.1-py2.py3-none-any.whl", hash = "sha256:e9d2031c34c6309373ab845afc24168fe9e93dc52d252631f52642f21f5ed06e"},
+    {file = "authlib-1.6.1.tar.gz", hash = "sha256:4dffdbb1460ba6ec8c17981a4c67af7d8af131231b5a36a88a1e8c80c111cdfd"},
 ]
 
 [package.dependencies]
@@ -178,18 +178,18 @@ files = [
 
 [[package]]
 name = "boto3"
-version = "1.39.4"
+version = "1.39.15"
 description = "The AWS SDK for Python"
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "boto3-1.39.4-py3-none-any.whl", hash = "sha256:f8e9534b429121aa5c5b7c685c6a94dd33edf14f87926e9a182d5b50220ba284"},
-    {file = "boto3-1.39.4.tar.gz", hash = "sha256:6c955729a1d70181bc8368e02a7d3f350884290def63815ebca8408ee6d47571"},
+    {file = "boto3-1.39.15-py3-none-any.whl", hash = "sha256:38fc54576b925af0075636752de9974e172c8a2cf7133400e3e09b150d20fb6a"},
+    {file = "boto3-1.39.15.tar.gz", hash = "sha256:b4483625f0d8c35045254dee46cd3c851bbc0450814f20b9b25bee1b5c0d8409"},
 ]
 
 [package.dependencies]
-botocore = ">=1.39.4,<1.40.0"
+botocore = ">=1.39.15,<1.40.0"
 jmespath = ">=0.7.1,<2.0.0"
 s3transfer = ">=0.13.0,<0.14.0"
 
@@ -198,14 +198,14 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.39.4"
+version = "1.39.15"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "botocore-1.39.4-py3-none-any.whl", hash = "sha256:c41e167ce01cfd1973c3fa9856ef5244a51ddf9c82cb131120d8617913b6812a"},
-    {file = "botocore-1.39.4.tar.gz", hash = "sha256:e662ac35c681f7942a93f2ec7b4cde8f8b56dd399da47a79fa3e370338521a56"},
+    {file = "botocore-1.39.15-py3-none-any.whl", hash = "sha256:eb9cfe918ebfbfb8654e1b153b29f0c129d586d2c0d7fb4032731d49baf04cff"},
+    {file = "botocore-1.39.15.tar.gz", hash = "sha256:2aa29a717f14f8c7ca058c2e297aaed0aa10ecea24b91514eee802814d1b7600"},
 ]
 
 [package.dependencies]
@@ -422,14 +422,14 @@ files = [
 
 [[package]]
 name = "certifi"
-version = "2025.7.9"
+version = "2025.7.14"
 description = "Python package for providing Mozilla's CA Bundle."
 optional = false
 python-versions = ">=3.7"
 groups = ["main", "docs"]
 files = [
-    {file = "certifi-2025.7.9-py3-none-any.whl", hash = "sha256:d842783a14f8fdd646895ac26f719a061408834473cfc10203f6a575beb15d39"},
-    {file = "certifi-2025.7.9.tar.gz", hash = "sha256:c1d2ec05395148ee10cf672ffc28cd37ea0ab0d99f9cc74c43e588cbd111b079"},
+    {file = "certifi-2025.7.14-py3-none-any.whl", hash = "sha256:6b31f564a415d79ee77df69d757bb49a5bb53bd9f756cbbe24394ffd6fc1f4b2"},
+    {file = "certifi-2025.7.14.tar.gz", hash = "sha256:8ea99dbdfaaf2ba2f9bac77b9249ef62ec5218e7c2b2e903378ed5fccf765995"},
 ]
 
 [[package]]
@@ -809,14 +809,14 @@ langdetect = ["langdetect (>=1.0.0)"]
 
 [[package]]
 name = "distlib"
-version = "0.3.9"
+version = "0.4.0"
 description = "Distribution utilities"
 optional = false
 python-versions = "*"
 groups = ["dev"]
 files = [
-    {file = "distlib-0.3.9-py2.py3-none-any.whl", hash = "sha256:47f8c22fd27c27e25a65601af709b38e4f0a45ea4fc2e710f65755fa8caaaf87"},
-    {file = "distlib-0.3.9.tar.gz", hash = "sha256:a60f20dea646b8a33f3e7772f74dc0b2d0772d2837ee1342a00645c81edf9403"},
+    {file = "distlib-0.4.0-py2.py3-none-any.whl", hash = "sha256:9659f7d87e46584a30b5780e43ac7a2143098441670ff0a49d5f9034c54a6c16"},
+    {file = "distlib-0.4.0.tar.gz", hash = "sha256:feec40075be03a04501a973d81f633735b4b69f98b05450592310c0f401a4e0d"},
 ]
 
 [[package]]
@@ -951,14 +951,14 @@ grpcio-gcp = ["grpcio-gcp (>=0.2.2,<1.0.0)"]
 
 [[package]]
 name = "google-api-python-client"
-version = "2.176.0"
+version = "2.177.0"
 description = "Google API Client Library for Python"
 optional = false
 python-versions = ">=3.7"
 groups = ["main"]
 files = [
-    {file = "google_api_python_client-2.176.0-py3-none-any.whl", hash = "sha256:e22239797f1d085341e12cd924591fc65c56d08e0af02549d7606092e6296510"},
-    {file = "google_api_python_client-2.176.0.tar.gz", hash = "sha256:2b451cdd7fd10faeb5dd20f7d992f185e1e8f4124c35f2cdcc77c843139a4cf1"},
+    {file = "google_api_python_client-2.177.0-py3-none-any.whl", hash = "sha256:f2f50f11105ab883eb9b6cf38ec54ea5fd4b429249f76444bec90deba5be79b3"},
+    {file = "google_api_python_client-2.177.0.tar.gz", hash = "sha256:9ffd2b57d68f5afa7e6ac64e2c440534eaa056cbb394812a62ff94723c31b50e"},
 ]
 
 [package.dependencies]
@@ -1147,14 +1147,14 @@ files = [
 
 [[package]]
 name = "instaloader"
-version = "4.14.1"
+version = "4.14.2"
 description = "Download pictures (or videos) along with their captions and other metadata from Instagram."
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "instaloader-4.14.1-py3-none-any.whl", hash = "sha256:43356f696231621ea5a93354f9a4578124fe131940ee9aa1e83c20f57e18f26d"},
-    {file = "instaloader-4.14.1.tar.gz", hash = "sha256:a41a7372a18fb096b3ed545469479884de9cf768e12020c0e0e67c488d9d599c"},
+    {file = "instaloader-4.14.2-py3-none-any.whl", hash = "sha256:e8c72410405fcbfd16c6e0034a10bccce634d91d59b1b0664b7de813be9d27fd"},
+    {file = "instaloader-4.14.2.tar.gz", hash = "sha256:e9205098e6ec494cdfe2aef6c56805084cef4008a06d4d78504301f42f8e4d33"},
 ]
 
 [package.dependencies]
@@ -2805,14 +2805,14 @@ rsa = ["oauthlib[signedtoken] (>=3.0.0)"]
 
 [[package]]
 name = "retrying"
-version = "1.4.0"
+version = "1.4.1"
 description = "Retrying"
 optional = false
 python-versions = ">=3.6"
 groups = ["main"]
 files = [
-    {file = "retrying-1.4.0-py3-none-any.whl", hash = "sha256:6509d829c70271937605bce361c8f76e91f9123d355d14df7dc6972b1518064a"},
-    {file = "retrying-1.4.0.tar.gz", hash = "sha256:efa99c78bf4fbdbe6f0cba4101470fbc684b93d30ca45ffa1288443a9805172f"},
+    {file = "retrying-1.4.1-py3-none-any.whl", hash = "sha256:d736050c1adfc0a71fa022d9198ee130b0e66be318678a3fdd8b1b8872dc0997"},
+    {file = "retrying-1.4.1.tar.gz", hash = "sha256:4d206e0ed2aff5ef2f3cd867abb9511e9e8f31127c5aca20f1d5246e476903b0"},
 ]
 
 [[package]]
@@ -2848,20 +2848,19 @@ test = ["coverage[toml]", "pretend", "pytest", "pytest-cov"]
 
 [[package]]
 name = "rich"
-version = "14.0.0"
+version = "14.1.0"
 description = "Render rich text, tables, progress bars, syntax highlighting, markdown and more to the terminal"
 optional = false
 python-versions = ">=3.8.0"
 groups = ["main"]
 files = [
-    {file = "rich-14.0.0-py3-none-any.whl", hash = "sha256:1c9491e1951aac09caffd42f448ee3d04e58923ffe14993f6e83068dc395d7e0"},
-    {file = "rich-14.0.0.tar.gz", hash = "sha256:82f1bc23a6a21ebca4ae0c45af9bdbc492ed20231dcb63f297d6d1021a9d5725"},
+    {file = "rich-14.1.0-py3-none-any.whl", hash = "sha256:536f5f1785986d6dbdea3c75205c473f970777b4a0d6c6dd1b696aa05a3fa04f"},
+    {file = "rich-14.1.0.tar.gz", hash = "sha256:e497a48b844b0320d45007cdebfeaeed8db2a4f4bcf49f15e455cfc4af11eaa8"},
 ]
 
 [package.dependencies]
 markdown-it-py = ">=2.2.0"
 pygments = ">=2.13.0,<3.0.0"
-typing-extensions = {version = ">=4.0.0,<5.0", markers = "python_version < \"3.11\""}
 
 [package.extras]
 jupyter = ["ipywidgets (>=7.5.1,<9)"]
@@ -3036,14 +3035,14 @@ files = [
 
 [[package]]
 name = "s3transfer"
-version = "0.13.0"
+version = "0.13.1"
 description = "An Amazon S3 Transfer Manager"
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "s3transfer-0.13.0-py3-none-any.whl", hash = "sha256:0148ef34d6dd964d0d8cf4311b2b21c474693e57c2e069ec708ce043d2b527be"},
-    {file = "s3transfer-0.13.0.tar.gz", hash = "sha256:f5e6db74eb7776a37208001113ea7aa97695368242b364d73e91c981ac522177"},
+    {file = "s3transfer-0.13.1-py3-none-any.whl", hash = "sha256:a981aa7429be23fe6dfc13e80e4020057cbab622b08c0315288758d67cabc724"},
+    {file = "s3transfer-0.13.1.tar.gz", hash = "sha256:c3fdba22ba1bd367922f27ec8032d6a1cf5f10c934fb5d68cf60fd5a23d936cf"},
 ]
 
 [package.dependencies]
@@ -3106,21 +3105,21 @@ websocket-client = ">=1.8.0,<1.9.0"
 
 [[package]]
 name = "seleniumbase"
-version = "4.40.4"
+version = "4.40.6"
 description = "A complete web automation framework for end-to-end testing."
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "seleniumbase-4.40.4-py3-none-any.whl", hash = "sha256:7fb8e3070ea6801c950596e3e916f4e7db29abd11c4f9ee8e417eb076aa796fb"},
-    {file = "seleniumbase-4.40.4.tar.gz", hash = "sha256:d2fb7394e7a556391a9a93ac9f1aa4dba8e08cb00d7e1038f7dafb267ef67e8e"},
+    {file = "seleniumbase-4.40.6-py3-none-any.whl", hash = "sha256:c8be1ce1fbf056cf7ee164d9ffa78bebffd83542bfa683433ab934818c2abd9b"},
+    {file = "seleniumbase-4.40.6.tar.gz", hash = "sha256:36fac5355968ca143486b2cb08db2df4fbb5736e8c32d072676ec7f4323233a7"},
 ]
 
 [package.dependencies]
 attrs = ">=25.3.0"
 beautifulsoup4 = "4.13.4"
 behave = "1.2.6"
-certifi = ">=2025.7.9"
+certifi = ">=2025.7.14"
 chardet = "5.2.0"
 charset-normalizer = ">=3.4.2,<4"
 colorama = ">=0.4.6"
@@ -3531,14 +3530,14 @@ test = ["pytest"]
 
 [[package]]
 name = "starlette"
-version = "0.47.1"
+version = "0.47.2"
 description = "The little ASGI library that shines."
 optional = false
 python-versions = ">=3.9"
 groups = ["docs"]
 files = [
-    {file = "starlette-0.47.1-py3-none-any.whl", hash = "sha256:5e11c9f5c7c3f24959edbf2dffdc01bba860228acf657129467d8a7468591527"},
-    {file = "starlette-0.47.1.tar.gz", hash = "sha256:aef012dd2b6be325ffa16698f9dc533614fb1cebd593a906b90dc1025529a79b"},
+    {file = "starlette-0.47.2-py3-none-any.whl", hash = "sha256:c5847e96134e5c5371ee9fac6fdf1a67336d5815e09eb2a01fdb57a351ef915b"},
+    {file = "starlette-0.47.2.tar.gz", hash = "sha256:6ae9aa5db235e4846decc1e7b79c4f346adf41e9777aebeb49dfd09bbd7023d8"},
 ]
 
 [package.dependencies]
@@ -3828,14 +3827,14 @@ standard = ["colorama (>=0.4) ; sys_platform == \"win32\"", "httptools (>=0.6.3)
 
 [[package]]
 name = "virtualenv"
-version = "20.31.2"
+version = "20.32.0"
 description = "Virtual Python Environment builder"
 optional = false
 python-versions = ">=3.8"
 groups = ["dev"]
 files = [
-    {file = "virtualenv-20.31.2-py3-none-any.whl", hash = "sha256:36efd0d9650ee985f0cad72065001e66d49a6f24eb44d98980f630686243cf11"},
-    {file = "virtualenv-20.31.2.tar.gz", hash = "sha256:e10c0a9d02835e592521be48b332b6caee6887f332c111aa79a09b9e79efc2af"},
+    {file = "virtualenv-20.32.0-py3-none-any.whl", hash = "sha256:2c310aecb62e5aa1b06103ed7c2977b81e042695de2697d01017ff0f1034af56"},
+    {file = "virtualenv-20.32.0.tar.gz", hash = "sha256:886bf75cadfdc964674e6e33eb74d787dff31ca314ceace03ca5810620f4ecf0"},
 ]
 
 [package.dependencies]
@@ -4129,14 +4128,14 @@ h11 = ">=0.9.0,<1"
 
 [[package]]
 name = "yt-dlp"
-version = "2025.6.30"
+version = "2025.7.21"
 description = "A feature-rich command-line audio/video downloader"
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "yt_dlp-2025.6.30-py3-none-any.whl", hash = "sha256:541becc29ed7b7b3a08751c0a66da4b7f8ee95cb81066221c78e83598bc3d1f3"},
-    {file = "yt_dlp-2025.6.30.tar.gz", hash = "sha256:6d0ae855c0a55bfcc28dffba804ec8525b9b955d34a41191a1561a4cec03d8bd"},
+    {file = "yt_dlp-2025.7.21-py3-none-any.whl", hash = "sha256:d7aa2b53f9b2f35453346360f41811a0dad1e956e70b35a4ae95039d4d815d15"},
+    {file = "yt_dlp-2025.7.21.tar.gz", hash = "sha256:46fbb53eab1afbe184c45b4c17e9a6eba614be680e4c09de58b782629d0d7f43"},
 ]
 
 [package.dependencies]
@@ -4154,10 +4153,10 @@ websockets = {version = ">=13.0", optional = true, markers = "extra == \"default
 build = ["build", "hatchling", "pip", "setuptools (>=71.0.2,<81)", "wheel"]
 curl-cffi = ["curl-cffi (>=0.5.10,<0.6.dev0 || ==0.10.*) ; implementation_name == \"cpython\""]
 default = ["brotli ; implementation_name == \"cpython\"", "brotlicffi ; implementation_name != \"cpython\"", "certifi", "mutagen", "pycryptodomex", "requests (>=2.32.2,<3)", "urllib3 (>=1.26.17,<3)", "websockets (>=13.0)"]
-dev = ["autopep8 (>=2.0,<3.0)", "pre-commit", "pytest (>=8.1,<9.0)", "pytest-rerunfailures (>=14.0,<15.0)", "ruff (>=0.11.0,<0.12.0)"]
+dev = ["autopep8 (>=2.0,<3.0)", "pre-commit", "pytest (>=8.1,<9.0)", "pytest-rerunfailures (>=14.0,<15.0)", "ruff (>=0.12.0,<0.13.0)"]
 pyinstaller = ["pyinstaller (>=6.13.0)"]
 secretstorage = ["cffi", "secretstorage"]
-static-analysis = ["autopep8 (>=2.0,<3.0)", "ruff (>=0.11.0,<0.12.0)"]
+static-analysis = ["autopep8 (>=2.0,<3.0)", "ruff (>=0.12.0,<0.13.0)"]
 test = ["pytest (>=8.1,<9.0)", "pytest-rerunfailures (>=14.0,<15.0)"]
 
 [metadata]
