@@ -15,6 +15,16 @@
             "console": "integratedTerminal",
             "args": "${command:pickArgs}"
         },
+		{
+			"name": "AA Dave Testing (davemateer@gmail)",
+			"type": "debugpy",
+			"request": "launch",
+			// "program": "src/auto_archiver",
+            "module": "src.auto_archiver",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","secrets/orchestration-aa-dave-testing.yaml"]
+		},
         {
 			"name": "AA Demo Main (davemateer@gmail)",
 			"type": "debugpy",
