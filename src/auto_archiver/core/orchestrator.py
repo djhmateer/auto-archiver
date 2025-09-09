@@ -613,6 +613,8 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
         try:
             check_url_or_raise(original_url)
         except ValueError as e:
+            # DM 2025-09-09
+            # would like to write to the spreadsheet the datetime it was attempted
             logger.error(f"Error archiving: {e}")
             raise e
 
