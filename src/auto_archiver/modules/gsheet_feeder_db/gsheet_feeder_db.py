@@ -346,6 +346,7 @@ class GsheetsFeederDB(Feeder, Database):
             # DM 10th Jun 25 - Uwazi Part 2 - send Sheet1 data to Uwazi 
             # TODO use AI to help abstract this out with proper control flow
 
+            # DM 9th Sep 25 - possibly shutting down uwazi integration - will find out. 
             if self.uwazi_integration == True:
                 # we're using keep_going rather than continue as the normal archiver run 
                 # will go through this code too for Glan and needs to keep on going
