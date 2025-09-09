@@ -658,6 +658,7 @@ class GsheetsFeederDB(Feeder, Database):
     def failed(self, item: Metadata, reason: str) -> None:
         logger.error("FAILED")
         self._safe_status_update(item, f"Archive failed {reason}")
+        self._safe_archive_date_update(item) 
 
     def aborted(self, item: Metadata) -> None:
         logger.warning("ABORTED")
@@ -853,6 +854,15 @@ class GsheetsFeederDB(Feeder, Database):
             gw.set_cell(row, "status", new_status)
         except Exception as e:
             logger.debug(f"Unable to update sheet: {e}: {traceback.format_exc()}")
+
+    def _safe_archive_date_update(self, item: Metadata) -> None:
+        """Update the archive date column with current timestamp"""
+        try:
+            gw, row = self._retrieve_gsheet(item)
+            current_time = datetime.now(timezone.utc).isoformat()
+            gw.set_cell(row, "date", current_time)
+        except Exception as e:
+            logger.debug(f"Unable to update archive date: {e}: {traceback.format_exc()}")
 
     def _retrieve_gsheet(self, item: Metadata) -> Tuple[GWorksheet, int]:
         if gsheet := item.get_context("gsheet"):
