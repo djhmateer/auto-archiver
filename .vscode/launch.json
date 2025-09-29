@@ -56,6 +56,16 @@
 			"args": ["--config","secrets/orchestration-glan-sheet1.yaml"]
 		},
         {
+			"name": "GLAN Sheet 3 (davemateer@gmail)",
+			"type": "debugpy",
+			"request": "launch",
+			// "program": "src/auto_archiver",
+            "module": "src.auto_archiver",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","secrets/orchestration-glan-sheet3.yaml"]
+		},
+        {
 			"name": "CIR Domain EoR",
 			"type": "debugpy",
 			"request": "launch",
