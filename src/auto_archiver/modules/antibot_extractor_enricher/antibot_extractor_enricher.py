@@ -87,6 +87,16 @@ class AntibotExtractorEnricher(Extractor, Enricher):
         using_user_data_dir = self.user_data_dir if custom_data_dir else None
         url = to_enrich.get_url()
 
+        # Clean up stale Chrome lock files to prevent "session not created" errors
+        if using_user_data_dir and os.path.exists(using_user_data_dir):
+            singleton_lock = os.path.join(using_user_data_dir, "SingletonLock")
+            if os.path.exists(singleton_lock):
+                logger.warning(f"Removing stale SingletonLock from {using_user_data_dir}")
+                try:
+                    os.remove(singleton_lock)
+                except Exception as e:
+                    logger.error(f"Failed to remove SingletonLock: {e}")
+
         try:
             with SB(uc=True, agent=self.agent, headed=None, user_data_dir=using_user_data_dir, proxy=self.proxy) as sb:
                 logger.info(f"Selenium browser is up with agent {self.agent}, opening url...")
@@ -115,18 +125,18 @@ class AntibotExtractorEnricher(Extractor, Enricher):
 
                 downloaded_images, downloaded_videos = dropin.add_extra_media(to_enrich)
 
-                self._enrich_download_media(
-                    sb,
-                    to_enrich,
-                    js_css_selector=dropin.js_for_image_css_selectors(),
-                    max_media=self.max_download_images - downloaded_images,
-                )
-                self._enrich_download_media(
-                    sb,
-                    to_enrich,
-                    js_css_selector=dropin.js_for_video_css_selectors(),
-                    max_media=self.max_download_videos - downloaded_videos,
-                )
+                # self._enrich_download_media(
+                #     sb,
+                #     to_enrich,
+                #     js_css_selector=dropin.js_for_image_css_selectors(),
+                #     max_media=self.max_download_images - downloaded_images,
+                # )
+                # self._enrich_download_media(
+                #     sb,
+                #     to_enrich,
+                #     js_css_selector=dropin.js_for_video_css_selectors(),
+                #     max_media=self.max_download_videos - downloaded_videos,
+                # )
                 logger.info("Completed")
 
             return to_enrich

@@ -82,6 +82,25 @@ sudo apt-get install -f
 
 # I've seen this fail when a chrome update is available. To fix a restart is required and reinstall of chrome.
 
+# 6th Oct 25 - trying to get antibot screenshotter working with x.com sensitive content
+# my server install couldn't see chrome so
+
+sudo apt update
+sudo apt install -y wget gnupg apt-transport-https ca-certificates
+
+wget -qO- https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /usr/share/keyrings/google-linux-signing-keyring.gpg
+
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-linux-signing-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | \
+  sudo tee /etc/apt/sources.list.d/google-chrome.list
+
+
+sudo apt update
+sudo apt install -y google-chrome-stable
+
+# 141.0
+google-chrome --version
+
+
 ## Gecko driver
 # check version numbers for new ones
 # https://github.com/mozilla/geckodriver/releases/
