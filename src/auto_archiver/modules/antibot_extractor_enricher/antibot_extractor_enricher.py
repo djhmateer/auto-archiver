@@ -249,7 +249,7 @@ class AntibotExtractorEnricher(Extractor, Enricher):
         screen_filename = os.path.join(self.tmp_dir, f"screenshot{random_str(6)}.png")
         sb.save_screenshot(screen_filename)
 
-        to_enrich.add_media(Media(filename=screen_filename), id="screenshot")
+        to_enrich.add_media(Media(filename=screen_filename), id="antibot_screenshot")
 
     @logger.catch
     def _enrich_full_page_pdf(self, sb: SB, to_enrich: Metadata):
