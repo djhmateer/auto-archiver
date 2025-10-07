@@ -4,7 +4,7 @@ from seleniumbase import SB
     # extension_dir="secrets/twitter_extension"
 with SB(
     uc=True,
-    headless2=False,
+    headless2=True,
     xvfb=True,
     # user_data_dir="secrets/antibot_user_data"
 ) as sb:
