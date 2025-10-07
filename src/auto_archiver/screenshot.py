@@ -1,52 +1,14 @@
 from seleniumbase import SB
-import random
 
-# Use a random port to avoid conflicts
-port = random.randint(9300, 9400)
-
-# this works
-# with SB(
-#     uc=True,
-#     headless2=True,
-#     xvfb=True,
-#     incognito=True,
-#     chromium_arg=f"--remote-debugging-port={port},--no-sandbox,--disable-dev-shm-usage,--disable-gpu"
-# ) as sb:
-#     sb.uc_open_with_reconnect("https://example.org", 4)
-#     sb.save_screenshot("example.png")
-#     print("Screenshot saved to example.png")
-
-# works
-# with SB(
-#     uc=True,
-#     headless2=True,
-#     xvfb=True,
-#     incognito=True,
-#     chromium_arg=f"--no-sandbox,--disable-dev-shm-usage,--disable-gpu"
-# ) as sb:
-#     sb.uc_open_with_reconnect("https://example.org", 4)
-#     sb.save_screenshot("example.png")
-#     print("Screenshot saved to example.png")
-
-# works
-# with SB(
-#     uc=True,
-#     headless2=True,
-#     xvfb=True,
-#     incognito=True,
-#     chromium_arg=f"--disable-dev-shm-usage,--disable-gpu"
-# ) as sb:
-#     sb.uc_open_with_reconnect("https://example.org", 4)
-#     sb.save_screenshot("example.png")
-#     print("Screenshot saved to example.png")
-
-    # incognito=True
+# Load the extension we created
+    # extension_dir="secrets/twitter_extension"
 with SB(
     uc=True,
-    headless2=True,
-    xvfb=True
+    headless2=False,
+    xvfb=True,
+    user_data_dir="secrets/antibot_user_data"
 ) as sb:
-    sb.uc_open_with_reconnect("https://example.org", 4)
-    sb.save_screenshot("example.png")
-    print("Screenshot saved to example.png")
+    sb.uc_open_with_reconnect("https://x.com/TangoBatDraws/status/1776776952298500381", 4)
+    sb.save_screenshot("twitter_with_extension.png")
+    print("Screenshot saved to twitter_with_extension.png")
 
