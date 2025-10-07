@@ -126,18 +126,19 @@ class AntibotExtractorEnricher(Extractor, Enricher):
 
                 downloaded_images, downloaded_videos = dropin.add_extra_media(to_enrich)
 
-                # self._enrich_download_media(
-                #     sb,
-                #     to_enrich,
-                #     js_css_selector=dropin.js_for_image_css_selectors(),
-                #     max_media=self.max_download_images - downloaded_images,
-                # )
-                # self._enrich_download_media(
-                #     sb,
-                #     to_enrich,
-                #     js_css_selector=dropin.js_for_video_css_selectors(),
-                #     max_media=self.max_download_videos - downloaded_videos,
-                # )
+                # gets media from browser and adds to to_enrich
+                self._enrich_download_media(
+                    sb,
+                    to_enrich,
+                    js_css_selector=dropin.js_for_image_css_selectors(),
+                    max_media=self.max_download_images - downloaded_images,
+                )
+                self._enrich_download_media(
+                    sb,
+                    to_enrich,
+                    js_css_selector=dropin.js_for_video_css_selectors(),
+                    max_media=self.max_download_videos - downloaded_videos,
+                )
                 logger.info("Completed")
 
             return to_enrich
