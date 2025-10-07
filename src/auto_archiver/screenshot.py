@@ -44,8 +44,7 @@ with SB(
     uc=True,
     headless2=True,
     xvfb=True,
-    incognito=True,
-    chromium_arg=f"--disable-gpu"
+    incognito=True
 ) as sb:
     sb.uc_open_with_reconnect("https://example.org", 4)
     sb.save_screenshot("example.png")
