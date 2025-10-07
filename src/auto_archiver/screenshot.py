@@ -40,9 +40,9 @@ port = random.randint(9300, 9400)
 #     sb.save_screenshot("example.png")
 #     print("Screenshot saved to example.png")
 
+    # headless2=True,
 with SB(
     uc=True,
-    headless2=True,
     xvfb=True,
     incognito=True
 ) as sb:
