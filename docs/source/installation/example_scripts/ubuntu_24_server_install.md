@@ -71,10 +71,10 @@ wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
 cd ~
 # got problems here - fixed below
 # 137.0.7151.103 on 16th Jun 2025
-sudo dpkg -i google-chrome-stable_current_amd64.deb
+# sudo dpkg -i google-chrome-stable_current_amd64.deb
 
 # fix dependencies on install above
-sudo apt-get install -f
+# sudo apt-get install -f
 
 # had to click a lot on UI to get going.
 # to test
@@ -82,6 +82,7 @@ sudo apt-get install -f
 
 # I've seen this fail when a chrome update is available. To fix a restart is required and reinstall of chrome.
 
+# ANTIBOT 
 # 6th Oct 25 - trying to get antibot screenshotter working with x.com sensitive content
 # my server install couldn't see chrome so
 
@@ -97,8 +98,19 @@ echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-linux-signing-keyring
 sudo apt update
 sudo apt install -y google-chrome-stable
 
-# 141.0
+# 141.0.7390.54
 google-chrome --version
+
+# I have a test file called screenshot.py
+# poetry run python src/auto_archiver/screenshot.py
+# which needs secrets/antibot_user_data
+# but is great to run on prod to make sure selenium base is working
+# it downloads the driver automatically
+
+# once test file is working, try on aa
+# poetry run python src/auto_archiver --config secrets/orchestration-aa-demo-main.yaml
+
+
 
 
 ## Gecko driver
