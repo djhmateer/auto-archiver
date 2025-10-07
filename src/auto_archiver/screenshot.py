@@ -2,10 +2,10 @@ from seleniumbase import SB
 
 url = "https://example.com"
 
-# Test without undetected mode first
-print("Testing basic Chrome...")
+# Test with chromium args to fix shared memory issues
+print("Testing basic Chrome with no-sandbox...")
 try:
-    with SB(headed=False, xvfb=True) as sb:
+    with SB(headed=False, xvfb=True, chromium_arg="--disable-dev-shm-usage,--no-sandbox") as sb:
         sb.open(url)
         sb.save_screenshot("screenshot_basic.png")
         print(f"✓ Basic mode works - screenshot saved to screenshot_basic.png")
@@ -13,9 +13,9 @@ except Exception as e:
     print(f"✗ Basic mode failed: {e}")
 
 # Test with undetected mode
-print("\nTesting undetected Chrome...")
+print("\nTesting undetected Chrome with no-sandbox...")
 try:
-    with SB(uc=True, headed=False, xvfb=True) as sb:
+    with SB(uc=True, headed=False, xvfb=True, chromium_arg="--disable-dev-shm-usage,--no-sandbox") as sb:
         sb.uc_open_with_reconnect(url, 4)
         sb.save_screenshot("screenshot_uc.png")
         print(f"✓ Undetected mode works - screenshot saved to screenshot_uc.png")
