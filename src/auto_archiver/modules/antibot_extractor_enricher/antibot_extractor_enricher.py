@@ -98,7 +98,8 @@ class AntibotExtractorEnricher(Extractor, Enricher):
                     logger.error(f"Failed to remove SingletonLock: {e}")
 
         try:
-            with SB(uc=True, agent=self.agent, headed=False, xvfb=True, user_data_dir=using_user_data_dir, proxy=self.proxy) as sb:
+            # with SB(uc=True, agent=self.agent, headed=False, xvfb=True, user_data_dir=using_user_data_dir, proxy=self.proxy) as sb:
+            with SB(uc=True, agent=self.agent, headless2=True, xvfb=True, user_data_dir=using_user_data_dir, proxy=self.proxy) as sb:
                 logger.info(f"Selenium browser is up with agent {self.agent}, opening url...")
                 sb.uc_open_with_reconnect(url, 4)
 
