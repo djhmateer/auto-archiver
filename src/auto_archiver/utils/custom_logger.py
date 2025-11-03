@@ -42,7 +42,6 @@ def serialize(record):
     return json.dumps(extract_log_data(record), ensure_ascii=False)
 
 
-
 def patching(record):
     # Ensure the extra dictionary exists
     if "extra" not in record:

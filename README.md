@@ -1,6 +1,8 @@
 <h1>This Fork</h1>
 
-Main branch represents what I (should) have in production. Currently 1.1.2+dm.6. As of 8th Jul
+Main branch represents what I (should) have in production. Currently 1.1.6+dm.7. As of 3rd Nov 25
+
+
 
 This is upstream 1.1.2 with added 
 

@@ -307,9 +307,11 @@ class GenericExtractor(Extractor):
             result.set_url(url)
 
         if "description" in video_data and not result.get("content"):
-            result.set_content(video_data.get("description"))
+            # result.set_content(video_data.get("description"))
+            result.set_content(video_data.pop("description"))
         # extract comments if enabled
-        if self.comments and video_data.get("comments", []) is not None:
+        #if self.comments and video_data.get("comments", []) is not None:
+        if self.comments and video_data.get("comments", None) is not None:
             result.set(
                 "comments",
                 [
@@ -518,7 +520,7 @@ class GenericExtractor(Extractor):
                 )
                 return False
 
-        if result:
+        if result and not result.is_success():
             extractor_name = "yt-dlp"
             if info_extractor:
                 extractor_name += f"_{info_extractor.ie_key()}"
@@ -537,7 +539,6 @@ class GenericExtractor(Extractor):
         if url.startswith("https://ya.ru"):
             url = url.replace("https://ya.ru", "https://yandex.ru")
             item.set("replaced_url", url)
-        logger.debug(f"{skip_proxy=}, {self.proxy_on_failure_only=}, {self.proxy=}")
 
         # proxy_on_failure_only logic
         if self.proxy and self.proxy_on_failure_only and not skip_proxy:
@@ -607,9 +608,9 @@ class GenericExtractor(Extractor):
             validated_options
         )  # allsubtitles and subtitleslangs not working as expected, so default lang is always "en"
 
+        result: Metadata = None
         for info_extractor in self.suitable_extractors(url):
-            result = self.download_for_extractor(info_extractor, url, ydl)
-            if result:
-                return result
-
-        return False
+            local_result: Metadata = self.download_for_extractor(info_extractor, url, ydl)
+            if local_result:
+                result = result.merge(local_result) if result else local_result
+        return result if result else False
