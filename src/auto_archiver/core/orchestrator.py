@@ -567,6 +567,50 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
         logger.info(f"Processed {url_count} URL(s)")
         self.cleanup()
 
+    def connect_vpn(self, location: str = "Australia - Sydney") -> None:
+        """
+        Connects to ExpressVPN at the specified location and waits for connection to complete.
+
+        Args:
+            location: VPN server location (default: "Australia - Sydney")
+        """
+        logger.debug(f"Starting VPN connection to {location}")
+        subprocess.run(['expressvpnctl', 'connect', location], check=True, capture_output=True)
+
+        # Wait for connection to establish
+        max_retries = 10
+        for i in range(max_retries):
+            logger.debug(f"Checking VPN connection status, attempt {i+1}/{max_retries}")
+            status = subprocess.run(['expressvpnctl', 'status'], capture_output=True, text=True)
+            if 'Connected' in status.stdout:
+                logger.info(f"VPN connected to {location}")
+                time.sleep(6)  # Give VPN routing tables time to stabilise
+                break
+            time.sleep(1)
+
+        logger.info("VPN connection complete")
+        ip_result = subprocess.run(['curl', 'ifconfig.me'], capture_output=True, text=True, timeout=10)
+        logger.info(f"Current IP address: {ip_result.stdout.strip()}")
+
+    def disconnect_vpn(self) -> None:
+        """
+        Disconnects ExpressVPN and waits for disconnection to complete.
+        """
+        logger.debug("Attempting to disconnect VPN")
+        subprocess.run(['expressvpnctl', 'disconnect'], capture_output=True)
+
+        max_retries = 10
+        for i in range(max_retries):
+            logger.debug(f"Checking VPN disconnection status, attempt {i+1}/{max_retries}")
+            status = subprocess.run(['expressvpnctl', 'status'], capture_output=True, text=True)
+            if 'Disconnected' in status.stdout:
+                logger.info("VPN disconnected")
+                time.sleep(6)  # Give VPN routing tables time to stabilise
+                break
+            time.sleep(1)
+
+        logger.info("VPN disconnection complete")
+
     def feed_item(self, item: Metadata) -> Metadata:
         """
         Takes one item (URL) to archive and calls self.archive, additionally:
@@ -590,20 +634,9 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
         except Exception as e:
             logger.error(f"Got unexpected error: {e}\n{traceback.format_exc()}")
 
-            # DM 7th Nov 25 - disconnect vpn if connected. todo - this seems overkill in finally, but try for now
-            subprocess.run(['expressvpnctl', 'disconnect'], capture_output=True)
-
-            max_retries = 10
-            for i in range(max_retries):
-                logger.debug(f"Checking VPN disconnection status, attempt {i+1}/{max_retries}")
-                status = subprocess.run(['expressvpnctl', 'status'], capture_output=True, text=True)
-                if 'Disconnected' in status.stdout:
-                    logger.info("VPN disconnected")
-                    time.sleep(6)  # Give VPN routing tables time to stabilise..
-                    break
-                time.sleep(1)
-
-            logger.info("VPN disconnected successfully in except block")
+            # DM 7th Nov 25 - disconnect vpn if connected
+            # not in finally block as we want to disconnect before calls to spreadsheet
+            self.disconnect_vpn()
 
             for d in self.databases:
                 if isinstance(e, AssertionError):
@@ -635,35 +668,8 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
             logger.error(f"Error archiving: {e}")
             raise e
 
-        # DM 7th Nov 25
-        if 'https://x.com' in original_url:
-            logger.debug(f"starting vpn")
-            try:
-                subprocess.run(['expressvpnctl', 'connect'], check=True, capture_output=True)
 
-                # Wait for connection to establish
-                max_retries = 10
-                for i in range(max_retries):
-                    logger.debug(f"Checking VPN connection status, attempt {i+1}/{max_retries}")
-                    status = subprocess.run(['expressvpnctl', 'status'], capture_output=True, text=True)
-                    if 'Connected' in status.stdout:
-                        logger.info("VPN connected to Australia - Sydney")
-                        time.sleep(6)  # Give VPN routing tables time to stabilise.. 3 seconds was good, but be safe 
-                        break
-                    time.sleep(1)
-
-                logger.info("VPN connected successfully")
-
-            except subprocess.CalledProcessError as e:
-                logger.error(f"Failed to connect VPN: {e}")
-                raise e
-
-        ip_result = subprocess.run(['curl', 'ifconfig.me'], capture_output=True, text=True, timeout=10)
-        logger.info(f"Current IP address: {ip_result.stdout.strip()}")
-     
-
-        raise Exception("stop after ip check")
-
+       
         # 1 - sanitize - each archiver is responsible for cleaning/expanding its own URLs
         url = clean(original_url)
         for a in self.extractors:
@@ -689,6 +695,10 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
                     logger.error(f"Database {d.name}: {e}: {traceback.format_exc()}")
             return cached_result
 
+        # DM 7th Nov 25
+        if 'https://x.com' in original_url:
+            self.connect_vpn()
+
         # 3 - call extractors until one succeeds
         for a in self.extractors:
             logger.info(f"Trying extractor {a.name}")
@@ -705,6 +715,9 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
                 e.enrich(result)
             except Exception as exc:
                 logger.error(f"Enricher {e.name}: {exc}: {traceback.format_exc()}")
+
+        if 'https://x.com' in original_url:
+            self.disconnect_vpn()
 
         # 5 - store all downloaded/generated media
         result.store(storages=self.storages)
