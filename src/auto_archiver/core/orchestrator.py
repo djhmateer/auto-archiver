@@ -632,10 +632,12 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
                     status = subprocess.run(['expressvpnctl', 'status'], capture_output=True, text=True)
                     if 'Connected' in status.stdout:
                         logger.info("VPN connected to Australia - Sydney")
+                        time.sleep(3)  # Give VPN routing tables time to stabilise
                         break
                     time.sleep(1)
 
                 logger.info("VPN connected successfully")
+
                 ip_result = subprocess.run(['curl', 'ifconfig.me'], capture_output=True, text=True, timeout=10)
                 logger.info(f"Current IP address: {ip_result.stdout.strip()}")
                 subprocess.run(['expressvpnctl', 'disconnect'], check=True, capture_output=True)
