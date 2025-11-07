@@ -638,13 +638,14 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
 
                 logger.info("VPN connected successfully")
 
-                ip_result = subprocess.run(['curl', 'ifconfig.me'], capture_output=True, text=True, timeout=10)
-                logger.info(f"Current IP address: {ip_result.stdout.strip()}")
-                subprocess.run(['expressvpnctl', 'disconnect'], check=True, capture_output=True)
-                logger.info("VPN disconnected successfully")
             except subprocess.CalledProcessError as e:
                 logger.error(f"Failed to connect VPN: {e}")
                 raise e
+
+        ip_result = subprocess.run(['curl', 'ifconfig.me'], capture_output=True, text=True, timeout=10)
+        logger.info(f"Current IP address: {ip_result.stdout.strip()}")
+        subprocess.run(['expressvpnctl', 'disconnect'], check=True, capture_output=True)
+        logger.info("VPN disconnected successfully")
 
         raise Exception("stop after ip check")
 
