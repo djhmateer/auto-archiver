@@ -595,9 +595,19 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
                 else:
                     d.failed(item, reason="unexpected error")
         finally:
-            logger.info("Clean up after archiving item - disconnect VPN if connected")
-            # DM 7th Nov 25 - disconnect vpn if connected. todo - this seems overkill, but try for now
+            # DM 7th Nov 25 - disconnect vpn if connected. todo - this seems overkill in finally, but try for now
             subprocess.run(['expressvpnctl', 'disconnect'], capture_output=True)
+
+            max_retries = 10
+            for i in range(max_retries):
+                logger.debug(f"Checking VPN disconnection status, attempt {i+1}/{max_retries}")
+                status = subprocess.run(['expressvpnctl', 'status'], capture_output=True, text=True)
+                if 'Disconnected' in status.stdout:
+                    logger.info("VPN disconnected")
+                    time.sleep(6)  # Give VPN routing tables time to stabilise..
+                    
+                time.sleep(1)
+
             logger.info("VPN disconnected successfully in finally block")
 
             if tmp_dir:
