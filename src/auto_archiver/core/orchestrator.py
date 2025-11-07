@@ -635,7 +635,7 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
 
             # DM 7th Nov 25 - disconnect vpn if connected
             # not in finally block as we want to disconnect before calls to spreadsheet
-            self.disconnect_vpn()
+            # self.disconnect_vpn()
 
             for d in self.databases:
                 if isinstance(e, AssertionError):
@@ -695,8 +695,8 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
         # DM 7th Nov 25 - all twitter links go through the VPN now, so only need the Austalian sock puppet cookie to be passed
         # which yt-dlpt and screenshotter (Firefox) use
         # wacz archiver/enricher uses profile.tar.gz
-        if 'https://x.com' in original_url:
-            self.connect_vpn()
+        # if 'https://x.com' in original_url:
+        #     self.connect_vpn()
 
         # 3 - call extractors until one succeeds
         for a in self.extractors:
@@ -715,8 +715,9 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
             except Exception as exc:
                 logger.error(f"Enricher {e.name}: {exc}: {traceback.format_exc()}")
 
-        if 'https://x.com' in original_url:
-            self.disconnect_vpn()
+        # DM 7th Nov 25 - disconnect vpn if connected
+        # if 'https://x.com' in original_url:
+        #     self.disconnect_vpn()
 
         # 5 - store all downloaded/generated media
         result.store(storages=self.storages)
