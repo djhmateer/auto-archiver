@@ -595,8 +595,9 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
                 else:
                     d.failed(item, reason="unexpected error")
         finally:
+            logger.info("Clean up after archiving item - disconnect VPN if connected")
             # DM 7th Nov 25 - disconnect vpn if connected. todo - this seems overkill, but try for now
-            subprocess.run(['expressvpnctl', 'disconnect'], check=True, capture_output=True)
+            subprocess.run(['expressvpnctl', 'disconnect'], capture_output=True)
             logger.info("VPN disconnected successfully in finally block")
 
             if tmp_dir:
