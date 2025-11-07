@@ -6,6 +6,7 @@ formatting, database operations and clean up.
 
 from __future__ import annotations
 import subprocess
+import time
 from packaging import version
 from typing import Generator, Union, List, Type, TYPE_CHECKING
 import argparse
@@ -623,6 +624,17 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
             logger.debug(f"starting vpn")
             try:
                 subprocess.run(['expressvpnctl', 'connect'], check=True, capture_output=True)
+
+                # Wait for connection to establish
+                max_retries = 10
+                for i in range(max_retries):
+                    logger.debug(f"Checking VPN connection status, attempt {i+1}/{max_retries}")
+                    status = subprocess.run(['expressvpnctl', 'status'], capture_output=True, text=True)
+                    if 'Connected' in status.stdout:
+                        logger.info("VPN connected to Australia - Sydney")
+                        break
+                    time.sleep(1)
+
                 logger.info("VPN connected successfully")
                 ip_result = subprocess.run(['curl', 'ifconfig.me'], capture_output=True, text=True, timeout=10)
                 logger.info(f"Current IP address: {ip_result.stdout.strip()}")
