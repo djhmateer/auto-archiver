@@ -5,6 +5,7 @@ formatting, database operations and clean up.
 """
 
 from __future__ import annotations
+import subprocess
 from packaging import version
 from typing import Generator, Union, List, Type, TYPE_CHECKING
 import argparse
@@ -620,8 +621,16 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
         # DM 7th Nov 25
         if 'https://x.com' in original_url:
             logger.debug(f"starting vpn")
-            result.status = "X.com URLs are no longer supported."
-            return result
+            try:
+                subprocess.run(['expressvpnctl', 'connect'], check=True, capture_output=True)
+                logger.info("VPN connected successfully")
+            except subprocess.CalledProcessError as e:
+                logger.error(f"Failed to connect VPN: {e}")
+                raise e
+
+        ip_result = subprocess.run(['curl', 'ifconfig.me'], capture_output=True, text=True, timeout=10)
+        logger.info(f"Current IP address: {ip_result.stdout.strip()}")
+        raise Exception("stop after ip check")
 
         # 1 - sanitize - each archiver is responsible for cleaning/expanding its own URLs
         url = clean(original_url)
