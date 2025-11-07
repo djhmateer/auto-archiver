@@ -567,13 +567,11 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
         logger.info(f"Processed {url_count} URL(s)")
         self.cleanup()
 
-    def connect_vpn(self, location: str = "Australia - Sydney") -> None:
+    def connect_vpn(self) -> None:
         """
-        Connects to ExpressVPN at the specified location and waits for connection to complete.
-
-        Args:
-            location: VPN server location (default: "Australia - Sydney")
+        Connects to ExpressVPN (Australia - Sydney) and waits for connection to complete.
         """
+        location = "Australia - Sydney"
         logger.debug(f"Starting VPN connection to {location}")
         subprocess.run(['expressvpnctl', 'connect', location], check=True, capture_output=True)
 
@@ -589,8 +587,9 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
             time.sleep(1)
 
         logger.info("VPN connection complete")
-        ip_result = subprocess.run(['curl', 'ifconfig.me'], capture_output=True, text=True, timeout=10)
-        logger.info(f"Current IP address: {ip_result.stdout.strip()}")
+        # test the IP address to make sure it is Australian
+        # ip_result = subprocess.run(['curl', 'ifconfig.me'], capture_output=True, text=True, timeout=10)
+        # logger.info(f"Current IP address: {ip_result.stdout.strip()}")
 
     def disconnect_vpn(self) -> None:
         """
@@ -668,8 +667,6 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
             logger.error(f"Error archiving: {e}")
             raise e
 
-
-       
         # 1 - sanitize - each archiver is responsible for cleaning/expanding its own URLs
         url = clean(original_url)
         for a in self.extractors:
@@ -695,7 +692,9 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
                     logger.error(f"Database {d.name}: {e}: {traceback.format_exc()}")
             return cached_result
 
-        # DM 7th Nov 25
+        # DM 7th Nov 25 - all twitter links go through the VPN now, so only need the Austalian sock puppet cookie to be passed
+        # which yt-dlpt and screenshotter (Firefox) use
+        # wacz archiver/enricher uses profile.tar.gz
         if 'https://x.com' in original_url:
             self.connect_vpn()
 
