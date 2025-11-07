@@ -595,6 +595,10 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
                 else:
                     d.failed(item, reason="unexpected error")
         finally:
+            # DM 7th Nov 25 - disconnect vpn if connected. todo - this seems overkill, but try for now
+            subprocess.run(['expressvpnctl', 'disconnect'], check=True, capture_output=True)
+            logger.info("VPN disconnected successfully in finally block")
+
             if tmp_dir:
                 # remove the tmp_dir from all modules
                 for m in self.all_modules:
@@ -632,7 +636,7 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
                     status = subprocess.run(['expressvpnctl', 'status'], capture_output=True, text=True)
                     if 'Connected' in status.stdout:
                         logger.info("VPN connected to Australia - Sydney")
-                        time.sleep(3)  # Give VPN routing tables time to stabilise
+                        time.sleep(6)  # Give VPN routing tables time to stabilise.. 3 seconds was good, but be safe 
                         break
                     time.sleep(1)
 
@@ -644,8 +648,7 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
 
         ip_result = subprocess.run(['curl', 'ifconfig.me'], capture_output=True, text=True, timeout=10)
         logger.info(f"Current IP address: {ip_result.stdout.strip()}")
-        subprocess.run(['expressvpnctl', 'disconnect'], check=True, capture_output=True)
-        logger.info("VPN disconnected successfully")
+     
 
         raise Exception("stop after ip check")
 
