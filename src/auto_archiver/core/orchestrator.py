@@ -589,12 +589,7 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
             exit()
         except Exception as e:
             logger.error(f"Got unexpected error: {e}\n{traceback.format_exc()}")
-            for d in self.databases:
-                if isinstance(e, AssertionError):
-                    d.failed(item, str(e))
-                else:
-                    d.failed(item, reason="unexpected error")
-        finally:
+
             # DM 7th Nov 25 - disconnect vpn if connected. todo - this seems overkill in finally, but try for now
             subprocess.run(['expressvpnctl', 'disconnect'], capture_output=True)
 
@@ -605,11 +600,17 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
                 if 'Disconnected' in status.stdout:
                     logger.info("VPN disconnected")
                     time.sleep(6)  # Give VPN routing tables time to stabilise..
-                    
+                    break
                 time.sleep(1)
 
-            logger.info("VPN disconnected successfully in finally block")
+            logger.info("VPN disconnected successfully in except block")
 
+            for d in self.databases:
+                if isinstance(e, AssertionError):
+                    d.failed(item, str(e))
+                else:
+                    d.failed(item, reason="unexpected error")
+        finally:
             if tmp_dir:
                 # remove the tmp_dir from all modules
                 for m in self.all_modules:
