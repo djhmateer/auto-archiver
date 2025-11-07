@@ -377,8 +377,9 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
                 # also my cron job looks at the output of 1debug.log which is critical (todo - maybe not so critical anymore)
                 logger.add("logs/1debug.log", level="DEBUG", rotation=rotation)
 
-                logger.add("logs/x1debug.log", level="DEBUG", rotation=rotation, format="{extra[serialized]}")
-                logger.add("logs/2info.log", level="INFO", rotation=rotation, format="{extra[serialized]}")
+                # DM 7th Nov 25 - turned off the serialzed log to save SSD wear
+                # logger.add("logs/x1debug.log", level="DEBUG", rotation=rotation, format="{extra[serialized]}")
+                # logger.add("logs/2info.log", level="INFO", rotation=rotation, format="{extra[serialized]}")
                 logger.add("logs/3success.log", level="SUCCESS", rotation=rotation, format="{extra[serialized]}")
                 logger.add("logs/4warning.log", level="WARNING", rotation=rotation, format="{extra[serialized]}")
                 logger.add("logs/5error.log", level="ERROR", rotation=rotation, format="{extra[serialized]}")
@@ -615,6 +616,12 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
         except ValueError as e:
             logger.error(f"Error archiving: {e}")
             raise e
+
+        # DM 7th Nov 25
+        if 'https://x.com' in original_url:
+            logger.debug(f"starting vpn")
+            result.status = "X.com URLs are no longer supported."
+            return result
 
         # 1 - sanitize - each archiver is responsible for cleaning/expanding its own URLs
         url = clean(original_url)

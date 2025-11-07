@@ -12,7 +12,8 @@ from auto_archiver.core import Enricher
 from auto_archiver.utils import Webdriver, url as UrlUtil, random_str
 from auto_archiver.core import Media, Metadata
 
-
+# Uses Firefox in webdriver.py
+# Cookies are passed in 
 class ScreenshotEnricher(Enricher):
     def __init__(self, webdriver_factory=None):
         super().__init__()
