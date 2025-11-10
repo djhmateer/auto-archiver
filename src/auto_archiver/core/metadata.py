@@ -66,7 +66,11 @@ class Metadata:
         # calls .store for all contained media. storages [Storage]
         self.remove_duplicate_media_by_hash()
         for media in self.media:
-            media.store(url=self.get_url(), metadata=self, storages=storages)
+            # 10th Nov 25 - DM weird vpn error trying to catch
+            try:
+                media.store(url=self.get_url(), metadata=self, storages=storages)
+            except Exception as e:
+                logger.error(f"Error storing media. Caught and continuing hopefully {e}")
 
     def set(self, key: str, val: Any) -> Metadata:
         self.metadata[key] = val
