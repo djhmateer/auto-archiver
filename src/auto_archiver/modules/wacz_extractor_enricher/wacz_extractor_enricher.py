@@ -769,7 +769,7 @@ class WaczExtractorEnricher(Enricher, Extractor):
                 # DM 10th Nov 25 - catch weird vpn with wacz
                 try:
                     # filesize2 = m.get_filesize()
-                    # logger.info(f"Adding media from WACZ: {record_url} with filesize: {filesize2}" )
+                    logger.info(f"Adding media from WACZ: {m}" )
                     to_enrich.add_media(m, warc_fn)
                 except Exception as e:
                     logger.warning(f"Unable to add media got error {e}")

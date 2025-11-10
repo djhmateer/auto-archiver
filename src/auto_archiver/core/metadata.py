@@ -69,9 +69,9 @@ class Metadata:
             # 10th Nov 25 - DM weird vpn error trying to catch
             try:
                 logger.debug(f"Storing media {media}")
-                logger.debug(f"url is {self.get_url()}")
-                logger.debug(f"self is {self}")
-                logger.debug(f"storages is {storages}")
+                # logger.debug(f"url is {self.get_url()}")
+                # logger.debug(f"self is {self}")
+                # logger.debug(f"storages is {storages}")
 
                 media.store(url=self.get_url(), metadata=self, storages=storages)
             except Exception as e:

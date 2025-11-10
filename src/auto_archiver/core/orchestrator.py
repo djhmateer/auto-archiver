@@ -608,8 +608,8 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
             logger.debug(f"Checking VPN disconnection status, attempt {i+1}/{max_retries}")
             status = subprocess.run(['expressvpnctl', 'status'], capture_output=True, text=True)
             if 'Disconnected' in status.stdout:
-                logger.info("VPN disconnected")
-                time.sleep(6)  # Give VPN routing tables time to stabilise
+                logger.info("VPN disconnected and sleeping for a few seconds")
+                time.sleep(12)  # Give VPN routing tables time to stabilise
                 break
             time.sleep(1)
 
