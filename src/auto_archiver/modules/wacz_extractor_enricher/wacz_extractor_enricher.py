@@ -766,9 +766,13 @@ class WaczExtractorEnricher(Enricher, Extractor):
                 if m.is_video() and not m.is_valid_video():
                     continue
 
-                filesize2 = m.get_filesize()
-                logger.info(f"Adding media from WACZ: {record_url} with filesize: {filesize2}" )
-                to_enrich.add_media(m, warc_fn)
+                # DM 10th Nov 25 - catch weird vpn with wacz
+                try:
+                    filesize2 = m.get_filesize()
+                    logger.info(f"Adding media from WACZ: {record_url} with filesize: {filesize2}" )
+                    to_enrich.add_media(m, warc_fn)
+                except Exception as e:
+                    logger.warning(f"Unable to get filesize for media {record_url=} got error {e}")
                 counter_warc_files += 1
                 seen_urls.add(record_url)
         logger.info(
