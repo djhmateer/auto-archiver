@@ -573,21 +573,26 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
         """
         location = "Australia - Sydney"
         logger.debug(f"Starting VPN connection to {location}")
-        subprocess.run(['expressvpnctl', 'connect', location], check=True, capture_output=True)
+        try:
+            subprocess.run(['expressvpnctl', 'connect', location], check=True, capture_output=True)
 
-        # Wait for connection to establish
-        max_retries = 10
-        for i in range(max_retries):
-            logger.debug(f"Checking VPN connection status, attempt {i+1}/{max_retries}")
-            status = subprocess.run(['expressvpnctl', 'status'], capture_output=True, text=True)
-            if 'Connected' in status.stdout:
-                logger.info(f"VPN connected to {location}")
-                time.sleep(6)  # Give VPN routing tables time to stabilise
-                break
-            time.sleep(1)
+            # Wait for connection to establish
+            max_retries = 10
+            for i in range(max_retries):
+                logger.debug(f"Checking VPN connection status, attempt {i+1}/{max_retries}")
+                status = subprocess.run(['expressvpnctl', 'status'], capture_output=True, text=True)
+                if 'Connected' in status.stdout:
+                    logger.info(f"VPN connected to {location}")
+                    time.sleep(6)  # Give VPN routing tables time to stabilise
+                    break
+                time.sleep(1)
 
-        logger.info("VPN connection complete")
-        # test the IP address to make sure it is Australian
+            logger.info("VPN connection complete")
+        except subprocess.CalledProcessError as e:
+            # logger.error(f"Failed to connect to VPN: {e.stderr.decode().strip()}")
+            logger.info("Failed to connec to vpn but this could be fine as dev")
+
+            # test the IP address to make sure it is Australian
         # ip_result = subprocess.run(['curl', 'ifconfig.me'], capture_output=True, text=True, timeout=10)
         # logger.info(f"Current IP address: {ip_result.stdout.strip()}")
 
@@ -716,8 +721,8 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
                 logger.error(f"Enricher {e.name}: {exc}: {traceback.format_exc()}")
 
         # DM 7th Nov 25 - disconnect vpn if connected
-        if 'https://x.com' in original_url:
-            self.disconnect_vpn()
+        # if 'https://x.com' in original_url:
+            # self.disconnect_vpn()
 
         # 5 - store all downloaded/generated media
         result.store(storages=self.storages)
@@ -738,6 +743,9 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
             except Exception as e:
                 logger.error(f"Database {d.name}: {e}: {traceback.format_exc()}")
 
+   # DM 7th Nov 25 - disconnect vpn if connected
+        if 'https://x.com' in original_url:
+            self.disconnect_vpn()
         return result
 
     def setup_authentication(self, config: dict) -> dict:
