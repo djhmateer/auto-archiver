@@ -721,8 +721,8 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
                 logger.error(f"Enricher {e.name}: {exc}: {traceback.format_exc()}")
 
         # DM 7th Nov 25 - disconnect vpn if connected
-        # if 'https://x.com' in original_url:
-            # self.disconnect_vpn()
+        if 'https://x.com' in original_url:
+            self.disconnect_vpn()
 
         # 5 - store all downloaded/generated media
         result.store(storages=self.storages)
@@ -744,8 +744,8 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
                 logger.error(f"Database {d.name}: {e}: {traceback.format_exc()}")
 
    # DM 7th Nov 25 - disconnect vpn if connected
-        if 'https://x.com' in original_url:
-            self.disconnect_vpn()
+        # if 'https://x.com' in original_url:
+        #     self.disconnect_vpn()
         return result
 
     def setup_authentication(self, config: dict) -> dict:
