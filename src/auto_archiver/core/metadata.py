@@ -170,6 +170,10 @@ class Metadata:
         # iterates all media, calculates a hash if it's missing and deletes duplicates
         def calculate_hash_in_chunks(hash_algo, chunksize, filename) -> str:
             # taken from hash_enricher, cannot be isolated to misc due to circular imports
+
+            # DM 10th Nov 25 - got weird error of NoneType coming in as filename
+            if filename is None:
+                return ""
             with open(filename, "rb") as f:
                 while True:
                     buf = f.read(chunksize)
