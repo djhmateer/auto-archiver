@@ -613,8 +613,6 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
                 break
             time.sleep(1)
 
-        logger.info("VPN disconnection complete")
-
     def feed_item(self, item: Metadata) -> Metadata:
         """
         Takes one item (URL) to archive and calls self.archive, additionally:

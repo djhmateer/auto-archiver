@@ -697,7 +697,6 @@ class WaczExtractorEnricher(Enricher, Extractor):
                 time.sleep(3)  # Give VPN routing tables time to stabilise
                 break
             time.sleep(1)
-        logger.info("VPN disconnection complete")
 
 
         with open(warc_filename, "rb") as warc_stream:
