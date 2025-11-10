@@ -582,19 +582,14 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
                 logger.debug(f"Checking VPN connection status, attempt {i+1}/{max_retries}")
                 status = subprocess.run(['expressvpnctl', 'status'], capture_output=True, text=True)
                 if 'Connected' in status.stdout:
-                    logger.info(f"VPN connected to {location}")
+                    logger.info(f"VPN connected to {location} and sleeping for a few seconds")
                     time.sleep(6)  # Give VPN routing tables time to stabilise
                     break
                 time.sleep(1)
-
-            logger.info("VPN connection complete")
         except subprocess.CalledProcessError as e:
             # logger.error(f"Failed to connect to VPN: {e.stderr.decode().strip()}")
-            logger.info("Failed to connec to vpn but this could be fine as dev")
+            logger.info("Failed to connect to vpn but this could be fine if in dev")
 
-            # test the IP address to make sure it is Australian
-        # ip_result = subprocess.run(['curl', 'ifconfig.me'], capture_output=True, text=True, timeout=10)
-        # logger.info(f"Current IP address: {ip_result.stdout.strip()}")
 
     def disconnect_vpn(self) -> None:
         """
@@ -636,7 +631,7 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
         except Exception as e:
             logger.error(f"Got unexpected error: {e}\n{traceback.format_exc()}")
 
-            # DM 7th Nov 25 - disconnect vpn if connected
+            # DM 7th Nov 25 - disconnect vpn if connected and we throw an exception
             # not in finally block as we want to disconnect before calls to spreadsheet
             self.disconnect_vpn()
 

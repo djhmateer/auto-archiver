@@ -764,6 +764,8 @@ class WaczExtractorEnricher(Enricher, Extractor):
                 if ext == ".ico": continue
                 if ext == None : continue
 
+                logger.debug(f"Adding media from WACZ: {fn} which is {fs} bytes and extension {ext}")
+
                 m = Media(filename=fn)
                 m.set("src", record_url)
                 # if a link with better quality exists, try to download that
