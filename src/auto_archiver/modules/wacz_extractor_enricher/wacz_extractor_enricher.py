@@ -686,7 +686,6 @@ class WaczExtractorEnricher(Enricher, Extractor):
         # DM 10th Nov 25 - turn off vpn if active to see if fixes issue with download_from_url
         # that gets best images from twitter
         # only attempt if an x.com link - seems hard so just take the 3s hit for now
-        
         logger.debug("Attempting to disconnect VPN")
         subprocess.run(['expressvpnctl', 'disconnect'], capture_output=True)
         max_retries = 10
@@ -711,8 +710,7 @@ class WaczExtractorEnricher(Enricher, Extractor):
                     with open(fn, "wb") as outf:
                         outf.write(record.raw_stream.read())
                     m = Media(filename=fn)
-                    filesize = os.path.getsize(fn)
-                    logger.info(f"Adding screenshot from WACZ wiht filesize: {filesize}" )
+                    logger.info(f"Adding screenshot from WACZ")
                     to_enrich.add_media(m, f"browsertrix-screenshot-{counter_screenshots}")
                     counter_screenshots += 1
                 if not self.extract_media:

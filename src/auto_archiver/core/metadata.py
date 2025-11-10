@@ -68,14 +68,13 @@ class Metadata:
         for media in self.media:
             # 10th Nov 25 - DM weird vpn error trying to catch
             try:
-                logger.debug(f"Storing media {media}")
+                # logger.debug(f"Storing media {media}")
                 # logger.debug(f"url is {self.get_url()}")
                 # logger.debug(f"self is {self}")
                 # logger.debug(f"storages is {storages}")
-
                 media.store(url=self.get_url(), metadata=self, storages=storages)
             except Exception as e:
-                logger.error(f"Error storing media. Caught and continuing hopefully {e}")
+                logger.error(f"Error storing media. Caught and continuing {e}")
 
     def set(self, key: str, val: Any) -> Metadata:
         self.metadata[key] = val
