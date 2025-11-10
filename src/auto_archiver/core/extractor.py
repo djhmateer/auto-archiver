@@ -99,8 +99,7 @@ class Extractor(BaseModule):
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36"
         }
         try:
-            # d = requests.get(url, stream=True, headers=headers, timeout=30)
-            d = requests.get(url, stream=True, headers=headers, timeout=120)
+            d = requests.get(url, stream=True, headers=headers, timeout=30)
             d.raise_for_status()
 
             # get mimetype from the response headers
