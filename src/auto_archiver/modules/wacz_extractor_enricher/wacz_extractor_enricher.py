@@ -693,6 +693,8 @@ class WaczExtractorEnricher(Enricher, Extractor):
                     with open(fn, "wb") as outf:
                         outf.write(record.raw_stream.read())
                     m = Media(filename=fn)
+                    filesize = os.path.getsize(fn)
+                    logger.info(f"Adding screenshot from WACZ wiht filesize: {filesize}" )
                     to_enrich.add_media(m, f"browsertrix-screenshot-{counter_screenshots}")
                     counter_screenshots += 1
                 if not self.extract_media:
@@ -764,6 +766,8 @@ class WaczExtractorEnricher(Enricher, Extractor):
                 if m.is_video() and not m.is_valid_video():
                     continue
 
+                filesize2 = m.get_filesize()
+                logger.info(f"Adding media from WACZ: {record_url} with filesize: {filesize2}" )
                 to_enrich.add_media(m, warc_fn)
                 counter_warc_files += 1
                 seen_urls.add(record_url)
