@@ -57,6 +57,8 @@ poetry run python src/auto_archiver --config secrets/orchestration-aa-demo-main.
 
 poetry run python src/auto_archiver --config secrets/orchestration-aa-tfgbv.yaml
 
+poetry run python src/auto_archiver --config secrets/orchestration-aa-disarm.yaml
+
 # poetry run python src/auto_archiver --config secrets/orchestration-aa-dave-testing.yaml
 
 poetry run python src/auto_archiver --config secrets/orchestration-glan-sheet1.yaml

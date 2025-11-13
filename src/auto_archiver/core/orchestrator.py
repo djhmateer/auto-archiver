@@ -576,6 +576,12 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
         """
         Connects to ExpressVPN (Australia - Sydney) and waits for connection to complete.
         """
+        is_wsl = os.getenv('RUNNING_IN_WSL', 'false').lower() == 'true'
+        if is_wsl:
+            msg = "VPN connection not available in WSL2. Please connect to VPN manually before running."
+            logger.error(msg)
+            raise RuntimeError(msg)
+
         location = "Australia - Sydney"
         logger.debug(f"Starting VPN connection to {location}")
         try:
@@ -602,7 +608,8 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
         """
         # only disconnect if on live server
         # how do I tell if I'm running on wsl2?
-        if os.environ.get("RUNNING_IN_WSL2") == "1":
+        is_wsl = os.getenv('RUNNING_IN_WSL', 'false').lower() == 'true'
+        if is_wsl:
             logger.info("Running in WSL2, not disconnecting VPN to avoid issues")
             return
 

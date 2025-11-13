@@ -35,6 +35,19 @@
 			"justMyCode": true,
 			"args": ["--config","secrets/orchestration-aa-tfgbv.yaml"]
 		},
+		{
+			"name": "AA Disarm (davemateer@gmail)",
+			"type": "debugpy",
+			"request": "launch",
+			// "program": "src/auto_archiver",
+            "module": "src.auto_archiver",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","secrets/orchestration-aa-disarm.yaml"],
+			"env": {
+          		"RUNNING_IN_WSL": "true"
+      		}
+		},
         {
 			"name": "AA Demo Main (davemateer@gmail)",
 			"type": "debugpy",
