@@ -508,6 +508,11 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
         # DM 3rd Jun 25 - don't want to check for updates
         # self.check_for_updates()
 
+        # DM 13th Nov 25 - disconnect vpn at start of run to ensure we're not connected from last time
+        # this should never happen, but guarding just in case
+        # as can mess up the sock puppet accounts if we leave it connected
+        self.disconnect_vpn()
+
         if self.setup_finished:
             logger.warning(
                 "The `setup_config()` function should only ever be run once. \
@@ -595,6 +600,12 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
         """
         Disconnects ExpressVPN and waits for disconnection to complete.
         """
+        # only disconnect if on live server
+        # how do I tell if I'm running on wsl2?
+        if os.environ.get("RUNNING_IN_WSL2") == "1":
+            logger.info("Running in WSL2, not disconnecting VPN to avoid issues")
+            return
+
         logger.debug("Attempting to disconnect VPN")
         subprocess.run(['expressvpnctl', 'disconnect'], capture_output=True)
 
@@ -657,6 +668,10 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
         5. Store all downloaded/generated media
         6. Call selected Formatter and store formatted if needed
         """
+
+        # DM 7th Nov 25 - disconnect vpn at start of archiving each item to ensure we're not connected from last time
+        # this should never happen, but guarding just in case
+        self.disconnect_vpn()
 
         original_url = result.get_url().strip()
         try:

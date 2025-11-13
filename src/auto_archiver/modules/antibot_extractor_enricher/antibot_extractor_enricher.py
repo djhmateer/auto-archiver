@@ -104,6 +104,9 @@ class AntibotExtractorEnricher(Extractor, Enricher):
                 sb.uc_open_with_reconnect(url, 4)
 
                 logger.debug("Handling CAPTCHAs for...")
+                # getting an error with https://burmese.dvb.no/post/732330
+                # Runtime error: PyAutoGUI can't be used in headless mode
+                # leave for now as other screenshotters are fine
                 sb.uc_gui_handle_cf()
                 sb.uc_gui_click_rc()  # NB: using handle instead of click breaks some sites like reddit, for now we separate here but can have dropins deciding this in the future
 
