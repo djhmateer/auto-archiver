@@ -55,6 +55,8 @@ cd /home/dave/auto-archiver
 
 # poetry run python src/auto_archiver --config secrets/orchestration-aa-demo-main.yaml
 
+poetry run python src/auto_archiver --config secrets/orchestration-cir-indigo.yaml
+
 poetry run python src/auto_archiver --config secrets/orchestration-cir-domain-eor.yaml
 sleep $TIME
 

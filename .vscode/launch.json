@@ -23,7 +23,10 @@
             "module": "src.auto_archiver",
 			"console": "integratedTerminal",
 			"justMyCode": true,
-			"args": ["--config","secrets/orchestration-aa-dave-testing.yaml"]
+			"args": ["--config","secrets/orchestration-aa-dave-testing.yaml"],
+			"env": {
+          		"RUNNING_IN_WSL": "true"
+      		}
 		},
 		{
 			"name": "AA TFGBV (davemateer@gmail)",
@@ -33,7 +36,10 @@
             "module": "src.auto_archiver",
 			"console": "integratedTerminal",
 			"justMyCode": true,
-			"args": ["--config","secrets/orchestration-aa-tfgbv.yaml"]
+			"args": ["--config","secrets/orchestration-aa-tfgbv.yaml"],
+			"env": {
+          		"RUNNING_IN_WSL": "true"
+      		}
 		},
 		{
 			"name": "AA Disarm (davemateer@gmail)",
@@ -48,6 +54,32 @@
           		"RUNNING_IN_WSL": "true"
       		}
 		},
+		{
+			"name": "AA HRW (davemateer@gmail)",
+			"type": "debugpy",
+			"request": "launch",
+			// "program": "src/auto_archiver",
+            "module": "src.auto_archiver",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","secrets/orchestration-aa-hrw.yaml"],
+			"env": {
+          		"RUNNING_IN_WSL": "true"
+      		}
+		},
+		{
+			"name": "CIR Indigo",
+			"type": "debugpy",
+			"request": "launch",
+			// "program": "src/auto_archiver",
+            "module": "src.auto_archiver",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","secrets/orchestration-cir-indigo.yaml"],
+			"env": {
+          		"RUNNING_IN_WSL": "true"
+      		}
+		},
         {
 			"name": "AA Demo Main (davemateer@gmail)",
 			"type": "debugpy",
@@ -56,7 +88,10 @@
             "module": "src.auto_archiver",
 			"console": "integratedTerminal",
 			"justMyCode": true,
-			"args": ["--config","secrets/orchestration-aa-demo-main.yaml"]
+			"args": ["--config","secrets/orchestration-aa-demo-main.yaml"],
+			"env": {
+          		"RUNNING_IN_WSL": "true"
+      		}
 		},
 		{
 			"name": "Auto-Archiver Features (davemateer@gmail)",
@@ -66,7 +101,10 @@
             "module": "src.auto_archiver",
 			"console": "integratedTerminal",
 			"justMyCode": true,
-			"args": ["--config","secrets/orchestration-auto-archiver-features.yaml"]
+			"args": ["--config","secrets/orchestration-auto-archiver-features.yaml"],
+			"env": {
+          		"RUNNING_IN_WSL": "true"
+      		}
 		},
         {
 			"name": "GLAN Sheet 1 (davemateer@gmail)",
@@ -76,7 +114,10 @@
             "module": "src.auto_archiver",
 			"console": "integratedTerminal",
 			"justMyCode": true,
-			"args": ["--config","secrets/orchestration-glan-sheet1.yaml"]
+			"args": ["--config","secrets/orchestration-glan-sheet1.yaml"],
+			"env": {
+          		"RUNNING_IN_WSL": "true"
+      		}
 		},
         {
 			"name": "GLAN Sheet 3 (davemateer@gmail)",
@@ -86,7 +127,10 @@
             "module": "src.auto_archiver",
 			"console": "integratedTerminal",
 			"justMyCode": true,
-			"args": ["--config","secrets/orchestration-glan-sheet3.yaml"]
+			"args": ["--config","secrets/orchestration-glan-sheet3.yaml"],
+			"env": {
+          		"RUNNING_IN_WSL": "true"
+      		}
 		},
         {
 			"name": "CIR Domain EoR",
@@ -96,7 +140,10 @@
             "module": "src.auto_archiver",
 			"console": "integratedTerminal",
 			"justMyCode": true,
-			"args": ["--config","secrets/orchestration-cir-domain-eor.yaml"]
+			"args": ["--config","secrets/orchestration-cir-domain-eor.yaml"],
+			"env": {
+          		"RUNNING_IN_WSL": "true"
+      		}
 		},
     ]
 }
