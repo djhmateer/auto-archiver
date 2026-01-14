@@ -41,6 +41,21 @@ If you are having issues with the extractor, you can review the version of `yt-d
 """,
     "configs": {
         "subtitles": {"default": True, "help": "download subtitles if available", "type": "bool"},
+        "subtitle_sleep_interval": {
+            "default": 2,
+            "help": "Minimum sleep interval in seconds between subtitle requests (reduces rate limiting)",
+            "type": "int",
+        },
+        "subtitle_max_sleep_interval": {
+            "default": 8,
+            "help": "Maximum sleep interval in seconds between subtitle requests",
+            "type": "int",
+        },
+        "subtitle_sleep_requests": {
+            "default": 1,
+            "help": "Sleep interval in seconds before each subtitle download (--sleep-subtitles)",
+            "type": "int",
+        },
         "comments": {
             "default": False,
             "help": "download all comments if available, may lead to large metadata",

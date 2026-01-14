@@ -364,6 +364,70 @@ class GenericExtractor(Extractor):
         result = dropin.create_metadata(post_data, ie_instance, self, url)
         return self.add_metadata(post_data, info_extractor, url, result)
 
+    def download_subtitles_separately(self, url: str, info_extractor: Type[InfoExtractor], video_id: str) -> dict:
+        """
+        Downloads subtitles separately from the video in a fail-safe manner.
+        Returns subtitle data dict or None if download fails.
+        """
+        try:
+            logger.debug(f"Attempting to download subtitles separately for {video_id}")
+
+            # Create subtitle-only ydl options
+            subtitle_ydl_options = [
+                "-o", os.path.join(self.tmp_dir, "%(id)s.%(ext)s"),
+                "--quiet",
+                "--skip-download",  # Don't re-download the video
+                "--write-subs",
+                "--write-auto-subs",
+                "--sleep-interval", str(self.subtitle_sleep_interval),
+                "--max-sleep-interval", str(self.subtitle_max_sleep_interval),
+                "--sleep-subtitles", str(self.subtitle_sleep_requests),
+            ]
+
+            # Add proxy if configured
+            if self.proxy:
+                subtitle_ydl_options.extend(["--proxy", self.proxy])
+
+            # Add auth if needed
+            auth = self.auth_for_site(url, extract_cookies=False)
+            if auth:
+                if "username" in auth and "password" in auth:
+                    subtitle_ydl_options.extend(("--username", auth["username"]))
+                    subtitle_ydl_options.extend(("--password", auth["password"]))
+                elif "cookie" in auth:
+                    yt_dlp.utils.std_headers["cookie"] = auth["cookie"]
+                elif "cookies_from_browser" in auth:
+                    subtitle_ydl_options.extend(("--cookies-from-browser", auth["cookies_from_browser"]))
+                elif "cookies_file" in auth:
+                    subtitle_ydl_options.extend(("--cookies", auth["cookies_file"]))
+
+            # Add extractor args if configured
+            if self.extractor_args:
+                for key, args in self.extractor_args.items():
+                    if isinstance(args, dict):
+                        arg_str = ";".join(f"{k}={v}" for k, v in args.items())
+                    else:
+                        arg_str = str(args)
+                    subtitle_ydl_options.extend(["--extractor-args", f"{key}:{arg_str}"])
+
+            *_, validated_options = yt_dlp.parse_options(subtitle_ydl_options)
+            subtitle_ydl = yt_dlp.YoutubeDL(validated_options)
+
+            # Try to download subtitles only
+            subtitle_data = subtitle_ydl.extract_info(url, ie_key=info_extractor.ie_key(), download=True)
+
+            # Check if subtitles were actually downloaded (yt-dlp doesn't always throw exceptions)
+            if subtitle_data and subtitle_data.get("requested_subtitles"):
+                logger.debug(f"Subtitles downloaded successfully for {video_id}")
+                return subtitle_data
+            else:
+                logger.warning(f"No subtitles available for {video_id} (may be rate limited or unavailable)")
+                return None
+
+        except Exception as e:
+            logger.warning(f"Failed to download subtitles for {video_id}: {e}")
+            return None
+
     def get_metadata_for_video(
         self, data: dict, info_extractor: Type[InfoExtractor], url: str, ydl: yt_dlp.YoutubeDL
     ) -> Metadata:
@@ -384,6 +448,19 @@ class GenericExtractor(Extractor):
             entries = [data]
         result = Metadata()
 
+        # Try to download subtitles separately if enabled (fail-safe approach)
+        subtitle_data = None
+        if self.subtitles:
+            video_id = data.get("id", "unknown")
+            subtitle_data = self.download_subtitles_separately(url, info_extractor, video_id)
+            if subtitle_data is None:
+                # Store that subtitles were unavailable
+                result.set("subtitles_status", "unavailable")
+                logger.warning(f"Video {video_id} archived successfully, but subtitles could not be retrieved (may be rate limited or unavailable)")
+            else:
+                result.set("subtitles_status", "available")
+                logger.info(f"Video {video_id} archived with subtitles")
+
         for entry in entries:
             try:
                 filename = ydl_entry_to_filename(ydl, entry)
@@ -399,9 +476,9 @@ class GenericExtractor(Extractor):
                     if x in entry:
                         new_media.set(x, entry[x])
 
-                # read text from subtitles if enabled
-                if self.subtitles:
-                    for lang, val in (data.get("requested_subtitles") or {}).items():
+                # read text from subtitles if enabled and successfully downloaded
+                if self.subtitles and subtitle_data:
+                    for lang, val in (subtitle_data.get("requested_subtitles") or {}).items():
                         try:
                             subs = pysubs2.load(val.get("filepath"), encoding="utf-8")
                             text = " ".join([line.text for line in subs])
@@ -555,8 +632,10 @@ class GenericExtractor(Extractor):
             os.path.join(self.tmp_dir, "%(id)s.%(ext)s"),
             "--quiet",
             "--no-playlist" if not self.allow_playlist else "--yes-playlist",
-            "--write-subs" if self.subtitles else "--no-write-subs",
-            "--write-auto-subs" if self.subtitles else "--no-write-auto-subs",
+            # Always disable subtitles for initial video download (fail-safe approach)
+            # Subtitles will be downloaded separately in get_metadata_for_video() if enabled
+            "--no-write-subs",
+            "--no-write-auto-subs",
             "--live-from-start" if self.live_from_start else "--no-live-from-start",
             "--postprocessor-args",
             "ffmpeg:-bitexact",  # ensure bitexact output to avoid mismatching hashes for same video
