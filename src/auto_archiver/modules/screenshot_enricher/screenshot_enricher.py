@@ -4,6 +4,8 @@ import time
 import os
 import base64
 
+import pytesseract
+from PIL import Image
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 
@@ -12,8 +14,28 @@ from auto_archiver.core import Enricher
 from auto_archiver.utils import Webdriver, url as UrlUtil, random_str
 from auto_archiver.core import Media, Metadata
 
+FACEBOOK_WARNING_PHRASES = [
+    "we suspect automated behaviour",
+    "we suspect automated behavior",
+    "your account has been disabled",
+    "log in to facebook",
+    "you must log in to continue",
+]
+
+
+def check_screenshot_for_facebook_issues(screenshot_file: str) -> list[str]:
+    """
+    Runs OCR on the screenshot and returns a list of any Facebook warning/login
+    phrases detected in the text.
+    """
+    image = Image.open(screenshot_file)
+    text = pytesseract.image_to_string(image).lower()
+    logger.debug(f"OCR extracted text from {screenshot_file}: {text[:300]!r}")
+    return [phrase for phrase in FACEBOOK_WARNING_PHRASES if phrase in text]
+
+
 # Uses Firefox in webdriver.py
-# Cookies are passed in 
+# Cookies are passed in
 class ScreenshotEnricher(Enricher):
     def __init__(self, webdriver_factory=None):
         super().__init__()
@@ -57,6 +79,17 @@ class ScreenshotEnricher(Enricher):
                 driver.save_screenshot(screenshot_file)
                 logger.debug(f"Saved screenshot to {screenshot_file} and about to add to metadata")
                 to_enrich.add_media(Media(filename=screenshot_file), id="webdriverscreenshot")
+
+                if "facebook.com" in url:
+                    logger.debug(f"Facebook URL detected - about to run image recognition on screenshot {screenshot_file} to check for a login prompt")
+                    facebook_phrases_found = check_screenshot_for_facebook_issues(screenshot_file)
+                    if facebook_phrases_found:
+                        logger.warning(f"Facebook screenshot contains warning/login phrases: {facebook_phrases_found}")
+                        to_enrich.status = f"FACEBOOK PROBLEM: {', '.join(facebook_phrases_found)}"
+                        # todo think about all stop for facebook? perhaps write back to a central database to not do any more fb archving if this sock puppet has tripped
+                    else:
+                        logger.debug(f"No Facebook phrases detected in screenshot which are: {FACEBOOK_WARNING_PHRASES}")
+
 
                 if self.save_to_pdf:
                     pdf_file = os.path.join(self.tmp_dir, f"pdf_{random_str(8)}.pdf")
