@@ -191,6 +191,18 @@ echo "alias c='sudo vim /etc/cron.d/run-auto-archive'" >> ~/.bashrc
 # https://github.com/Brainicism/bgutil-ytdlp-pot-provider
 docker run --name bgutil-provider --restart unless-stopped -d -p 4416:4416 brainicism/bgutil-ytdlp-pot-provider
 
+# to update
+docker pull brainicism/bgutil-ytdlp-pot-provider
+docker stop bgutil-provider
+docker rm bgutil-provider
+
+docker run --name bgutil-provider \
+  --restart unless-stopped \
+  -d \
+  -p 4416:4416 \
+  brainicism/bgutil-ytdlp-pot-provider
+
+
 
 # test run
 cd ~/auto-archiver

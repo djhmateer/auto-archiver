@@ -19,7 +19,6 @@
 			"name": "AA Dave Testing (davemateer@gmail)",
 			"type": "debugpy",
 			"request": "launch",
-			// "program": "src/auto_archiver",
             "module": "src.auto_archiver",
 			"console": "integratedTerminal",
 			"justMyCode": true,
