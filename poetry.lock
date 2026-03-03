@@ -931,14 +931,14 @@ grpc = ["grpcio (>=1.33.2,<2.0.0)", "grpcio (>=1.49.1,<2.0.0) ; python_version >
 
 [[package]]
 name = "google-api-python-client"
-version = "2.190.0"
+version = "2.191.0"
 description = "Google API Client Library for Python"
 optional = false
 python-versions = ">=3.7"
 groups = ["main"]
 files = [
-    {file = "google_api_python_client-2.190.0-py3-none-any.whl", hash = "sha256:d9b5266758f96c39b8c21d9bbfeb4e58c14dbfba3c931f7c5a8d7fdcd292dd57"},
-    {file = "google_api_python_client-2.190.0.tar.gz", hash = "sha256:5357f34552e3724d80d2604c8fa146766e0a9d6bb0afada886fafed9feafeef6"},
+    {file = "google_api_python_client-2.191.0-py3-none-any.whl", hash = "sha256:0768dde3202121abb3e897c4ee5150e58a25f32ee843780f6bee636dccc7ef23"},
+    {file = "google_api_python_client-2.191.0.tar.gz", hash = "sha256:858c22fd46f51a65cee365a78aec2054e6d47b50434bee4ba62e91ac0944aea1"},
 ]
 
 [package.dependencies]
@@ -1104,14 +1104,14 @@ all = ["flake8 (>=7.1.1)", "mypy (>=1.11.2)", "pytest (>=8.3.2)", "ruff (>=0.6.2
 
 [[package]]
 name = "imagesize"
-version = "1.4.1"
+version = "1.5.0"
 description = "Getting image size from png/jpeg/jpeg2000/gif file"
 optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,>=2.7"
 groups = ["docs"]
 files = [
-    {file = "imagesize-1.4.1-py2.py3-none-any.whl", hash = "sha256:0d8d18d08f840c19d0ee7ca1fd82490fdc3729b7ac93f49870406ddde8ef8d8b"},
-    {file = "imagesize-1.4.1.tar.gz", hash = "sha256:69150444affb9cb0d5cc5a92b3676f0b2fb7cd9ae39e947a5e11a36b4497cd4a"},
+    {file = "imagesize-1.5.0-py2.py3-none-any.whl", hash = "sha256:32677681b3f434c2cb496f00e89c5a291247b35b1f527589909e008057da5899"},
+    {file = "imagesize-1.5.0.tar.gz", hash = "sha256:8bfc5363a7f2133a89f0098451e0bcb1cd71aba4dc02bbcecb39d99d40e1b94f"},
 ]
 
 [[package]]
@@ -2309,8 +2309,8 @@ files = [
 
 [package.dependencies]
 Pillow = [
-    {version = ">=9.3.0", markers = "python_version == \"3.11\""},
     {version = ">=9.2.0", markers = "python_version == \"3.10\""},
+    {version = ">=9.3.0", markers = "python_version == \"3.11\""},
 ]
 
 [[package]]
@@ -2629,14 +2629,14 @@ files = [
 
 [[package]]
 name = "pytz"
-version = "2025.2"
+version = "2026.1.post1"
 description = "World timezone definitions, modern and historical"
 optional = false
 python-versions = "*"
 groups = ["main"]
 files = [
-    {file = "pytz-2025.2-py2.py3-none-any.whl", hash = "sha256:5ddf76296dd8c44c26eb8f4b6f35488f3ccbf6fbbd7adee0b7262d43f0ec2f00"},
-    {file = "pytz-2025.2.tar.gz", hash = "sha256:360b9e3dbb49a209c21ad61809c7fb453643e048b38924c765813546746e81c3"},
+    {file = "pytz-2026.1.post1-py2.py3-none-any.whl", hash = "sha256:f2fd16142fda348286a75e1a524be810bb05d444e5a081f37f7affc635035f7a"},
+    {file = "pytz-2026.1.post1.tar.gz", hash = "sha256:3378dde6a0c3d26719182142c56e60c7f9af7e968076f31aae569d72a0358ee1"},
 ]
 
 [[package]]
@@ -2965,7 +2965,7 @@ description = "Manipulate well-formed Roman numerals"
 optional = false
 python-versions = ">=3.10"
 groups = ["docs"]
-markers = "python_version != \"3.10\""
+markers = "python_version >= \"3.11\""
 files = [
     {file = "roman_numerals-4.1.0-py3-none-any.whl", hash = "sha256:647ba99caddc2cc1e55a51e4360689115551bf4476d90e8162cf8c345fe233c7"},
     {file = "roman_numerals-4.1.0.tar.gz", hash = "sha256:1af8b147eb1405d5839e78aeb93131690495fe9da5c91856cb33ad55a7f1e5b2"},
@@ -2978,7 +2978,7 @@ description = "This package is deprecated, switch to roman-numerals."
 optional = false
 python-versions = ">=3.10"
 groups = ["docs"]
-markers = "python_version != \"3.10\""
+markers = "python_version >= \"3.11\""
 files = [
     {file = "roman_numerals_py-4.1.0-py3-none-any.whl", hash = "sha256:553114c1167141c1283a51743759723ecd05604a1b6b507225e91dc1a6df0780"},
     {file = "roman_numerals_py-4.1.0.tar.gz", hash = "sha256:f5d7b2b4ca52dd855ef7ab8eb3590f428c0b1ea480736ce32b01fef2a5f8daf9"},
@@ -3417,7 +3417,7 @@ description = "Python documentation generator"
 optional = false
 python-versions = ">=3.11"
 groups = ["docs"]
-markers = "python_version != \"3.10\""
+markers = "python_version >= \"3.11\""
 files = [
     {file = "sphinx-8.2.3-py3-none-any.whl", hash = "sha256:4405915165f13521d875a8c29c8970800a0141c14cc5416a38feca4ea5d9b9c3"},
     {file = "sphinx-8.2.3.tar.gz", hash = "sha256:398ad29dee7f63a75888314e9424d40f52ce5a6a87ae88e7071e80af296ec348"},
