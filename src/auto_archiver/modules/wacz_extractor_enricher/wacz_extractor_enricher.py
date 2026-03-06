@@ -273,239 +273,228 @@ class WaczExtractorEnricher(Enricher, Extractor):
         # get the most prevalent set_id
         # 6th March 2025 - for the case of 3 images I'm sometimes getting what looks like advertising images
         # which are slightly more prevalent than the images I want.
-        # 5 and 3 
-        logger.warning(f" {list_of_set_ids=}")
-        most_prevalent_set_id = max(set(list_of_set_ids), key=list_of_set_ids.count)
+        # 5 and 3
+        # logger.warning(f" {list_of_set_ids=}")
+        # most_prevalent_set_id = max(set(list_of_set_ids), key=list_of_set_ids.count)
         # most_prevalent_setid=1646726145764725 should be for 3 images set
-        logger.warning(f" correct set_id is 1646726145764725, calculated: {most_prevalent_set_id=}")
-        logger.warning(f" lowest number in list_of_set_ids is {min(list_of_set_ids, key=lambda x: int(x))}")
-        
-#         2026-03-06 10:30:00.728 | INFO     | auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher:facebook_extract_media_from_wacz:205 - Facebook Part 1 - extracting media from wacz_filename='/home/dave/code/auto-archiver/tmpaupf7xgx/collections/ba09fffb/ba09fffb.wacz'
-# 2026-03-06 10:30:00.776 | DEBUG    | auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher:facebook_extract_media_from_wacz:233 - Part 2 - deleting all files in /home/dave/aatmp
-# 2026-03-06 10:30:01.699 | INFO     | auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher:facebook_extract_media_from_wacz:264 -  found set_id='1646726145764725' in bulk-route-definitions and adding to list so can calculate most prevalent
-# 2026-03-06 10:30:01.700 | INFO     | auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher:facebook_extract_media_from_wacz:264 -  found set_id='1646726145764725' in bulk-route-definitions and adding to list so can calculate most prevalent
-# 2026-03-06 10:30:01.700 | INFO     | auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher:facebook_extract_media_from_wacz:264 -  found set_id='1646726145764725' in bulk-route-definitions and adding to list so can calculate most prevalent
-# 2026-03-06 10:30:01.719 | INFO     | auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher:facebook_extract_media_from_wacz:264 -  found set_id='122190078362463259' in bulk-route-definitions and adding to list so can calculate most prevalent
-# 2026-03-06 10:30:01.720 | INFO     | auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher:facebook_extract_media_from_wacz:264 -  found set_id='122190078362463259' in bulk-route-definitions and adding to list so can calculate most prevalent
-# 2026-03-06 10:30:01.720 | INFO     | auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher:facebook_extract_media_from_wacz:264 -  found set_id='122190078362463259' in bulk-route-definitions and adding to list so can calculate most prevalent
-# 2026-03-06 10:30:01.721 | INFO     | auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher:facebook_extract_media_from_wacz:264 -  found set_id='122190078362463259' in bulk-route-definitions and adding to list so can calculate most prevalent
-# 2026-03-06 10:30:01.727 | INFO     | auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher:facebook_extract_media_from_wacz:264 -  found set_id='122190078362463259' in bulk-route-definitions and adding to list so can calculate most prevalent
-# 2026-03-06 10:30:01.792 | WARNING  | auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher:facebook_extract_media_from_wacz:278 -  list_of_set_ids=['1646726145764725', '1646726145764725', '1646726145764725', '122190078362463259', '122190078362463259', '122190078362463259', '122190078362463259', '122190078362463259']
-# 2026-03-06 10:30:01.793 | WARNING  | auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher:facebook_extract_media_from_wacz:281 -  correct set_id is 1646726145764725, calculated: most_prevalent_set_id='122190078362463259'
-# 2026-03-06 10:30:01.793 | WARNING  | auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher:facebook_extract_media_from_wacz:282 -  lowest number in list_of_set_ids is 122190078362463259
+        # logger.warning(f" correct set_id is 1646726145764725, calculated: {most_prevalent_set_id=}")
+        # logger.warning(f" lowest number in list_of_set_ids is {min(list_of_set_ids, key=lambda x: int(x))}")
 
+        unique_set_ids = list(set(list_of_set_ids))
+        logger.warning(f" looping over all {unique_set_ids=}")
 
+        for most_prevalent_set_id in unique_set_ids:
+            logger.warning(f" processing {most_prevalent_set_id=}")
 
-
-        with open(warc_filename, "rb") as warc_stream:
-            full_crawl_done = False
-            for record in ArchiveIterator(warc_stream):
-                # extract just the screenshot from the facebook page wacz
-                if (record.rec_type == "resource" and record.content_type == "image/png" and self.extract_screenshot):
-                    fn = os.path.join(tmp_dir, f"warc-file-{counter_screenshots}.png")
+            with open(warc_filename, "rb") as warc_stream:
+                full_crawl_done = False
+                for record in ArchiveIterator(warc_stream):
+                    # extract just the screenshot from the facebook page wacz
+                    if (record.rec_type == "resource" and record.content_type == "image/png" and self.extract_screenshot):
+                        fn = os.path.join(tmp_dir, f"warc-file-{counter_screenshots}.png")
+                        with open(fn, "wb") as outf:
+                            outf.write(record.raw_stream.read())
+                        m = Media(filename=fn)
+                        to_enrich.add_media(m, f"browsertrix-screenshot-{counter_screenshots}")
+                        logger.debug(f"Part 1 - Added Screenshot")
+                        logger.debug(f"Part 1 - is a chance that will not be called browser-screenshot, as may have been added already, and will get deleted in deduplication.")
+                        counter_screenshots += 1
+                        
+                    # purely to make sure we get the screenshot
+                    if full_crawl_done: continue # to next record
+    
+                    # continue to next if don't want media (essentially do nothing else but the screenshot above)
+                    if self.extract_media: pass
+                    else: continue
+    
+                    # Strategy 0 - single image
+                    if "facebook.com/photo" in url:
+                        # eg single lady
+                        # https://www.facebook.com/khitthitnews/posts/pfbid0PTvT6iAccWqatvbDQNuqpFwL5WKzHuLK4QjP97Fwut637CV3XXQU53z1s2bJMAKwl
+                        # logger.debug(f"Strategy 0 - this is a /photo page so the image will be at full resolution and don't need to crawl")
+                        crawl_and_get_media_from_sub_page = False
+                    else:
+                        # eg 3 images
+                        # https://www.facebook.com/khitthitnews/posts/pfbid0PTvT6iAccWqatvbDQNuqpFwL5WKzHuLK4QjP97Fwut637CV3XXQU53z1s2bJMAKwl
+                        # eg 15 images
+                        # https://www.facebook.com/permalink.php?story_fbid=pfbid0BqNZHQaQfqTAKzVaaeeYNuyPXFJhkPmzwWT7mZPZJLFnHNEvsdbnLJRPkHJDMcqFl&id=100082135548177
+                        crawl_and_get_media_from_sub_page = True
+    
+                    if crawl_and_get_media_from_sub_page:
+                        if record.rec_type == "request": pass
+                        else: continue # to next record - we are only interested in the request at the moment to get the fb_id and set_id
+    
+                        # CRAWL START
+                        # logger.debug(f"Strategy 1 + - crawling the sub page to get the media")
+    
+                        # Get fb_id and set_id
+                        # strategy 1 - 3 images and want full resolution images
+                        # https://www.facebook.com/khitthitnews/posts/pfbid0PTvT6iAccWqatvbDQNuqpFwL5WKzHuLK4QjP97Fwut637CV3XXQU53z1s2bJMAKwl
+    
+                        # writing in table image: 
+                        # https://www.facebook.com/photo/?fbid=1646726009098072&set=pcb.1646726145764725
+                        # fbid = 1646726009098072 
+    
+                        # set = 1646726145764725
+    
+                        # crosshairs image
+                        # https://www.facebook.com/photo?fbid=1646726045764735&set=pcb.1646726145764725
+                        # fbid = 1646726045764735
+                        
+                        # printout of map image
+                        # https://www.facebook.com/photo?fbid=1646726095764730&set=pcb.1646726145764725
+                        # fbid = 1646726095764730
+                        
+                        uri = record.rec_headers.get_header('WARC-Target-URI')
+    
+                        # There are many instances of this and it is possible to get the wrong one.
+                        # DM 13th Jun 25 - we already know the most prevalent set_id that we want
+                        if "bulk-route-definitions/" in uri:
+                            content = record.content_stream().read()
+                            foo = str(content)
+    
+                            # Strategy 1 - 3 images
+                            # photo%2F%3Ffbid%3D1646726009098072%26set%3Dpcb.1646726145764725%26
+                            # writing in table image 
+                            # fbid = 1646726009098072
+                            # set = pcb.1646726145764725
+    
+                            photo_string_start_pos = foo.find(f'photo%2F%3Ffbid%3D',0)
+                            # photo_string_start_pos = foo.find(f'photo%3Ffbid%3D',0)
+    
+                            if (photo_string_start_pos > 0):
+                                logger.debug("Part 1 - found photo string so get the fb_id and set_id so can request it to get full res image")
+                                logger.debug("   and then the next fb_id from the carousel")
+                                fbid_start_pos = photo_string_start_pos + 18
+                                # fbid_start_pos = photo_string_start_pos + 15
+    
+                                middle_26_start_pos = foo.find(f'%26', fbid_start_pos)
+    
+                                fb_id = foo[fbid_start_pos:middle_26_start_pos]
+                                # # photo%2F%3Ffbid%3D1646726009098072%26set%3Dpcb.1646726145764725%26
+                                set_end_pos = foo.find(f'%26', middle_26_start_pos+1)
+    
+                                set_id = foo[middle_26_start_pos+13:set_end_pos]
+    
+                                if set_id == most_prevalent_set_id: pass
+                                else:
+                                    logger.info(f"Part 1 - skipping set_id {set_id=} as not the most prevalent set_id {most_prevalent_set_id=}")
+                                    continue # to next record
+    
+                                logger.info(f"  *** Part 1 - Strategy 1 {fb_id=} and {set_id=}")
+                                # bar = f'https://www.facebook.com/photo/?fbid={fb_id}&set=pcb.{set_id}'
+    
+                                # Part 2
+                                fb_ids_to_request = []
+                                fb_ids_requested = []
+                                while (True):
+                                    builder_url = f"https://www.facebook.com/photo?fbid={fb_id}&set=pcb.{set_id}"
+    
+                                    fb_ids_requested.append(fb_id)
+    
+                                    logger.info(f"  *** Part 2 next trying url for js page {builder_url}")
+    
+                                    # next_fb_id = self.save_images_to_enrich_object_from_url_using_browsertrix(builder_url, to_enrich, fb_id)
+                                    list_of_next_fb_ids = self.save_images_to_enrich_object_from_url_using_browsertrix(builder_url, to_enrich, fb_id)
+    
+                                    # iterate over list_of_next_fb_ids and add to fb_ids_to_request if not in fb_ids_requested
+                                    for next_fb_id in list_of_next_fb_ids:
+                                        if next_fb_id not in fb_ids_requested:
+                                            fb_ids_to_request.append(next_fb_id)
+    
+                                    logger.debug(f"Part 2 - fb_ids_to_request {len(fb_ids_to_request)}")
+                                    logger.debug(f"Part 2 - fb_ids_requested {len(fb_ids_requested)}")
+    
+                                    if len(fb_ids_to_request) == 0:
+                                        logger.debug(f"Part 2 - no more fb_ids to request so end")
+                                        break # out of while
+    
+                                    fb_id = fb_ids_to_request.pop(0)
+    
+                                    # iterate over fb_ids_to_request and request the url
+    
+                                    total_images = len(to_enrich.media)
+                                    logger.debug(f"Part 2 - total_images {total_images} - includes duplicates")
+                                    if total_images > 90:
+                                        logger.warning('Total images is > max so stopping crawl')
+                                        break # out of while
+                                    
+                                if len(fb_ids_requested) == 1:
+                                    logger.debug("Probably the wrong fb_id url here in Part 2, as only 1 fb_ids_requested")
+                                    logger.debug("so not the carousel we want")
+                                    logger.debug("continuing to next record in root url (Part 1) ")
+                                    continue # to next record
+    
+                                logger.debug(f"Part 2 END of while loop")
+                                # we can't return here as the screenshot may not have been added yet
+    
+                                full_crawl_done = True
+                                # return
+                            else:
+                                # logger.debug('photo string not found in bulk-route-definitions - this is normal. 1 out of 3 have seen work... ')
+                                # logger.debug('it also could be a single image which is different')
+                                ## TODO - strategy x
+                                continue # to next record
+    
+                        # END of if crawl_and_get_media_from_sub_page
+                        continue # onto the next record
+    
+                    # if part 2 crawler has happened then we don't want to do anything else
+                    # but we do want to iterate over all records so that the screenshot is added
+                    if crawl_and_get_media_from_sub_page: continue # to next record
+                    else: pass
+    
+                    # Only part 1 - strategy 0 code below
+                    # if record.rec_type != "response": continue
+                    if record.rec_type == "response": pass
+                    else: continue
+    
+                    # so response has this header!
+                    record_url = record.rec_headers.get_header("WARC-Target-URI")
+                    if UrlUtil.is_relevant_url(record_url): pass
+                    else:
+                        logger.debug(f"Skipping irrelevant URL {record_url}")
+                        continue
+    
+                    if record_url in seen_urls:
+                        logger.debug(f"Skipping already seen URL {record_url}.")
+                        continue
+    
+                    # filter by media mimetypes
+                    content_type = record.http_headers.get("Content-Type")
+                    if content_type: pass
+                    else: continue
+    
+                    if any(x in content_type for x in ["video", "image", "audio"]): pass
+                    else: continue
+    
+                    # create local file and add media
+                    ext = mimetypes.guess_extension(content_type)
+    
+                    warc_fn = f"warc-file-{counter_warc_files}{ext}"
+    
+                    fn = os.path.join(tmp_dir, warc_fn)
+    
                     with open(fn, "wb") as outf:
                         outf.write(record.raw_stream.read())
+    
+                    fs = os.path.getsize(fn)
+                    if fs < 13500 and ext == ".jpg": continue
+                    if fs < 6000 and ext == ".webp": continue
+                    if fs < 37000 and ext == ".png": continue
+                    if fs < 12000 and ext == ".avif": continue
+                    if ext == ".gif": continue
+                    if ext == ".ico": continue
+                    if ext == None : continue
+    
+                    logger.debug(f"Part 1 - Strategy 0 - saving the single relevant full resolution image from wacz")
+                    logger.debug(f"Part 1 - Added {fn} which is {fs} and extension {ext}")
                     m = Media(filename=fn)
-                    to_enrich.add_media(m, f"browsertrix-screenshot-{counter_screenshots}")
-                    logger.debug(f"Part 1 - Added Screenshot")
-                    logger.debug(f"Part 1 - is a chance that will not be called browser-screenshot, as may have been added already, and will get deleted in deduplication.")
-                    counter_screenshots += 1
-                    
-                # purely to make sure we get the screenshot
-                if full_crawl_done: continue # to next record
-
-                # continue to next if don't want media (essentially do nothing else but the screenshot above)
-                if self.extract_media: pass
-                else: continue
-
-                # Strategy 0 - single image
-                if "facebook.com/photo" in url:
-                    # eg single lady
-                    # https://www.facebook.com/khitthitnews/posts/pfbid0PTvT6iAccWqatvbDQNuqpFwL5WKzHuLK4QjP97Fwut637CV3XXQU53z1s2bJMAKwl
-                    # logger.debug(f"Strategy 0 - this is a /photo page so the image will be at full resolution and don't need to crawl")
-                    crawl_and_get_media_from_sub_page = False
-                else:
-                    # eg 3 images
-                    # https://www.facebook.com/khitthitnews/posts/pfbid0PTvT6iAccWqatvbDQNuqpFwL5WKzHuLK4QjP97Fwut637CV3XXQU53z1s2bJMAKwl
-                    # eg 15 images
-                    # https://www.facebook.com/permalink.php?story_fbid=pfbid0BqNZHQaQfqTAKzVaaeeYNuyPXFJhkPmzwWT7mZPZJLFnHNEvsdbnLJRPkHJDMcqFl&id=100082135548177
-                    crawl_and_get_media_from_sub_page = True
-
-                if crawl_and_get_media_from_sub_page:
-                    if record.rec_type == "request": pass
-                    else: continue # to next record - we are only interested in the request at the moment to get the fb_id and set_id
-
-                    # CRAWL START
-                    # logger.debug(f"Strategy 1 + - crawling the sub page to get the media")
-
-                    # Get fb_id and set_id
-                    # strategy 1 - 3 images and want full resolution images
-                    # https://www.facebook.com/khitthitnews/posts/pfbid0PTvT6iAccWqatvbDQNuqpFwL5WKzHuLK4QjP97Fwut637CV3XXQU53z1s2bJMAKwl
-
-                    # writing in table image: 
-                    # https://www.facebook.com/photo/?fbid=1646726009098072&set=pcb.1646726145764725
-                    # fbid = 1646726009098072 
-
-                    # set = 1646726145764725
-
-                    # crosshairs image
-                    # https://www.facebook.com/photo?fbid=1646726045764735&set=pcb.1646726145764725
-                    # fbid = 1646726045764735
-                    
-                    # printout of map image
-                    # https://www.facebook.com/photo?fbid=1646726095764730&set=pcb.1646726145764725
-                    # fbid = 1646726095764730
-                    
-                    uri = record.rec_headers.get_header('WARC-Target-URI')
-
-                    # There are many instances of this and it is possible to get the wrong one.
-                    # DM 13th Jun 25 - we already know the most prevalent set_id that we want
-                    if "bulk-route-definitions/" in uri:
-                        content = record.content_stream().read()
-                        foo = str(content)
-
-                        # Strategy 1 - 3 images
-                        # photo%2F%3Ffbid%3D1646726009098072%26set%3Dpcb.1646726145764725%26
-                        # writing in table image 
-                        # fbid = 1646726009098072
-                        # set = pcb.1646726145764725
-
-                        photo_string_start_pos = foo.find(f'photo%2F%3Ffbid%3D',0)
-                        # photo_string_start_pos = foo.find(f'photo%3Ffbid%3D',0)
-
-                        if (photo_string_start_pos > 0):
-                            logger.debug("Part 1 - found photo string so get the fb_id and set_id so can request it to get full res image")
-                            logger.debug("   and then the next fb_id from the carousel")
-                            fbid_start_pos = photo_string_start_pos + 18
-                            # fbid_start_pos = photo_string_start_pos + 15
-
-                            middle_26_start_pos = foo.find(f'%26', fbid_start_pos)
-
-                            fb_id = foo[fbid_start_pos:middle_26_start_pos]
-                            # # photo%2F%3Ffbid%3D1646726009098072%26set%3Dpcb.1646726145764725%26
-                            set_end_pos = foo.find(f'%26', middle_26_start_pos+1)
-
-                            set_id = foo[middle_26_start_pos+13:set_end_pos]
-
-                            if set_id == most_prevalent_set_id: pass
-                            else:
-                                logger.info(f"Part 1 - skipping set_id {set_id=} as not the most prevalent set_id {most_prevalent_set_id=}")
-                                continue # to next record
-
-                            logger.info(f"  *** Part 1 - Strategy 1 {fb_id=} and {set_id=}")
-                            # bar = f'https://www.facebook.com/photo/?fbid={fb_id}&set=pcb.{set_id}'
-
-                            # Part 2
-                            fb_ids_to_request = []
-                            fb_ids_requested = []
-                            while (True):
-                                builder_url = f"https://www.facebook.com/photo?fbid={fb_id}&set=pcb.{set_id}"
-
-                                fb_ids_requested.append(fb_id)
-
-                                logger.info(f"  *** Part 2 next trying url for js page {builder_url}")
-
-                                # next_fb_id = self.save_images_to_enrich_object_from_url_using_browsertrix(builder_url, to_enrich, fb_id)
-                                list_of_next_fb_ids = self.save_images_to_enrich_object_from_url_using_browsertrix(builder_url, to_enrich, fb_id)
-
-                                # iterate over list_of_next_fb_ids and add to fb_ids_to_request if not in fb_ids_requested
-                                for next_fb_id in list_of_next_fb_ids:
-                                    if next_fb_id not in fb_ids_requested:
-                                        fb_ids_to_request.append(next_fb_id)
-
-                                logger.debug(f"Part 2 - fb_ids_to_request {len(fb_ids_to_request)}")
-                                logger.debug(f"Part 2 - fb_ids_requested {len(fb_ids_requested)}")
-
-                                if len(fb_ids_to_request) == 0:
-                                    logger.debug(f"Part 2 - no more fb_ids to request so end")
-                                    break # out of while
-
-                                fb_id = fb_ids_to_request.pop(0)
-
-                                # iterate over fb_ids_to_request and request the url
-
-                                total_images = len(to_enrich.media)
-                                logger.debug(f"Part 2 - total_images {total_images} - includes duplicates")
-                                if total_images > 90:
-                                    logger.warning('Total images is > max so stopping crawl')
-                                    break # out of while
-                                
-                            if len(fb_ids_requested) == 1:
-                                logger.debug("Probably the wrong fb_id url here in Part 2, as only 1 fb_ids_requested")
-                                logger.debug("so not the carousel we want")
-                                logger.debug("continuing to next record in root url (Part 1) ")
-                                continue # to next record
-
-                            logger.debug(f"Part 2 END of while loop")
-                            # we can't return here as the screenshot may not have been added yet
-
-                            full_crawl_done = True
-                            # return
-                        else:
-                            # logger.debug('photo string not found in bulk-route-definitions - this is normal. 1 out of 3 have seen work... ')
-                            # logger.debug('it also could be a single image which is different')
-                            ## TODO - strategy x
-                            continue # to next record
-
-                    # END of if crawl_and_get_media_from_sub_page
-                    continue # onto the next record
-
-                # if part 2 crawler has happened then we don't want to do anything else
-                # but we do want to iterate over all records so that the screenshot is added
-                if crawl_and_get_media_from_sub_page: continue # to next record
-                else: pass
-
-                # Only part 1 - strategy 0 code below
-                # if record.rec_type != "response": continue
-                if record.rec_type == "response": pass
-                else: continue
-
-                # so response has this header!
-                record_url = record.rec_headers.get_header("WARC-Target-URI")
-                if UrlUtil.is_relevant_url(record_url): pass
-                else:
-                    logger.debug(f"Skipping irrelevant URL {record_url}")
-                    continue
-
-                if record_url in seen_urls:
-                    logger.debug(f"Skipping already seen URL {record_url}.")
-                    continue
-
-                # filter by media mimetypes
-                content_type = record.http_headers.get("Content-Type")
-                if content_type: pass
-                else: continue
-
-                if any(x in content_type for x in ["video", "image", "audio"]): pass
-                else: continue
-
-                # create local file and add media
-                ext = mimetypes.guess_extension(content_type)
-
-                warc_fn = f"warc-file-{counter_warc_files}{ext}"
-
-                fn = os.path.join(tmp_dir, warc_fn)
-
-                with open(fn, "wb") as outf:
-                    outf.write(record.raw_stream.read())
-
-                fs = os.path.getsize(fn)
-                if fs < 13500 and ext == ".jpg": continue
-                if fs < 6000 and ext == ".webp": continue
-                if fs < 37000 and ext == ".png": continue
-                if fs < 12000 and ext == ".avif": continue
-                if ext == ".gif": continue
-                if ext == ".ico": continue
-                if ext == None : continue
-
-                logger.debug(f"Part 1 - Strategy 0 - saving the single relevant full resolution image from wacz")
-                logger.debug(f"Part 1 - Added {fn} which is {fs} and extension {ext}")
-                m = Media(filename=fn)
-                m.set("src", record_url)
-
-                to_enrich.add_media(m, warc_fn)
-                counter_warc_files += 1
-                seen_urls.add(record_url)
+                    m.set("src", record_url)
+    
+                    to_enrich.add_media(m, warc_fn)
+                    counter_warc_files += 1
+                    seen_urls.add(record_url)
         logger.info(
             f"Facebook WACZ extract_media/extract_screenshot finished, found {counter_warc_files + counter_screenshots} relevant media file(s)"
         )
