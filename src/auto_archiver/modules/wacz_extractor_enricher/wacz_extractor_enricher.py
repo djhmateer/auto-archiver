@@ -271,9 +271,30 @@ class WaczExtractorEnricher(Enricher, Extractor):
             return
 
         # get the most prevalent set_id
+        # 6th March 2025 - for the case of 3 images I'm sometimes getting what looks like advertising images
+        # which are slightly more prevalent than the images I want.
+        # 5 and 3 
+        logger.warning(f" {list_of_set_ids=}")
         most_prevalent_set_id = max(set(list_of_set_ids), key=list_of_set_ids.count)
         # most_prevalent_setid=1646726145764725 should be for 3 images set
-        logger.info(f" calculated: {most_prevalent_set_id=}")
+        logger.warning(f" correct set_id is 1646726145764725, calculated: {most_prevalent_set_id=}")
+        logger.warning(f" lowest number in list_of_set_ids is {min(list_of_set_ids, key=lambda x: int(x))}")
+        
+#         2026-03-06 10:30:00.728 | INFO     | auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher:facebook_extract_media_from_wacz:205 - Facebook Part 1 - extracting media from wacz_filename='/home/dave/code/auto-archiver/tmpaupf7xgx/collections/ba09fffb/ba09fffb.wacz'
+# 2026-03-06 10:30:00.776 | DEBUG    | auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher:facebook_extract_media_from_wacz:233 - Part 2 - deleting all files in /home/dave/aatmp
+# 2026-03-06 10:30:01.699 | INFO     | auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher:facebook_extract_media_from_wacz:264 -  found set_id='1646726145764725' in bulk-route-definitions and adding to list so can calculate most prevalent
+# 2026-03-06 10:30:01.700 | INFO     | auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher:facebook_extract_media_from_wacz:264 -  found set_id='1646726145764725' in bulk-route-definitions and adding to list so can calculate most prevalent
+# 2026-03-06 10:30:01.700 | INFO     | auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher:facebook_extract_media_from_wacz:264 -  found set_id='1646726145764725' in bulk-route-definitions and adding to list so can calculate most prevalent
+# 2026-03-06 10:30:01.719 | INFO     | auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher:facebook_extract_media_from_wacz:264 -  found set_id='122190078362463259' in bulk-route-definitions and adding to list so can calculate most prevalent
+# 2026-03-06 10:30:01.720 | INFO     | auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher:facebook_extract_media_from_wacz:264 -  found set_id='122190078362463259' in bulk-route-definitions and adding to list so can calculate most prevalent
+# 2026-03-06 10:30:01.720 | INFO     | auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher:facebook_extract_media_from_wacz:264 -  found set_id='122190078362463259' in bulk-route-definitions and adding to list so can calculate most prevalent
+# 2026-03-06 10:30:01.721 | INFO     | auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher:facebook_extract_media_from_wacz:264 -  found set_id='122190078362463259' in bulk-route-definitions and adding to list so can calculate most prevalent
+# 2026-03-06 10:30:01.727 | INFO     | auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher:facebook_extract_media_from_wacz:264 -  found set_id='122190078362463259' in bulk-route-definitions and adding to list so can calculate most prevalent
+# 2026-03-06 10:30:01.792 | WARNING  | auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher:facebook_extract_media_from_wacz:278 -  list_of_set_ids=['1646726145764725', '1646726145764725', '1646726145764725', '122190078362463259', '122190078362463259', '122190078362463259', '122190078362463259', '122190078362463259']
+# 2026-03-06 10:30:01.793 | WARNING  | auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher:facebook_extract_media_from_wacz:281 -  correct set_id is 1646726145764725, calculated: most_prevalent_set_id='122190078362463259'
+# 2026-03-06 10:30:01.793 | WARNING  | auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher:facebook_extract_media_from_wacz:282 -  lowest number in list_of_set_ids is 122190078362463259
+
+
 
 
         with open(warc_filename, "rb") as warc_stream:
