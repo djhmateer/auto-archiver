@@ -4,6 +4,7 @@ Usage:
     poetry run python image-recog.py [path/to/screenshot.png]
 
 Defaults to /mnt/c/tmp/disabled.png if no argument given.
+Am keeping screenshots in secrets/fb-blocked folder
 """
 import sys
 import os

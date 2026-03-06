@@ -20,6 +20,8 @@ FACEBOOK_WARNING_PHRASES = [
     "your account has been disabled",
     "log in to facebook",
     "you must log in to continue",
+    "confirm that this is your account",
+    "we locked your account",
 ]
 
 
@@ -27,6 +29,7 @@ def check_screenshot_for_facebook_issues(screenshot_file: str) -> list[str]:
     """
     Runs OCR on the screenshot and returns a list of any Facebook warning/login
     phrases detected in the text.
+    Am keeping screenshots in secrets/fb-blocked folder
     """
     image = Image.open(screenshot_file)
     text = pytesseract.image_to_string(image).lower()
