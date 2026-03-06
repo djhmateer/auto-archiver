@@ -236,3 +236,12 @@ sudo apt-mark hold brave-browser
 apt-mark showhold
 sudo apt-mark unhold brave-browser
 ```
+
+## OCR
+
+For Facebook image recognition
+
+```bash
+# probably boot afterwards to make sure path is okay
+sudo apt-get install tesseract-ocr
+```
