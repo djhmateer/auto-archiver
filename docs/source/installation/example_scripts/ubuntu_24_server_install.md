@@ -245,3 +245,12 @@ For Facebook image recognition
 # probably boot afterwards to make sure path is okay
 sudo apt-get install tesseract-ocr
 ```
+
+## Deno 
+
+For yt-dlp
+
+```
+sudo apt install unzip
+curl -fsSL https://deno.land/install.sh | sh
+```

@@ -9,6 +9,9 @@ cd /home/dave/auto-archiver
 # so poetry can be used
 export PATH="$HOME/.local/bin:$PATH"
 
+# so deno can be used (needed by yt-dlp)
+export PATH="$HOME/.deno/bin:$PATH"
+
 # only 1 instance of this will run if job lasts longer than 1 minute
 # https://askubuntu.com/a/915731/677298
 if [ $(pgrep -c "${0##*/}") -gt 1 ]; then
