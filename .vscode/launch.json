@@ -131,6 +131,19 @@
           		"RUNNING_IN_WSL": "true"
       		}
 		},
+		{
+			"name": "GLAN Sheet 4 (davemateer@gmail)",
+			"type": "debugpy",
+			"request": "launch",
+			// "program": "src/auto_archiver",
+            "module": "src.auto_archiver",
+			"console": "integratedTerminal",
+			"justMyCode": true,
+			"args": ["--config","secrets/orchestration-glan-sheet4.yaml"],
+			"env": {
+          		"RUNNING_IN_WSL": "true"
+      		}
+		},
         {
 			"name": "CIR Domain EoR",
 			"type": "debugpy",
