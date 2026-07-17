@@ -97,16 +97,27 @@ class AntibotExtractorEnricher(Extractor, Enricher):
                 except Exception as e:
                     logger.error(f"Failed to remove SingletonLock: {e}")
 
+        # xvfb is only needed when there's no real display available (e.g. in Docker);
+        # headless2/forced xvfb elsewhere makes SeleniumBase reject uc_gui_click_rc()
+        # with "PyAutoGUI can't be used in headless mode". Outside Docker we force
+        # headed=True so SeleniumBase uses the real $DISPLAY directly instead of trying
+        # (and, on WSL2, failing) to spin up its own virtual display via sbvirtualdisplay.
+        use_xvfb = bool(os.environ.get("RUNNING_IN_DOCKER"))
+        headed = None if use_xvfb else True
+
         try:
-            # with SB(uc=True, agent=self.agent, headed=False, xvfb=True, user_data_dir=using_user_data_dir, proxy=self.proxy) as sb:
-            with SB(uc=True, agent=self.agent, headless2=True, xvfb=True, user_data_dir=using_user_data_dir, proxy=self.proxy) as sb:
+            with SB(
+                uc=True,
+                agent=self.agent,
+                headed=headed,
+                user_data_dir=using_user_data_dir,
+                proxy=self.proxy,
+                xvfb=use_xvfb,
+            ) as sb:
                 logger.info(f"Selenium browser is up with agent {self.agent}, opening url...")
                 sb.uc_open_with_reconnect(url, 4)
 
                 logger.debug("Handling CAPTCHAs for...")
-                # getting an error with https://burmese.dvb.no/post/732330
-                # Runtime error: PyAutoGUI can't be used in headless mode
-                # leave for now as other screenshotters are fine
                 sb.uc_gui_handle_cf()
                 sb.uc_gui_click_rc()  # NB: using handle instead of click breaks some sites like reddit, for now we separate here but can have dropins deciding this in the future
 
