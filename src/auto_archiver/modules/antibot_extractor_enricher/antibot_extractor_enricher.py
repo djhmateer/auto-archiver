@@ -97,12 +97,13 @@ class AntibotExtractorEnricher(Extractor, Enricher):
                 except Exception as e:
                     logger.error(f"Failed to remove SingletonLock: {e}")
 
-        # xvfb is only needed when there's no real display available (e.g. in Docker);
-        # headless2/forced xvfb elsewhere makes SeleniumBase reject uc_gui_click_rc()
-        # with "PyAutoGUI can't be used in headless mode". Outside Docker we force
-        # headed=True so SeleniumBase uses the real $DISPLAY directly instead of trying
-        # (and, on WSL2, failing) to spin up its own virtual display via sbvirtualdisplay.
-        use_xvfb = bool(os.environ.get("RUNNING_IN_DOCKER"))
+        # xvfb is only needed when there's no real display available (e.g. in Docker,
+        # or cron jobs run outside of Docker with no DISPLAY set); headless2/forced
+        # xvfb elsewhere makes SeleniumBase reject uc_gui_click_rc() with "PyAutoGUI
+        # can't be used in headless mode". When a real $DISPLAY is present (e.g. WSL2
+        # desktop session) we force headed=True so SeleniumBase uses it directly
+        # instead of trying (and, on WSL2, failing) to spin up sbvirtualdisplay.
+        use_xvfb = bool(os.environ.get("RUNNING_IN_DOCKER")) or not os.environ.get("DISPLAY")
         headed = None if use_xvfb else True
 
         try:
