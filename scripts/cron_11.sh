@@ -66,9 +66,9 @@ poetry run python src/auto_archiver --config secrets/orchestration-aa-demo-main.
 
 # poetry run python src/auto_archiver --config secrets/orchestration-aa-dave-testing.yaml
 
-# poetry run python src/auto_archiver --config secrets/orchestration-glan-sheet1.yaml
+poetry run python src/auto_archiver --config secrets/orchestration-glan-sheet1.yaml
 
-# poetry run python src/auto_archiver --config secrets/orchestration-glan-sheet3.yaml
+poetry run python src/auto_archiver --config secrets/orchestration-glan-sheet3.yaml
 
 #poetry run python src/auto_archiver --config secrets/orchestration-aa-pogo.yaml
 sleep $TIME
