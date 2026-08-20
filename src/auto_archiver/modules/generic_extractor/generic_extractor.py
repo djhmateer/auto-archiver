@@ -689,6 +689,10 @@ class GenericExtractor(Extractor):
 
         result: Metadata = None
         for info_extractor in self.suitable_extractors(url):
+            if result and info_extractor.IE_NAME == "generic":
+                # a more specific extractor already succeeded; skip the generic fallback to avoid
+                # redundant re-downloads (e.g. a second subtitle fetch racing/overwriting the first)
+                continue
             local_result: Metadata = self.download_for_extractor(info_extractor, url, ydl)
             if local_result:
                 result = result.merge(local_result) if result else local_result
