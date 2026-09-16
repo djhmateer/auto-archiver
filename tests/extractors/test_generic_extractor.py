@@ -148,6 +148,7 @@ class TestGenericExtractor(TestExtractorBase):
     def test_bluesky_download_video(self, make_item):
         item = make_item("https://bsky.app/profile/bellingcat.com/post/3le2l4gsxlk2i")
         result = self.extractor.download(item)
+        assert result.get_url() == "https://bsky.app/profile/bellingcat.com/post/3le2l4gsxlk2i"
         assert result is not False
 
     @pytest.mark.skipif(not TEST_TRUTH_SOCIAL, reason="Truth social download tests disabled in environment variables.")

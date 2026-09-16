@@ -18,6 +18,7 @@ import datetime
 from urllib.parse import urlparse
 from dateutil.parser import parse as parse_dt
 from auto_archiver.utils.custom_logger import logger
+import os
 
 from .media import Media
 
@@ -180,8 +181,9 @@ class Metadata:
             # taken from hash_enricher, cannot be isolated to misc due to circular imports
 
             # DM 10th Nov 25 - got weird error of NoneType coming in as filename
-            if filename is None:
-                return ""
+			# DM 16th Sept 26 - I think the below code now catches this
+            #if filename is None:
+            #    return ""
             with open(filename, "rb") as f:
                 while True:
                     buf = f.read(chunksize)
@@ -193,8 +195,14 @@ class Metadata:
         media_hashes = set()
         new_media = []
         for m in self.media:
+            if not m.filename:
+                new_media.append(m)
+                continue
             h = m.get("hash")
             if not h:
+                if not os.path.exists(m.filename):
+                    logger.warning(f"Skipping missing media file: {m.filename}")
+                    continue
                 h = calculate_hash_in_chunks(hashlib.sha256(), int(1.6e7), m.filename)
             if len(h) and h in media_hashes:
                 continue

@@ -4,6 +4,7 @@ import datetime
 import os
 import importlib
 import subprocess
+import traceback
 import zipfile
 
 from typing import Generator, Type
@@ -20,6 +21,7 @@ from auto_archiver.core.extractor import Extractor
 from auto_archiver.core import Metadata, Media
 from auto_archiver.utils import get_datetime_from_str
 from auto_archiver.utils.misc import ydl_entry_to_filename
+from auto_archiver.utils.deletion_detection import detect_deletion, flag_as_deleted
 from .dropin import GenericDropin
 
 
@@ -109,7 +111,7 @@ class GenericExtractor(Extractor):
     def setup_token_generation_script(self) -> None:
         """This function sets up the Proof of Origin Token generation script method for
         bgutil-ytdlp-pot-provider if enabled or in Docker."""
-        missing_tools = [tool for tool in ("node", "yarn", "npx") if shutil.which(tool) is None]
+        missing_tools = [tool for tool in ("node", "npm", "yarn", "npx") if shutil.which(tool) is None]
         if missing_tools:
             logger.error(
                 f"Cannot set up PO Token script; missing required tools: {', '.join(missing_tools)}. "
@@ -204,8 +206,11 @@ class GenericExtractor(Extractor):
         if thumbnail_url:
             try:
                 cover_image_path = self.download_from_url(thumbnail_url)
-                media = Media(cover_image_path)
-                metadata.add_media(media, id="cover")
+                if cover_image_path:
+                    media = Media(cover_image_path)
+                    metadata.add_media(media, id="cover")
+                else:
+                    logger.warning(f"Failed to download cover image from {thumbnail_url}")
             except Exception as e:
                 logger.error(f"Could not download cover image {thumbnail_url}: {e}")
 
@@ -357,7 +362,7 @@ class GenericExtractor(Extractor):
         if not dropin:
             # TODO: add a proper link to 'how to create your own dropin'
             logger.debug(f"""Could not find valid dropin for {info_extractor.ie_key()}.
-                     Why not try creating your own, and make sure it has a valid function called 'create_metadata'. Learn more: https://auto-archiver.readthedocs.io/en/latest/user_guidelines.html#""")
+                     Why not try creating your own, and make sure it has a valid function called 'create_metadata'. Learn more: https://auto-archiver.readthedocs.io/en/latest/modules/autogen/extractor/generic_extractor.html#dropins""")
             return False
 
         post_data = dropin.extract_post(url, ie_instance)
@@ -564,6 +569,13 @@ class GenericExtractor(Extractor):
             # don't download since it can be a live stream
             data = ydl.extract_info(url, ie_key=info_extractor.ie_key(), download=False)
 
+            # Check for deletion indicators in video data
+            deletion_info = detect_deletion(video_data=data, url=url)
+            if deletion_info:
+                result = Metadata()
+                flag_as_deleted(result, deletion_info)
+                return result
+
             result = _helper_for_successful_extract_info(data, info_extractor, url, ydl)
 
         except MaxDownloadsReached:
@@ -583,6 +595,13 @@ class GenericExtractor(Extractor):
             try:
                 result = self.get_metadata_for_post(info_extractor, url, ydl)
             except (yt_dlp.utils.DownloadError, yt_dlp.utils.ExtractorError) as post_e:
+                # Check if the error indicates deletion
+                deletion_info = detect_deletion(error_message=str(post_e), url=url)
+                if deletion_info:
+                    result = Metadata()
+                    flag_as_deleted(result, deletion_info)
+                    return result
+
                 if "NSFW tweet requires authentication." in str(post_e):
                     logger.warning(str(post_e))
                     return False

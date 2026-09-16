@@ -16,6 +16,7 @@ from auto_archiver.modules.antibot_extractor_enricher.dropin import Dropin
 from auto_archiver.modules.antibot_extractor_enricher.dropins.default import DefaultDropin
 from auto_archiver.utils.misc import random_str
 from auto_archiver.utils.url import is_relevant_url
+from auto_archiver.utils.deletion_detection import detect_deletion, flag_as_deleted
 
 
 class AntibotExtractorEnricher(Extractor, Enricher):
@@ -72,6 +73,7 @@ class AntibotExtractorEnricher(Extractor, Enricher):
         if self.enrich(result):
             result.status = "antibot"
             return result
+        return False
 
     def _prepare_user_data_dir(self):
         if self.user_data_dir:
@@ -87,30 +89,14 @@ class AntibotExtractorEnricher(Extractor, Enricher):
         using_user_data_dir = self.user_data_dir if custom_data_dir else None
         url = to_enrich.get_url()
 
-        # Clean up stale Chrome lock files to prevent "session not created" errors
-        if using_user_data_dir and os.path.exists(using_user_data_dir):
-            singleton_lock = os.path.join(using_user_data_dir, "SingletonLock")
-            if os.path.exists(singleton_lock):
-                logger.warning(f"Removing stale SingletonLock from {using_user_data_dir}")
-                try:
-                    os.remove(singleton_lock)
-                except Exception as e:
-                    logger.error(f"Failed to remove SingletonLock: {e}")
-
-        # xvfb is only needed when there's no real display available (e.g. in Docker,
-        # or cron jobs run outside of Docker with no DISPLAY set); headless2/forced
-        # xvfb elsewhere makes SeleniumBase reject uc_gui_click_rc() with "PyAutoGUI
-        # can't be used in headless mode". When a real $DISPLAY is present (e.g. WSL2
-        # desktop session) we force headed=True so SeleniumBase uses it directly
-        # instead of trying (and, on WSL2, failing) to spin up sbvirtualdisplay.
-        use_xvfb = bool(os.environ.get("RUNNING_IN_DOCKER")) or not os.environ.get("DISPLAY")
-        headed = None if use_xvfb else True
+        # Use xvfb in Docker environments where no display is available
+        use_xvfb = bool(os.environ.get("RUNNING_IN_DOCKER"))
 
         try:
             with SB(
                 uc=True,
                 agent=self.agent,
-                headed=headed,
+                headed=None,
                 user_data_dir=using_user_data_dir,
                 proxy=self.proxy,
                 xvfb=use_xvfb,
@@ -124,8 +110,14 @@ class AntibotExtractorEnricher(Extractor, Enricher):
 
                 dropin = self._get_suitable_dropin(url, sb)
                 if not dropin.open_page(url):
-                    # TODO: could we detect deleted videos?
-                    logger.warning("Failed to open drop-in page")
+                    # Check for deletion indicators
+                    page_title = sb.get_title()
+                    html_source = sb.get_page_source()
+                    deletion_info = detect_deletion(html_content=html_source, page_title=page_title, url=url)
+                    if deletion_info:
+                        flag_as_deleted(to_enrich, deletion_info)
+                        return to_enrich
+                    logger.warning("Failed to open drop-in page (not detected as deleted)")
                     return False
 
                 if self.detect_auth_wall and (dropin.hit_auth_wall() and self._hit_auth_wall(sb)):
@@ -135,7 +127,15 @@ class AntibotExtractorEnricher(Extractor, Enricher):
                 sb.wait_for_ready_state_complete()
                 sb.sleep(1)  # margin for the page to load completely
 
-                to_enrich.set_title(sb.get_title())
+                page_title = sb.get_title()
+                html_source = sb.get_page_source()
+
+                # Check if the page indicates content was deleted
+                deletion_info = detect_deletion(html_content=html_source, page_title=page_title, url=url)
+                if deletion_info:
+                    flag_as_deleted(to_enrich, deletion_info)
+
+                to_enrich.set_title(page_title)
                 self._enrich_html_source_code(sb, to_enrich)
 
                 self._enrich_full_page_screenshot(sb, to_enrich)
@@ -144,7 +144,6 @@ class AntibotExtractorEnricher(Extractor, Enricher):
 
                 downloaded_images, downloaded_videos = dropin.add_extra_media(to_enrich)
 
-                # gets media from browser and adds to to_enrich
                 self._enrich_download_media(
                     sb,
                     to_enrich,

@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [project]
 name = "auto-archiver"
-version = "1.1.6+dm.7"
+version = "1.2.9+dm.8"
 description = "Automatically archive links to videos, images, and social media content from Google Sheets (and more)."
 
 requires-python = ">=3.10,<3.13"
@@ -79,7 +79,7 @@ pytest = "^8.3.4"
 autopep8 = "^2.3.1"
 pytest-loguru = "^0.4.0"
 pytest-mock = "^3.14.0"
-ruff = "^0.9.10"
+ruff = "^0.15.2"
 pre-commit = "^4.1.0"
 
 [tool.poetry.group.docs.dependencies]
@@ -95,6 +95,7 @@ linkify-it-py = "^2.0.3"
 
 [project.scripts]
 auto-archiver = "auto_archiver.__main__:main"
+auto-archiver-status = "auto_archiver.modules.platform_status.status_cli:main"
 
 [project.urls]
 homepage = "https://github.com/bellingcat/auto-archiver"

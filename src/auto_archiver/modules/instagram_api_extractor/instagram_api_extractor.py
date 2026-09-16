@@ -100,7 +100,10 @@ class InstagramAPIExtractor(Extractor):
         result.set_title(user.get("full_name", username)).set("data", user)
         if pic_url := user.get("profile_pic_url_hd", user.get("profile_pic_url")):
             filename = self.download_from_url(pic_url)
-            result.add_media(Media(filename=filename), id="profile_picture")
+            if filename:
+                result.add_media(Media(filename=filename), id="profile_picture")
+            else:
+                logger.warning(f"Failed to download profile picture from {pic_url}")
 
         count_posts = 0
         if self.full_profile:
@@ -205,7 +208,10 @@ class InstagramAPIExtractor(Extractor):
 
         if cover_media := h_info.get("cover_media", {}).get("cropped_image_version", {}).get("url"):
             filename = self.download_from_url(cover_media)
-            result.add_media(Media(filename=filename), id=f"cover_media highlight {id}")
+            if filename:
+                result.add_media(Media(filename=filename), id=f"cover_media highlight {id}")
+            else:
+                logger.warning(f"Failed to download cover media from {cover_media}")
 
         items = h_info.get("items", [])[::-1]  # newest to oldest
         items = items[: min(max_to_download, len(items))]
@@ -365,7 +371,7 @@ class InstagramAPIExtractor(Extractor):
         item = self.cleanup_dict(item)
 
         image_media = None
-        if image_url:
+        if image_url := item.get("thumbnail_url"):
             filename = self.download_from_url(image_url, verbose=False)
             if filename:
                 image_media = Media(filename=filename)
@@ -380,7 +386,7 @@ class InstagramAPIExtractor(Extractor):
         if "carousel_media" in item:
             del item["carousel_media"]
 
-        if video_url:
+        if video_url := item.get("video_url"):
             filename = self.download_from_url(video_url, verbose=False)
             if filename:
                 video_media = Media(filename=filename)
