@@ -50,8 +50,11 @@ poetry install
 sudo apt install ffmpeg -y
 
 ## Firefox
+# firefox --version
+# 156 is current as of 16th Sept 2026
+# I still use Firefox as it gives good screenshots for certain conditions
+
 # 139.0+build2-0ubuntu0.24.04.1~mt1 on 2nd Jun 25
-# 16th Jun - don't need anymore as using Chrome in antibot
 # cd ~
 # sudo add-apt-repository ppa:mozillateam/ppa -y
 
@@ -65,7 +68,8 @@ sudo apt install ffmpeg -y
 
 # sudo apt install firefox -y
 
-wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+
+#wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
 
 # Chrome
 cd ~
@@ -116,7 +120,8 @@ google-chrome --version
 ## Gecko driver
 # check version numbers for new ones
 # https://github.com/mozilla/geckodriver/releases/
-wget https://github.com/mozilla/geckodriver/releases/download/v0.36.0/geckodriver-v0.36.0-linux64.tar.gz
+# wget https://github.com/mozilla/geckodriver/releases/download/v0.36.0/geckodriver-v0.36.0-linux64.tar.gz
+wget https://github.com/mozilla/geckodriver/releases/download/v0.37.1/geckodriver-v0.37.1-linux64.tar.gz
 tar -xvzf geckodriver*
 chmod +x geckodriver
 sudo mv geckodriver /usr/local/bin/
