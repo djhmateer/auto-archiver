@@ -482,6 +482,8 @@ class WaczExtractorEnricher(Enricher, Extractor):
                     if fs < 13500 and ext == ".jpg": continue
                     if fs < 6000 and ext == ".webp": continue
                     if fs < 37000 and ext == ".png": continue
+                    # there are files from youtube avif < 24kb which are thumbnails previews images.
+                    # todo dm 16th Sept 2026 - possibly do <24k to get rid of these
                     if fs < 12000 and ext == ".avif": continue
                     if ext == ".gif": continue
                     if ext == ".ico": continue

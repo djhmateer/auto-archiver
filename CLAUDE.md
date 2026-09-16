@@ -19,38 +19,6 @@ The project follows a modular pipeline architecture:
 
 Configuration is done via YAML files typically stored in `secrets/` directory.
 
-## Development Commands
-
-```bash
-# Install dependencies using Poetry
-poetry install
-
-# Run the archiver
-poetry run auto-archiver --config secrets/orchestration.yaml
-
-# Run tests
-make test
-# or
-pytest tests --disable-warnings
-
-# Run specific test
-pytest tests/test_specific.py -v
-
-# Linting and formatting
-make ruff-check    # Check code style (safe)
-make ruff-clean    # Auto-fix linting and formatting issues
-# or directly
-ruff check .
-ruff format .
-
-# Build documentation
-make docs
-
-# Docker operations
-make docker-build
-make docker-compose
-make docker-compose-rebuild
-```
 
 ## Key Files and Directories
 
@@ -75,12 +43,9 @@ New modules should follow the existing pattern:
 3. Implement the appropriate base class (Feeder, Extractor, Enricher, etc.)
 4. Add configuration handling
 
-## Testing Approach
+## Version Control
 
-- Unit tests are in `tests/` directory
-- Tests use pytest with fixtures
-- Mock external services when testing
-- Run tests before committing changes
+- Never run `git commit` or `git push` (or any equivalent, e.g. via the `cp` skill). The user handles all commits and pushes to the remote manually.
 
 ## Important Customizations in This Fork
 
