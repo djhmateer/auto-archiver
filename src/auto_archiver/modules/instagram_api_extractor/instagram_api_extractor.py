@@ -357,6 +357,14 @@ class InstagramAPIExtractor(Extractor):
             if video_versions:
                 video_url = max(video_versions, key=lambda v: v.get("bandwidth", 0)).get("url")
 
+        # DM add the thumbnail and video urls to the item dict so they are not lost when minimize_json_output is applied
+        # for insta stories, highlights, and posts with multiple items, the thumbnail_url and video_url are not present in the top-level item dict
+        # eg https://www.instagram.com/stories/highlights/18013895359952045/
+        if image_url:
+            item["thumbnail_url"] = image_url
+        if video_url:
+            item["video_url"] = video_url
+
         # remove unnecessary info
         if self.minimize_json_output:
             for k in [
