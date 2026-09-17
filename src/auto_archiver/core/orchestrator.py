@@ -638,6 +638,13 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
         """
         Disconnects ExpressVPN and waits for disconnection to complete.
         """
+        # DM 17th Sep 26 - skip entirely if VPN isn't in use, no point checking/disconnecting
+        # something that was never connected. self.config may not be set yet if this is called
+        # from setup() before setup_config() has run, hence the getattr default.
+        if not getattr(self, "config", {}).get("use_vpn", False):
+            logger.debug("use_vpn is disabled, skipping VPN disconnect check")
+            return
+
         # only disconnect if on live server
         # how do I tell if I'm running on wsl2?
         is_wsl = os.getenv('RUNNING_IN_WSL', 'false').lower() == 'true'

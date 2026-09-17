@@ -699,22 +699,27 @@ class WaczExtractorEnricher(Enricher, Extractor):
         # that gets best images from twitter
         # only attempt if an x.com link - seems hard so just take the 3s hit for now
         # RUNNING_IN_WSL is an env variable I set in launch.json settings
-        
-        is_wsl = os.getenv('RUNNING_IN_WSL', 'false').lower() == 'true'
-        if not is_wsl:
-            logger.debug("Attempting to disconnect VPN")
-            subprocess.run(['expressvpnctl', 'disconnect'], capture_output=True)
-            max_retries = 10
-            for i in range(max_retries):
-                logger.debug(f"Checking VPN disconnection status, attempt {i+1}/{max_retries}")
-                status = subprocess.run(['expressvpnctl', 'status'], capture_output=True, text=True)
-                if 'Disconnected' in status.stdout:
-                    logger.info("VPN disconnected and sleeping for a few seconds")
-                    time.sleep(3)  # Give VPN routing tables time to stabilise
-                    break
-                time.sleep(1)
+
+        # DM 17th Sep 26 - skip entirely if VPN isn't in use, no point checking/disconnecting
+        # something that was never connected
+        if not self.config.get("use_vpn", False):
+            logger.debug("use_vpn is disabled, skipping VPN disconnect check")
         else:
-            logger.info("Running in WSL2, skipping VPN disconnect")
+            is_wsl = os.getenv('RUNNING_IN_WSL', 'false').lower() == 'true'
+            if not is_wsl:
+                logger.debug("Attempting to disconnect VPN")
+                subprocess.run(['expressvpnctl', 'disconnect'], capture_output=True)
+                max_retries = 10
+                for i in range(max_retries):
+                    logger.debug(f"Checking VPN disconnection status, attempt {i+1}/{max_retries}")
+                    status = subprocess.run(['expressvpnctl', 'status'], capture_output=True, text=True)
+                    if 'Disconnected' in status.stdout:
+                        logger.info("VPN disconnected and sleeping for a few seconds")
+                        time.sleep(3)  # Give VPN routing tables time to stabilise
+                        break
+                    time.sleep(1)
+            else:
+                logger.info("Running in WSL2, skipping VPN disconnect")
 
 
         with open(warc_filename, "rb") as warc_stream:
