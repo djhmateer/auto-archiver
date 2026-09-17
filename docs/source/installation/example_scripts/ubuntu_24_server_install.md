@@ -126,6 +126,7 @@ tar -xvzf geckodriver*
 chmod +x geckodriver
 sudo mv geckodriver /usr/local/bin/
 rm geckodriver*
+geckodriver --version
 
 # Fonts so selenium via firefox can render other languages eg Burmese
 sudo apt install fonts-noto -y

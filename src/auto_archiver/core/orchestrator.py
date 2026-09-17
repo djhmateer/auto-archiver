@@ -38,7 +38,7 @@ from .config import (
 from .module import ModuleFactory, LazyBaseModule
 from . import validators, Feeder, Extractor, Database, Storage, Formatter, Enricher
 from .consts import MODULE_TYPES, SetupError
-from auto_archiver.utils.url import check_url_or_raise, clean
+from auto_archiver.utils.url import check_url_or_raise, clean, domain_for_url
 
 if TYPE_CHECKING:
     from .base_module import BaseModule
@@ -576,6 +576,15 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
         logger.info(f"Processed {url_count} URL(s)")
         self.cleanup()
 
+    @staticmethod
+    def _is_twitter_url(url: str) -> bool:
+        """
+        True for x.com/twitter.com URLs (any scheme, with or without 'www.'), so the VPN
+        gate isn't bypassed by a differently-formatted link to the same site.
+        """
+        domain = domain_for_url(url).removeprefix("www.")
+        return domain in ("x.com", "twitter.com")
+
     def connect_vpn(self) -> None:
         """
         Connects to ExpressVPN (Australia - Sydney) and waits for connection to complete.
@@ -590,20 +599,25 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
         logger.debug(f"Starting VPN connection to {location}")
         try:
             subprocess.run(['expressvpnctl', 'connect', location], check=True, capture_output=True)
-
-            # Wait for connection to establish
-            max_retries = 10
-            for i in range(max_retries):
-                logger.debug(f"Checking VPN connection status, attempt {i+1}/{max_retries}")
-                status = subprocess.run(['expressvpnctl', 'status'], capture_output=True, text=True)
-                if 'Connected' in status.stdout:
-                    logger.info(f"VPN connected to {location} and sleeping for a few seconds")
-                    time.sleep(6)  # Give VPN routing tables time to stabilise
-                    break
-                time.sleep(1)
         except subprocess.CalledProcessError as e:
-            # logger.error(f"Failed to connect to VPN: {e.stderr.decode().strip()}")
-            logger.info("Failed to connect to vpn but this could be fine if in dev")
+            msg = f"Failed to connect to VPN: {e.stderr.decode().strip() if e.stderr else e}"
+            logger.error(msg)
+            raise RuntimeError(msg) from e
+
+        # Wait for connection to establish
+        max_retries = 10
+        for i in range(max_retries):
+            logger.debug(f"Checking VPN connection status, attempt {i+1}/{max_retries}")
+            status = subprocess.run(['expressvpnctl', 'status'], capture_output=True, text=True)
+            if 'Connected' in status.stdout:
+                logger.info(f"VPN connected to {location} and sleeping for a few seconds")
+                time.sleep(6)  # Give VPN routing tables time to stabilise
+                break
+            time.sleep(1)
+        else:
+            msg = f"VPN did not report 'Connected' after {max_retries} attempts, aborting"
+            logger.error(msg)
+            raise RuntimeError(msg)
 
 
     def disconnect_vpn(self) -> None:
@@ -719,7 +733,8 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
         # DM 7th Nov 25 - all twitter links go through the VPN now, so only need the Austalian sock puppet cookie to be passed
         # which yt-dlpt and screenshotter (Firefox) use
         # wacz archiver/enricher uses profile.tar.gz
-        if 'https://x.com' in original_url:
+        needs_vpn = self._is_twitter_url(url)
+        if needs_vpn:
             self.connect_vpn()
 
         # 3 - call extractors until one succeeds
@@ -740,7 +755,7 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
                 logger.error(f"Enricher {e.name}: {exc}: {traceback.format_exc()}")
 
         # DM 7th Nov 25 - disconnect vpn if connected
-        if 'https://x.com' in original_url:
+        if needs_vpn:
             self.disconnect_vpn()
 
         # 5 - store all downloaded/generated media

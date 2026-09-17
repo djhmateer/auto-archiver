@@ -6,6 +6,7 @@ Main branch represents what I (should) have in production. Currently 1.2.9+dm.8.
 This is essentially upstream with added:
 
 - Facebook crawling. 
+- VPN addition for Twitter/X so that adult content is allowed
 - overwriting allowed on spreadsheets cells
 - updates turned off (as may affect prod - have seen unusual behaviour). 
 - wacz image sizes to prevent small gifs etc.. 
