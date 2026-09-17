@@ -276,6 +276,15 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
             default=False,
         )
 
+        # DM 17th Sep 26 - global switch for routing x.com/twitter.com URLs through the VPN
+        parser.add_argument(
+            "--use_vpn",
+            action="store",
+            dest="use_vpn",
+            help="if set to True, x.com/twitter.com URLs will be routed through the VPN (ExpressVPN) before being archived. Defaults to False.",
+            default=False,
+        )
+
     def add_individual_module_args(
         self, modules: list[LazyBaseModule] = None, parser: argparse.ArgumentParser = None
     ) -> None:
@@ -738,7 +747,8 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
         # DM 7th Nov 25 - all twitter links go through the VPN now, so only need the Austalian sock puppet cookie to be passed
         # which yt-dlpt and screenshotter (Firefox) use
         # wacz archiver/enricher uses profile.tar.gz
-        needs_vpn = self._is_twitter_url(url)
+        # DM 17th Sep 26 - use_vpn defaults to False; set it to True in orchestration config to re-enable
+        needs_vpn = self.config.get("use_vpn", False) and self._is_twitter_url(url)
         if needs_vpn:
             self.connect_vpn()
 
