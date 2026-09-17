@@ -75,7 +75,9 @@ class ScreenshotEnricher(Enricher):
             try:
                 # this goes to webdriver.py which has cookie popup handling
                 logger.debug(f"Webdriver navigating to {url}")
+                get_started = time.monotonic()
                 driver.get(url)
+                logger.debug(f"Webdriver.get() for {url} took {time.monotonic() - get_started:.1f}s")
                 time.sleep(int(self.sleep_before_screenshot))
 
                 screenshot_file = os.path.join(self.tmp_dir, f"screenshot_{random_str(8)}.png")

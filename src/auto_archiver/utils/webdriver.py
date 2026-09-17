@@ -37,12 +37,15 @@ class CookieSettingDriver(webdriver.Firefox):
         self.facebook_accept_cookies = facebook_accept_cookies
 
     def get(self, url: str):
+        step_started = time.monotonic()
         if self.cookie_jar or self.cookie:
             # set up the driver to make it not 'cookie averse' (needs a context/URL)
             # get the 'robots.txt' file which should be quick and easy
             robots_url = urlunparse(urlparse(url)._replace(path="/robots.txt", query="", fragment=""))
             super(CookieSettingDriver, self).get(robots_url)
+            logger.debug(f"CookieSettingDriver: fetching {robots_url=} took {time.monotonic() - step_started:.1f}s")
 
+            step_started = time.monotonic()
             if self.cookie:
                 # an explicit cookie is set for this site, use that first
                 for cookie in self.cookies.split(";"):
@@ -66,8 +69,11 @@ class CookieSettingDriver(webdriver.Firefox):
                             )
                         except Exception as e:
                             logger.warning(f"Failed to add cookie ({cookie.domain}) to webdriver for url {domain}: {e}")
+            logger.debug(f"CookieSettingDriver: adding cookies took {time.monotonic() - step_started:.1f}s")
 
+        step_started = time.monotonic()
         super(CookieSettingDriver, self).get(url)
+        logger.debug(f"CookieSettingDriver: fetching actual {url=} took {time.monotonic() - step_started:.1f}s")
         time.sleep(2)
 
         # Try and use some common button text to reject/accept cookies
@@ -113,6 +119,12 @@ class CookieSettingDriver(webdriver.Firefox):
 
         # now get the actual URL
         # DM 22nd May 2025 - as I'm passing a cookie I don't need this, and it affects post pages with a popup so turn off 
+        elif "x.com" in url or "twitter.com" in url:
+            # DM 17th Sep 26 - we already pass a logged-in cookie jar for x.com/twitter.com so no
+            # consent banner ever appears here; the generic banner search below was burning up to
+            # 5 texts * 5s WebDriverWait = 25s waiting for a banner that never shows up.
+            logger.debug("X/Twitter URL detected - skipping generic cookie banner search (cookies already provided)")
+
         elif self.facebook_accept_cookies:
             # try and click the 'close' button on the 'login' window to close it
             # try:
@@ -126,6 +138,8 @@ class CookieSettingDriver(webdriver.Firefox):
 
         else:
             # for all other sites, try and use some common button text to reject/accept cookies
+            # NOTE: each miss costs up to 5s (WebDriverWait timeout) - worst case 25s for 5 texts
+            banner_search_started = time.monotonic()
             for text in [
                 "Refuse non-essential cookies",
                 "Decline optional cookies",
@@ -139,6 +153,9 @@ class CookieSettingDriver(webdriver.Firefox):
                     break
                 except selenium_exceptions.WebDriverException:
                     pass
+            logger.debug(
+                f"CookieSettingDriver: generic cookie banner search for {url=} took {time.monotonic() - banner_search_started:.1f}s"
+            )
 
 
 class Webdriver:
