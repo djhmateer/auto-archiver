@@ -3,18 +3,16 @@
 <!-- Main branch represents what I (should) have in production. Currently 1.1.6+dm.7. As of 3rd Nov 25 -->
 Main branch represents what I (should) have in production. Currently 1.2.9+dm.8. As of 16th Sept 26
 
+This is essentially upstream with added:
 
-
-This is upstream 1.1.2 with added 
-
-- Uwazi integration
 - Facebook crawling. 
-- Also various tweak like overwriting allowed on spreadsheets cells
+- overwriting allowed on spreadsheets cells
 - updates turned off (as may affect prod - have seen unusual behaviour). 
 - wacz image sizes to prevent small gifs etc.. 
 - metadata.json hardcoded filename to stay the same so easier to automate further analysis. 
 - Log files hardcoded to logs/1debug.log etc.. as I prefer this.
-
+- mhtml_enricher module to save an mhtml snapshot of the page.
+- screenshot_enricher/webdriver using Firefox instead of Chrome - Chrome antibot measures were affecting the FB cookie and causing flagging issues. Firefox screenshots have also been very good.
 
 
 <h1 align="center">Auto Archiver</h1>
@@ -27,7 +25,6 @@ This is upstream 1.1.2 with added
 
 <!-- ![Docker Pulls](https://img.shields.io/docker/pulls/bellingcat/auto-archiver) -->
 <!-- [![PyPI download month](https://img.shields.io/pypi/dm/auto-archiver.svg)](https://pypi.python.org/pypi/auto-archiver/) -->
-
 
 
 Auto Archiver is a Python tool to automatically archive content on the web in a secure and verifiable way. It takes URLs from different sources (e.g. a CSV file, Google Sheets, command line etc.) and archives the content of each one. It can archive social media posts, videos, images and webpages. Content can be enriched, then saved either locally or remotely (S3 bucket, Google Drive). The status of the archiving process can be appended to a CSV report, or if using Google Sheets – back to the original sheet.
