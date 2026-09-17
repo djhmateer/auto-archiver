@@ -605,17 +605,22 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
             raise RuntimeError(msg) from e
 
         # Wait for connection to establish
-        max_retries = 10
+        # DM 17th Sep 26 - seen this take close to a minute on prod, so give it plenty of room
+        max_retries = 90
+        last_status = None
         for i in range(max_retries):
             logger.debug(f"Checking VPN connection status, attempt {i+1}/{max_retries}")
             status = subprocess.run(['expressvpnctl', 'status'], capture_output=True, text=True)
+            last_status = status
+            logger.debug(f"VPN status output: stdout={status.stdout.strip()!r} stderr={status.stderr.strip()!r}")
             if 'Connected' in status.stdout:
                 logger.info(f"VPN connected to {location} and sleeping for a few seconds")
                 time.sleep(6)  # Give VPN routing tables time to stabilise
                 break
             time.sleep(1)
         else:
-            msg = f"VPN did not report 'Connected' after {max_retries} attempts, aborting"
+            reported = last_status.stdout.strip() if last_status else "<no status output captured>"
+            msg = f"VPN did not report 'Connected' after {max_retries} attempts, aborting. Last status: {reported!r}"
             logger.error(msg)
             raise RuntimeError(msg)
 
