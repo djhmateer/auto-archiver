@@ -8,7 +8,7 @@
     "configs": {
         "width": {"default": 1280, "type": "int", "help": "width of the screenshots"},
         "height": {"default": 1024, "type": "int", "help": "height of the screenshots"},
-        "timeout": {"default": 60, "type": "int", "help": "timeout for taking the screenshot"},
+        "timeout": {"default": 120, "type": "int", "help": "timeout for taking the screenshot"},
         "sleep_before_screenshot": {
             "default": 4,
             "type": "int",
