@@ -6,14 +6,15 @@ Main branch represents what I (should) have in production. Currently 1.2.9+dm.8.
 This is essentially upstream with added:
 
 - Facebook crawling. 
-- VPN addition for Twitter/X so that adult content is allowed
-- overwriting allowed on spreadsheets cells
-- updates turned off (as may affect prod - have seen unusual behaviour). 
-- wacz image sizes to prevent small gifs etc.. 
+- Overwriting allowed on spreadsheets cells
+- Updates turned off (as may affect prod - have seen unusual behaviour). 
+- WACZ image sizes to prevent small gifs etc.. 
 - metadata.json hardcoded filename to stay the same so easier to automate further analysis. 
 - Log files hardcoded to logs/1debug.log etc.. as I prefer this.
 - mhtml_enricher module to save an mhtml snapshot of the page.
 - screenshot_enricher/webdriver using Firefox instead of Chrome - Chrome antibot measures were affecting the FB cookie and causing flagging issues. Firefox screenshots have also been very good.
+- screenshot_enricher runs OCR (pytesseract) on every Facebook screenshot to detect if the FB cookie/sock puppet session has been tripped
+- VPN addition for Twitter/X so that adult content is allowed - off by default. 17th Sept 26 found that expressvpn not working to Sydney properly anymore (too many timeouts)
 
 
 <h1 align="center">Auto Archiver</h1>
