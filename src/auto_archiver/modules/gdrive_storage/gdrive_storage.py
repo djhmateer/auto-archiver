@@ -94,10 +94,10 @@ class GDriveStorage(Storage):
         logger.debug(f"Uploading {filename=} to folder id {upload_to}")
         file_metadata = {"name": [filename], "parents": [upload_to]}
         try:
-            media = MediaFileUpload(media.filename, resumable=True)
+            media_body = MediaFileUpload(media.filename, resumable=True)
             gd_file = (
                 self.service.files()
-                .create(supportsAllDrives=True, body=file_metadata, media_body=media, fields="id")
+                .create(supportsAllDrives=True, body=file_metadata, media_body=media_body, fields="id")
                 .execute()
             )
             logger.debug(f"Uploadf: uploaded file {gd_file['id']} successfully in folder={upload_to}")
