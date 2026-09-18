@@ -2,6 +2,8 @@ import re
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 from ipaddress import ip_address
 
+from auto_archiver.utils.custom_logger import logger
+
 
 AUTHWALL_URLS = [
     re.compile(r"https?:\/\/t\.me(\/c)\/(.+)\/(\d+)"),  # telegram private channels
@@ -9,13 +11,17 @@ AUTHWALL_URLS = [
 ]
 
 
-def check_url_or_raise(url: str) -> bool | ValueError:
+def check_url_or_raise(url: str) -> str | ValueError:
     """
     Blocks localhost, private, reserved, and link-local IPs and all non-http/https schemes.
+    Returns the URL, with "https://" prepended if it was missing a scheme entirely.
     """
 
     if not (url.startswith("http://") or url.startswith("https://")):
-        raise ValueError(f"Invalid URL scheme for url {url}")
+        if "://" in url:
+            raise ValueError(f"Invalid URL scheme for url {url}")
+        logger.debug(f"URL {url} has no scheme, assuming https://")
+        url = f"https://{url}"
 
     parsed = urlparse(url)
     if not parsed.hostname:
@@ -42,7 +48,7 @@ def check_url_or_raise(url: str) -> bool | ValueError:
         if ip.is_private:
             raise ValueError(f"Private IP address {ip} used")
 
-    return True
+    return url
 
 
 def domain_for_url(url: str) -> str:

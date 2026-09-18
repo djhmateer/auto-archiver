@@ -721,7 +721,7 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
 
         original_url = result.get_url().strip()
         try:
-            check_url_or_raise(original_url)
+            original_url = check_url_or_raise(original_url)
         except ValueError as e:
             logger.error(f"Error archiving: {e}")
             raise e
