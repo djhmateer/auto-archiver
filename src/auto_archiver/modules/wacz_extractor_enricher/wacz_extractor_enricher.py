@@ -281,10 +281,10 @@ class WaczExtractorEnricher(Enricher, Extractor):
         # logger.warning(f" lowest number in list_of_set_ids is {min(list_of_set_ids, key=lambda x: int(x))}")
 
         unique_set_ids = list(set(list_of_set_ids))
-        logger.warning(f" looping over all {unique_set_ids=}")
+        logger.debug(f" looping over all {unique_set_ids=}")
 
         for most_prevalent_set_id in unique_set_ids:
-            logger.warning(f" processing {most_prevalent_set_id=}")
+            logger.debug(f" processing {most_prevalent_set_id=}")
 
             with open(warc_filename, "rb") as warc_stream:
                 full_crawl_done = False

@@ -3,6 +3,13 @@
     "type": ["enricher"],
     "requires_setup": True,
     "dependencies": {"python": ["loguru"], "bin": ["exiftool"]},
+    "configs": {
+        "look_for_keys": {
+            "default": [],
+            "help": "Optional list of metadata keys (or special terms 'author', 'datetime', 'location') to filter the ExifTool output down to. If empty, all extracted metadata is kept.",
+            "type": "list",
+        },
+    },
     "description": """
     Extracts metadata information from files using ExifTool.
 

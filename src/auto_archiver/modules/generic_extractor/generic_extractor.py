@@ -426,11 +426,11 @@ class GenericExtractor(Extractor):
                 logger.debug(f"Subtitles downloaded successfully for {video_id}")
                 return subtitle_data
             else:
-                logger.warning(f"No subtitles available for {video_id} (may be rate limited or unavailable)")
+                logger.info(f"No subtitles available for {video_id} (may be rate limited or unavailable)")
                 return None
 
         except Exception as e:
-            logger.warning(f"Failed to download subtitles for {video_id}: {e}")
+            logger.info(f"Failed to download subtitles for {video_id}: {e}")
             return None
 
     def get_metadata_for_video(
@@ -461,7 +461,7 @@ class GenericExtractor(Extractor):
             if subtitle_data is None:
                 # Store that subtitles were unavailable
                 result.set("subtitles_status", "unavailable")
-                logger.warning(f"Video {video_id} archived successfully, but subtitles could not be retrieved (may be rate limited or unavailable)")
+                logger.info(f"Video {video_id} archived successfully, but subtitles could not be retrieved (may be rate limited or unavailable)")
             else:
                 result.set("subtitles_status", "available")
                 logger.info(f"Video {video_id} archived with subtitles")
