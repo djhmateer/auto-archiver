@@ -72,7 +72,9 @@ class Extractor(BaseModule):
         return ""
 
     @retry(wait_random_min=500, wait_random_max=3500, stop_max_attempt_number=5)
-    def download_from_url(self, url: str, to_filename: str = None, verbose=True, try_best_quality=False) -> str:
+    def download_from_url(
+        self, url: str, to_filename: str = None, verbose=True, try_best_quality=False, quiet_on_failure=False
+    ) -> str:
         """
         downloads a URL to provided filename, or inferred from URL, returns local filename
         Warning: if try_best_quality is True, it will return a tuple of (filename, best_quality_url) if the download was successful.
@@ -82,9 +84,10 @@ class Extractor(BaseModule):
 
         if try_best_quality:
             with suppress(Exception):
-                # Attempt to download the original URL
+                # Attempt to download the original URL. This can fail (e.g. the CDN URL has expired/404s),
+                # in which case callers fall back to the WARC-captured copy, so a failure here isn't an error.
                 best_quality_url = get_media_url_best_quality(url)
-                orig_download = self.download_from_url(best_quality_url, to_filename, verbose)
+                orig_download = self.download_from_url(best_quality_url, to_filename, verbose, quiet_on_failure=True)
                 if orig_download:
                     return orig_download, best_quality_url
 
@@ -117,7 +120,10 @@ class Extractor(BaseModule):
             return to_filename
 
         except requests.RequestException as e:
-            logger.warning(f"Failed to fetch the Media URL: {e}")
+            if quiet_on_failure:
+                logger.debug(f"Failed to fetch the Media URL (will fall back to WARC copy): {e}")
+            else:
+                logger.warning(f"Failed to fetch the Media URL: {e}")
         if try_best_quality:
             return None, url
 
