@@ -7,6 +7,7 @@ from google.auth.transport.requests import Request
 from google.oauth2 import service_account
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
 from auto_archiver.utils.custom_logger import logger
 
@@ -148,18 +149,26 @@ class GDriveStorage(Storage):
             query_string += " and mimeType='application/vnd.google-apps.folder' "
 
         for attempt in range(retries):
-            results = (
-                self.service.files()
-                .list(
-                    # both below for Google Shared Drives
-                    supportsAllDrives=True,
-                    includeItemsFromAllDrives=True,
-                    q=query_string,
-                    spaces="drive",  # ie not appDataFolder or photos
-                    fields="files(id, name)",
+            try:
+                results = (
+                    self.service.files()
+                    .list(
+                        # both below for Google Shared Drives
+                        supportsAllDrives=True,
+                        includeItemsFromAllDrives=True,
+                        q=query_string,
+                        spaces="drive",  # ie not appDataFolder or photos
+                        fields="files(id, name)",
+                    )
+                    .execute()
                 )
-                .execute()
-            )
+            except HttpError as e:
+                logger.warning(f"{debug_header} Google Drive API error on attempt {attempt + 1}/{retries}: {e}")
+                if attempt < retries - 1:
+                    logger.debug(f"Sleeping for {sleep_seconds} second(s)")
+                    time.sleep(sleep_seconds)
+                    continue
+                raise
             items = results.get("files", [])
 
             if len(items) > 0:
