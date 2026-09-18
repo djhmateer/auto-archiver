@@ -12,10 +12,10 @@
                 # Full list of TSAs: https://gist.github.com/Manouchehri/fd754e402d98430243455713efada710
                     # "http://timestamp.identrust.com",
                     # "http://timestamp.ssl.trustwave.com",
-                    "http://zeitstempel.dfn.de",
+                    # "http://zeitstempel.dfn.de",
                     "http://ts.ssl.com",
                     # "http://tsa.izenpe.com", # self-signed
-                    "http://tsa.lex-persona.com/tsa",
+                    # "http://tsa.lex-persona.com/tsa",
                     # "http://ca.signfiles.com/TSAServer.aspx", # self-signed
                     # "http://tsa.sinpe.fi.cr/tsaHttp/", # self-signed
                     # "http://tsa.cra.ge/signserver/tsa?workerName=qtsa", # self-signed
