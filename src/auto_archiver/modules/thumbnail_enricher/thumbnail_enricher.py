@@ -37,9 +37,9 @@ class ThumbnailEnricher(Enricher):
 
                 try:
                     probe = ffmpeg.probe(m.filename)
-                    duration = float(
-                        next(stream for stream in probe["streams"] if stream["codec_type"] == "video")["duration"]
-                    )
+                    video_stream = next(stream for stream in probe["streams"] if stream["codec_type"] == "video")
+                    # some containers (e.g. webm) don't set duration on the video stream, only on the overall format
+                    duration = float(video_stream.get("duration", probe["format"]["duration"]))
                     to_enrich.media[m_id].set("duration", duration)
                 except Exception as e:
                     logger.warning(f"Failed to get duration with FFMPEG from {m.filename}: {e}")
