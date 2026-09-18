@@ -416,7 +416,7 @@ class WaczExtractorEnricher(Enricher, Extractor):
                                     total_images = len(to_enrich.media)
                                     logger.debug(f"Part 2 - total_images {total_images} - includes duplicates")
                                     if total_images > 90:
-                                        logger.warning('Total images is > max so stopping crawl')
+                                        logger.info('Total images is > max so stopping crawl')
                                         break # out of while
                                     
                                 if len(fb_ids_requested) == 1:
