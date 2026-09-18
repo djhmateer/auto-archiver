@@ -12,6 +12,7 @@ from auto_archiver.version import __version__
 from auto_archiver.core import Metadata, Media
 from auto_archiver.core import Formatter
 from auto_archiver.utils.misc import random_str
+from auto_archiver.utils.git_info import get_git_info
 
 
 class HtmlFormatter(Formatter):
@@ -38,8 +39,15 @@ class HtmlFormatter(Formatter):
             logger.debug("Nothing to format, skipping")
             return
 
+        git_info = get_git_info()
         content = self.template.render(
-            url=url, title=item.get_title(), media=item.media, metadata=item.metadata, version=__version__
+            url=url,
+            title=item.get_title(),
+            media=item.media,
+            metadata=item.metadata,
+            version=__version__,
+            git_commit_hash=git_info["commit_hash"],
+            git_commit_url=git_info["commit_url"],
         )
 
         html_path = os.path.join(self.tmp_dir, f"formatted{random_str(24)}.html")
