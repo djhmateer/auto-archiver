@@ -261,6 +261,11 @@ class WaczExtractorEnricher(Enricher, Extractor):
                         fb_id = foo[fbid_start_pos:middle_26_start_pos]
                         set_end_pos = foo.find(f'%26', middle_26_start_pos+1)
                         set_id = foo[middle_26_start_pos+13:set_end_pos]
+
+                        if not set_id.isdigit():
+                            logger.debug(f"skipping non-numeric {set_id=} - likely a parsing artifact, not a real Facebook set_id")
+                            continue
+
                         logger.info(f" found {set_id=} in bulk-route-definitions and adding to list so can calculate most prevalent")
                         list_of_set_ids.append(set_id)
 
