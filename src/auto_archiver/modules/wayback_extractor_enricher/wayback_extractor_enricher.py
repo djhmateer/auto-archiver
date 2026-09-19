@@ -105,10 +105,13 @@ class WaybackExtractorEnricher(Enricher, Extractor):
                 if r_status.status_code == 200 and r_json["status"] == "success":
                     wayback_url = f"https://web.archive.org/web/{r_json['timestamp']}/{r_json['original_url']}"
                 elif r_status.status_code != 200 or r_json["status"] != "pending":
+                    # these failures are the target site or the IA infrastructure refusing the request,
+                    # not a problem with this code, and other extractors still run afterwards
                     if r_json.get("status_ext") in ["error:blocked-url", "error:unauthorized"]:
-                        logger.warning("Wayback cannot currently archive the URL, skipping.")
                         to_enrich.set("wayback", r_json.get("status_ext"))
-                    logger.error(f"Wayback failed with {r_json}")
+                        logger.warning(f"Wayback cannot currently archive the URL, skipping: {r_json}")
+                    else:
+                        logger.warning(f"Wayback failed with {r_json}")
                     return False
             except requests.exceptions.RequestException as e:
                 logger.info(f"Attempt {attempt} of fetching status for {url=} failed which is okay due to: {e}")
