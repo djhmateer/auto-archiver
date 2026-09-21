@@ -26,7 +26,8 @@ class MhtmlEnricher(Enricher, Extractor):
     # Use Selenium to generate MHTML
     def enrich(self, to_enrich: Metadata) -> bool:
         url = to_enrich.get_url()
-    
+        logger.debug(f"Saving MHTML for {url=} (loads the page in Chrome and waits ~10s)")
+
         chrome_options = Options()
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--no-sandbox")
