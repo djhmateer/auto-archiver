@@ -6,6 +6,7 @@ import re
 import shutil
 import subprocess
 from zipfile import ZipFile
+from urllib.parse import urlparse
 from auto_archiver.utils.custom_logger import logger
 from warcio.archiveiterator import ArchiveIterator
 
@@ -14,6 +15,13 @@ from auto_archiver.core import Extractor, Enricher
 from auto_archiver.utils import url as UrlUtil, random_str
 
 LOGIN_PAGE_TITLE = re.compile(r"\b(log ?in|sign ?in)\b", re.IGNORECASE)
+NOTIFICATION_COUNT_PREFIX = re.compile(r"^\(\d+\)\s*")
+
+
+def is_bare_site_name(title: str, url: str) -> bool:
+    """True for titles like 'Instagram' or '(1) Instagram' on instagram.com - the site name says nothing about the post"""
+    host = urlparse(url).netloc.lower().removeprefix("www.")
+    return NOTIFICATION_COUNT_PREFIX.sub("", title).strip().lower() in host.split(".")
 
 
 class WaczExtractorEnricher(Enricher, Extractor):
@@ -194,9 +202,11 @@ class WaczExtractorEnricher(Enricher, Extractor):
                     if "format" in obj:
                         continue  # header line eg {"format":"json-pages-1.0","id":"pages","title":"Seed Pages"}, not a page
                     if "title" in obj:
-                        if to_enrich.get_title() and LOGIN_PAGE_TITLE.search(obj["title"]):
+                        if to_enrich.get_title() and (
+                            LOGIN_PAGE_TITLE.search(obj["title"]) or is_bare_site_name(obj["title"], url)
+                        ):
                             # e.g. tiktok shows a login wall in the browser - keep the better title we already have
-                            logger.info(f"Keeping title {to_enrich.get_title()!r}, ignoring login page title {obj['title']!r}")
+                            logger.info(f"Keeping title {to_enrich.get_title()!r}, ignoring generic page title {obj['title']!r}")
                         else:
                             to_enrich.set_title(obj["title"])
                     if "text" in obj:

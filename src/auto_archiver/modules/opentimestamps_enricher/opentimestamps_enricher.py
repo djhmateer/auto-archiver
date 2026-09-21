@@ -1,5 +1,7 @@
 import os
+import time
 import traceback
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from auto_archiver.utils.custom_logger import logger
 import opentimestamps
@@ -67,15 +69,24 @@ class OpentimestampsEnricher(Enricher):
                         calendars.append(RemoteCalendar(url))
                         calendar_urls.append(url)
 
-                # Submit the hash to each calendar
-                for calendar in calendars:
-                    try:
-                        calendar_timestamp = calendar.submit(file_hash)
-                        timestamp.merge(calendar_timestamp)
-                        logger.debug(f"Successfully submitted to calendar: {calendar.url}")
-                        submitted_to_calendar = True
-                    except Exception as e:
-                        logger.warning(f"Failed to submit to calendar {calendar.url}: {e}")
+                # Submit the hash to every calendar at once (each submit is a slow blocking HTTP call)
+                def submit(calendar):
+                    started = time.monotonic()
+                    calendar_timestamp = calendar.submit(file_hash)
+                    logger.debug(f"Calendar {calendar.url} took {time.monotonic() - started:.1f}s")
+                    return calendar_timestamp
+
+                with ThreadPoolExecutor(max_workers=len(calendars) or 1) as pool:
+                    futures = {pool.submit(submit, c): c for c in calendars}
+                    for future in as_completed(futures):
+                        calendar = futures[future]
+                        try:
+                            # merge on this thread only, Timestamp isn't thread-safe
+                            timestamp.merge(future.result())
+                            logger.debug(f"Successfully submitted to calendar: {calendar.url}")
+                            submitted_to_calendar = True
+                        except Exception as e:
+                            logger.warning(f"Failed to submit to calendar {calendar.url}: {e}")
 
                 # If all calendar submissions failed, add pending attestations
                 if not submitted_to_calendar and not timestamp.attestations:
