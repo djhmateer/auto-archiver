@@ -1,4 +1,5 @@
 import os
+import threading
 import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -73,10 +74,12 @@ class OpentimestampsEnricher(Enricher):
                 def submit(calendar):
                     started = time.monotonic()
                     calendar_timestamp = calendar.submit(file_hash)
-                    logger.debug(f"Calendar {calendar.url} took {time.monotonic() - started:.1f}s")
+                    logger.debug(
+                        f"Calendar {calendar.url} took {time.monotonic() - started:.1f}s (thread {threading.current_thread().name})"
+                    )
                     return calendar_timestamp
 
-                with ThreadPoolExecutor(max_workers=len(calendars) or 1) as pool:
+                with ThreadPoolExecutor(max_workers=len(calendars) or 1, thread_name_prefix="ots") as pool:
                     futures = {pool.submit(submit, c): c for c in calendars}
                     for future in as_completed(futures):
                         calendar = futures[future]
