@@ -54,11 +54,12 @@ class ThumbnailEnricher(Enricher):
                 thumbnails_media = []
                 for index, timestamp in enumerate(timestamps):
                     output_path = os.path.join(folder, f"out{index}.jpg")
-                    ffmpeg.input(m.filename, ss=timestamp).filter("scale", 512, -1).output(
-                        output_path, vframes=1, loglevel="quiet"
-                    ).run()
-
                     try:
+                        # capture stderr so a failing thumbnail is reported instead of aborting the whole enricher
+                        ffmpeg.input(m.filename, ss=timestamp).filter("scale", 512, -1).output(
+                            output_path, vframes=1, loglevel="error"
+                        ).run(capture_stdout=True, capture_stderr=True)
+
                         if not os.path.exists(output_path):
                             logger.info(f"thumbnail {index} for media {m.filename} was not created")
                             continue
@@ -67,6 +68,9 @@ class ThumbnailEnricher(Enricher):
                             .set("id", f"thumbnail_{index}")
                             .set("timestamp", "%.3fs" % timestamp)
                         )
+                    except ffmpeg.Error as e:
+                        stderr = e.stderr.decode(errors="replace") if e.stderr else e
+                        logger.error(f"ffmpeg error creating thumbnail {index} for {m.filename}: {stderr}")
                     except Exception as e:
                         logger.error(f"error creating thumbnail {index} for media: {e}")
 

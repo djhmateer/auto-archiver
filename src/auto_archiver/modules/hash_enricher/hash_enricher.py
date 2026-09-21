@@ -38,5 +38,6 @@ class HashEnricher(Enricher):
         elif self.algorithm == "SHA3-512":
             hash_algo = hashlib.sha3_512
         else:
+            logger.warning(f"Unsupported hash algorithm {self.algorithm!r}, no hash will be calculated")
             return ""
         return calculate_file_hash(filename, hash_algo, self.chunksize)

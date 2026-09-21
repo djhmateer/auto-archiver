@@ -56,6 +56,11 @@
             "help": "If True, the spreadsheet cells will be overwritten with the new values",
             "type": "bool",
         },
+        "must_have_folder_name_for_archive_to_run": {
+            "default": False,
+            "help": "If True, rows without a folder name are skipped and marked 'WARNING:Folder Name not set'",
+            "type": "bool",
+        },
     },
     "description": """
     GsheetsFeederDatabase

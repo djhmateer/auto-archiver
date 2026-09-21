@@ -260,3 +260,8 @@ class TestGSheetsFeederReal:
 # Test two sheets
 # test two sheets with different columns
 # test folder implementation
+
+
+def test_must_have_folder_name_defaults_to_false(gsheet_feeder: GsheetsFeederDB):
+    # declared in the manifest, so configs that don't mention it must not raise an AttributeError
+    assert gsheet_feeder.must_have_folder_name_for_archive_to_run is False

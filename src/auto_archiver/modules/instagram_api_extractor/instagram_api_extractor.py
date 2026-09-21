@@ -44,7 +44,7 @@ class InstagramAPIExtractor(Extractor):
 
     def download(self, item: Metadata) -> Metadata:
         url = item.get_url()
-        url.replace("instagr.com", "instagram.com").replace("instagr.am", "instagram.com")
+        url = url.replace("instagr.com", "instagram.com").replace("instagr.am", "instagram.com")
         insta_matches = self.valid_url.findall(url)
 
         if not len(insta_matches) or len(insta_matches[0]) != 3:
@@ -73,7 +73,7 @@ class InstagramAPIExtractor(Extractor):
     def call_api(self, path: str, params: dict) -> dict:
         headers = {"accept": "application/json", "x-access-key": self.access_token}
         logger.debug(f"Calling {self.api_endpoint}/{path} with {params=}")
-        return requests.get(f"{self.api_endpoint}/{path}", headers=headers, params=params).json()
+        return requests.get(f"{self.api_endpoint}/{path}", headers=headers, params=params, timeout=60).json()
 
     def cleanup_dict(self, d: dict | list) -> dict:
         # repeats 3 times to remove nested empty values

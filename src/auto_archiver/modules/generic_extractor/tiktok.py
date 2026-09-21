@@ -31,7 +31,7 @@ class Tiktok(GenericDropin):
 
         endpoint = self.TIKWM_ENDPOINT.format(url=url)
 
-        r = requests.get(endpoint)
+        r = requests.get(endpoint, timeout=30)
         if r.status_code != 200:
             raise ValueError(f"Unexpected status code '{r.status_code}' from tikwm.com")
 

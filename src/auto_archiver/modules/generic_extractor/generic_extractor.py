@@ -218,8 +218,9 @@ class GenericExtractor(Extractor):
         if dropin:
             try:
                 metadata = dropin.download_additional_media(video_data, info_extractor, metadata)
-            except AttributeError:
-                pass
+            except AttributeError as e:
+                # the base GenericDropin defines this method, so an AttributeError here is a bug inside the dropin
+                logger.warning(f"{type(dropin).__name__}.download_additional_media: {e}: {traceback.format_exc()}")
 
         return metadata
 
@@ -291,8 +292,9 @@ class GenericExtractor(Extractor):
         if dropin:
             try:
                 base_keys += dropin.keys_to_clean(video_data, info_extractor)
-            except AttributeError:
-                pass
+            except AttributeError as e:
+                # as above, the base GenericDropin defines this method
+                logger.warning(f"{type(dropin).__name__}.keys_to_clean failed: {e}: {traceback.format_exc()}")
 
         return base_keys
 
@@ -608,12 +610,13 @@ class GenericExtractor(Extractor):
                 logger.error("Error downloading metadata for post: {error}", error=str(post_e))
                 return False
             except Exception as generic_e:
-                logger.debug(
-                    'Attempt to extract using ytdlp extractor "{name}" failed:  \n  {error}',
+                # not a yt-dlp download/extract error: likely a dropin bug or an unexpected failure, so keep it visible
+                logger.warning(
+                    'Attempt to extract using ytdlp extractor "{name}" failed: {error}',
                     name=info_extractor.IE_NAME,
                     error=str(generic_e),
-                    exc_info=True,
                 )
+                logger.debug(traceback.format_exc())
                 return False
 
         if result and not result.is_success():

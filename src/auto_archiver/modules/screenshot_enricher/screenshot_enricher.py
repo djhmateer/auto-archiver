@@ -103,6 +103,6 @@ class ScreenshotEnricher(Enricher):
                         f.write(base64.b64decode(pdf))
                     to_enrich.add_media(Media(filename=pdf_file), id="pdf")
             except TimeoutException:
-                logger.info("TimeoutException loading page for screenshot")
+                logger.warning(f"TimeoutException loading page for screenshot: {url}")
             except Exception as e:
                 logger.error(f"Got error while loading webdriver for screenshot enricher: {e}")

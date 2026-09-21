@@ -1,4 +1,5 @@
 from gspread import utils
+from auto_archiver.utils.custom_logger import logger
 from retrying import retry
 
 
@@ -101,6 +102,9 @@ class GWorksheet:
         """
         receives a list of [(row:int, col:str, val)] and batch updates it, the parameters are the same as in the self.set_cell() method
         """
+        for row, col, val in cell_updates:
+            if len(str(val)) > 49999:
+                logger.warning(f"Truncating {col} in row {row} from {len(str(val))} to 49999 chars (Sheets cell limit)")
         cell_updates = [
             {"range": self.to_a1(row, col), "values": [[str(val)[0:49999]]]} for row, col, val in cell_updates
         ]

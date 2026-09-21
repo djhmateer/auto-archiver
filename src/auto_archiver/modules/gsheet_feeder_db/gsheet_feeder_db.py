@@ -62,7 +62,13 @@ class GsheetsFeederDB(Feeder, Database):
                 logger.debug(f"Opening worksheet '{worksheet.title}' header={self.header}")
                 gw = GWorksheet(worksheet, header_row=self.header, columns=self.columns)
                 if len(missing_cols := self.missing_required_columns(gw)):
-                    logger.debug(f"Skipped worksheet '{worksheet.title}' due to missing required column(s) for {missing_cols}")
+                    # a tab with none of the required columns is just a helper sheet, but a tab with only some of
+                    # them probably has a renamed/deleted header, so make that visible
+                    message = f"Skipped worksheet '{worksheet.title}' due to missing required column(s) for {missing_cols}"
+                    if len(missing_cols) < 2:
+                        logger.warning(message)
+                    else:
+                        logger.debug(message)
                     continue
 
                 # process and yield metadata here:
@@ -234,7 +240,8 @@ class GsheetsFeederDB(Feeder, Database):
             gw, row = self._retrieve_gsheet(item)
             gw.set_cell(row, "status", new_status)
         except Exception as e:
-            logger.debug(f"Unable to update sheet: {e}: {traceback.format_exc()}")
+            # the row keeps its previous status (eg 'Archive in progress') and won't be picked up again
+            logger.error(f"Unable to set status {new_status!r}, row may be stuck: {e}: {traceback.format_exc()}")
 
     def _safe_archive_date_update(self, item: Metadata) -> None:
         """Update the archive date column with current timestamp"""
@@ -243,13 +250,13 @@ class GsheetsFeederDB(Feeder, Database):
             current_time = datetime.now(timezone.utc).isoformat()
             gw.set_cell(row, "date", current_time)
         except Exception as e:
-            logger.debug(f"Unable to update archive date: {e}: {traceback.format_exc()}")
+            logger.error(f"Unable to update archive date: {e}: {traceback.format_exc()}")
 
     def _retrieve_gsheet(self, item: Metadata) -> Tuple[GWorksheet, int]:
-        if gsheet := item.get_context("gsheet"):
-            gw: GWorksheet = gsheet.get("worksheet")
-            row: int = gsheet.get("row")
-        elif self.sheet_id:
-            logger.error("Unable to retrieve Gsheet, GsheetDB must be used alongside GsheetFeeder.")
+        gsheet = item.get_context("gsheet")
+        if not gsheet:
+            raise RuntimeError("Unable to retrieve Gsheet, GsheetDB must be used alongside GsheetFeeder.")
+        gw: GWorksheet = gsheet.get("worksheet")
+        row: int = gsheet.get("row")
 
         return gw, row

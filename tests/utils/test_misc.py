@@ -173,7 +173,7 @@ class TestYdlEntryToFilename:
         assert not result.endswith(".part")
 
     def test_skips_part_file_returns_false_if_no_other_match(self, tmp_path):
-        """Only a .part file exists — should return False."""
+        """Only a .part file exists â€” should return False."""
         (tmp_path / "video.f399.mp4.part").write_bytes(b"incomplete")
 
         ydl = self._make_mock_ydl(str(tmp_path / "video.mp4"))

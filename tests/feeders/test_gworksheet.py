@@ -129,3 +129,15 @@ class TestGWorksheet:
         g = GWorksheet(mock_ws)
         assert g.headers == []
         assert g.count_rows() == 0
+
+
+def test_batch_set_cell_warns_when_truncating(mocker, caplog):
+    gw = GWorksheet.__new__(GWorksheet)
+    gw.wks = mocker.MagicMock()
+    mocker.patch.object(gw, "to_a1", return_value="A1")
+
+    gw.batch_set_cell([(1, "text", "x" * 50_000)])
+
+    sent = gw.wks.batch_update.call_args.args[0]
+    assert len(sent[0]["values"][0][0]) == 49_999
+    assert any("Truncating text in row 1" in r.message and r.levelname == "WARNING" for r in caplog.records)

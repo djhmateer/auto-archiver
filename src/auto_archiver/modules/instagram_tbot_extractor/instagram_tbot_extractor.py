@@ -87,6 +87,10 @@ class InstagramTbotExtractor(Extractor):
                 return False
 
             if message:
+                if not result.media:
+                    # text with no media may be an error/rate-limit reply from the bot rather than a post,
+                    # but it's still treated as a success so make sure it's visible in the logs
+                    logger.warning(f"{self.name} got a text-only reply with no media for {url}: {message[:200]!r}")
                 result.set_content(message).set_title(message[:128])
             elif result.is_empty():
                 logger.debug(f"No media found for {self.name}: {message}")

@@ -28,7 +28,7 @@ class TelegramExtractor(Extractor):
         if url[-8:] != "?embed=1":
             url += "?embed=1"
 
-        t = requests.get(url, headers=headers)
+        t = requests.get(url, headers=headers, timeout=30)
         s = BeautifulSoup(t.content, "html.parser")
 
         result = Metadata()

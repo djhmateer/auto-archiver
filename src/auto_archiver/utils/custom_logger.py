@@ -1,5 +1,6 @@
 from loguru import logger
 import json
+import traceback
 
 
 def extract_location(record, short=False):
@@ -23,7 +24,11 @@ def extract_log_data(record):
 
     subset["message"] = record["message"]
     if exception := record.get("exception"):
-        subset["exception"] = exception
+        # the raw exception record holds a type/traceback object which json can't serialize,
+        # which made logger.catch / logger.opt(exception=True) raise instead of logging
+        subset["exception"] = "".join(
+            traceback.format_exception(exception.type, exception.value, exception.traceback)
+        )
     return subset
 
 

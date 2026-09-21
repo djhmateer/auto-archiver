@@ -230,8 +230,8 @@ class LazyBaseModule:
                     # we must now load this module and set it up with the config
                     m.load(config)
                     return True
-                except Exception:
-                    logger.error(f"Unable to setup module '{dep}' for use in module '{self.name}'")
+                except Exception as e:
+                    logger.error(f"Unable to setup module '{dep}' for use in module '{self.name}': {e}")
                     return False
             except IndexError:
                 # not a module, continue

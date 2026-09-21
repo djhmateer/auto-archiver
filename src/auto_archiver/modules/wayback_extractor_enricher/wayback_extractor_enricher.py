@@ -52,7 +52,9 @@ class WaybackExtractorEnricher(Enricher, Extractor):
         success = False
         while attempt <= 10:
             try:
-                r = requests.post("https://web.archive.org/save/", headers=ia_headers, data=post_data, proxies=proxies)
+                r = requests.post(
+                    "https://web.archive.org/save/", headers=ia_headers, data=post_data, proxies=proxies, timeout=60
+                )
                 success = True
             except Exception as e:
                 # DM 3rd Jun 25 - max retries exceeded with url: /save/ catch
@@ -81,7 +83,7 @@ class WaybackExtractorEnricher(Enricher, Extractor):
             job_id = r.json().get("job_id")
             if not job_id:
                 # for some sites likes twitter, with 'we're facing some limitation' this is business as usual for us, so not an error
-                if 'twitter.com' or 'x.com' in url:
+                if UrlUtil.domain_for_url(url).removeprefix('www.') in ('twitter.com', 'x.com'):
                     logger.info(f"Wayback failed and we know about this with Twitter/X with {r.json()} - if it starts working from wayback side, this will be fine")
                     return False
                 else:
@@ -99,7 +101,7 @@ class WaybackExtractorEnricher(Enricher, Extractor):
             try:
                 logger.debug(f"GETting status for {job_id=} ({attempt=})")
                 r_status = requests.get(
-                    f"https://web.archive.org/save/status/{job_id}", headers=ia_headers, proxies=proxies
+                    f"https://web.archive.org/save/status/{job_id}", headers=ia_headers, proxies=proxies, timeout=30
                 )
                 r_json = r_status.json()
                 if r_status.status_code == 200 and r_json["status"] == "success":
@@ -118,7 +120,7 @@ class WaybackExtractorEnricher(Enricher, Extractor):
                 logger.info(f"If after {self.timeout} seconds the wayback url is not found, then we will just put the check status link in the metadata")
                 break
             except json.decoder.JSONDecodeError:
-                logger.error(f"Expected a JSON from Wayback and got {r.text}")
+                logger.error(f"Expected a JSON from Wayback status check and got {r_status.text}")
                 break
             except Exception as e:
                 logger.warning(f"error fetching status due to: {e}")

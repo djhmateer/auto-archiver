@@ -769,6 +769,10 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
             except Exception as e:
                 logger.error(f"Extractor {a.name}: {e}: {traceback.format_exc()}")
 
+        if not result.is_success():
+            tried = ", ".join(a.name for a in self.extractors)
+            logger.warning(f"No extractor succeeded for {url} (tried: {tried}), status={result.status!r}")
+
         # 4 - call enrichers to work with archived content
         for e in self.enrichers:
             try:

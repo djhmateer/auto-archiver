@@ -24,10 +24,14 @@ class MetadataEnricher(Enricher):
         try:
             # Run ExifTool command to extract metadata from the file
             cmd = ["exiftool", filename]
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+            if result.returncode != 0:
+                logger.debug(f"exiftool exited with {result.returncode} for {filename}: {result.stderr.strip()[:200]}")
             # Process the output to extract individual metadata fields
             metadata = {}
             for line in result.stdout.splitlines():
+                if ":" not in line:
+                    continue
                 field, value = line.strip().split(":", 1)
                 metadata[field.strip()] = value.strip()
             return metadata
