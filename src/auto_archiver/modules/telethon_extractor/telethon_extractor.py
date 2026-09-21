@@ -46,6 +46,14 @@ class TelethonExtractor(Extractor):
             )
             Path(base_session_filepath).touch()
 
+        # delete copies left behind by runs that were killed or failed before cleanup (older than a day, so live runs are safe)
+        for old in Path(base_session_filepath).parent.glob("telethon-*.session"):
+            try:
+                if time.time() - old.stat().st_mtime > 24 * 3600:
+                    old.unlink()
+            except OSError:
+                pass  # e.g. another run just deleted it, not worth failing setup over
+
         # make a copy of the session that is used exclusively with this archiver instance
         self.session_file = os.path.join(
             os.path.dirname(base_session_filepath), f"telethon-{date.today().strftime('%Y-%m-%d')}{random_str(8)}"
