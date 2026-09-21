@@ -458,7 +458,7 @@ class WaczExtractorEnricher(Enricher, Extractor):
                     record_url = record.rec_headers.get_header("WARC-Target-URI")
                     if UrlUtil.is_relevant_url(record_url): pass
                     else:
-                        logger.debug(f"Skipping irrelevant URL {record_url}")
+                        # logger.debug(f"Skipping irrelevant URL {record_url}")
                         continue
     
                     if record_url in seen_urls:
@@ -747,7 +747,7 @@ class WaczExtractorEnricher(Enricher, Extractor):
                     continue
                 record_url = record.rec_headers.get_header("WARC-Target-URI")
                 if not UrlUtil.is_relevant_url(record_url):
-                    logger.debug(f"Skipping irrelevant URL {record_url} but it's still present in the WACZ.")
+                    # logger.debug(f"Skipping irrelevant URL {record_url} but it's still present in the WACZ.")
                     continue
                 if record_url in seen_urls:
                     logger.debug(f"Skipping already seen URL {record_url}.")
