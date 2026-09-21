@@ -125,6 +125,11 @@ class CookieSettingDriver(webdriver.Firefox):
             # 5 texts * 5s WebDriverWait = 25s waiting for a banner that never shows up.
             logger.debug("X/Twitter URL detected - skipping generic cookie banner search (cookies already provided)")
 
+        elif "tiktok.com" in url:
+            # DM 21st Sep 26 - the only text match on tiktok is a hidden <script id="tiktok-cookie-banner-config">
+            # which is never clickable, so the generic search below just burned 5 texts * 5s = 25s per url
+            logger.debug("TikTok URL detected - skipping generic cookie banner search")
+
         elif self.facebook_accept_cookies:
             # try and click the 'close' button on the 'login' window to close it
             # try:

@@ -2,6 +2,7 @@ import time
 import jsonlines
 import mimetypes
 import os
+import re
 import shutil
 import subprocess
 from zipfile import ZipFile
@@ -11,6 +12,8 @@ from warcio.archiveiterator import ArchiveIterator
 from auto_archiver.core import Media, Metadata
 from auto_archiver.core import Extractor, Enricher
 from auto_archiver.utils import url as UrlUtil, random_str
+
+LOGIN_PAGE_TITLE = re.compile(r"\b(log ?in|sign ?in)\b", re.IGNORECASE)
 
 
 class WaczExtractorEnricher(Enricher, Extractor):
@@ -189,7 +192,11 @@ class WaczExtractorEnricher(Enricher, Extractor):
             with jsonlines.open(jsonl_fn) as reader:
                 for obj in reader:
                     if "title" in obj:
-                        to_enrich.set_title(obj["title"])
+                        if to_enrich.get_title() and LOGIN_PAGE_TITLE.search(obj["title"]):
+                            # e.g. tiktok shows a login wall in the browser - keep the better title we already have
+                            logger.info(f"Keeping title {to_enrich.get_title()!r}, ignoring login page title {obj['title']!r}")
+                        else:
+                            to_enrich.set_title(obj["title"])
                     if "text" in obj:
                         to_enrich.set_content(obj["text"])
 
