@@ -191,6 +191,8 @@ class WaczExtractorEnricher(Enricher, Extractor):
             logger.info(f"Parsing pages.jsonl  {jsonl_fn=}")
             with jsonlines.open(jsonl_fn) as reader:
                 for obj in reader:
+                    if "format" in obj:
+                        continue  # header line eg {"format":"json-pages-1.0","id":"pages","title":"Seed Pages"}, not a page
                     if "title" in obj:
                         if to_enrich.get_title() and LOGIN_PAGE_TITLE.search(obj["title"]):
                             # e.g. tiktok shows a login wall in the browser - keep the better title we already have
