@@ -59,10 +59,14 @@ class TelethonExtractor(Extractor):
             os.path.dirname(base_session_filepath), f"telethon-{date.today().strftime('%Y-%m-%d')}{random_str(8)}"
         )
         logger.debug(f"Making a copy of the session file {base_session_filepath} to {self.session_file}.session")
+        started = time.monotonic()
         shutil.copy(base_session_filepath, f"{self.session_file}.session")
+        logger.debug(f"SETUP {self.name} copying the session file took {time.monotonic() - started:.1f}s")
 
         # initiate the client
+        started = time.monotonic()
         self.client = TelegramClient(self.session_file, self.api_id, self.api_hash)
+        logger.debug(f"SETUP {self.name} creating the client took {time.monotonic() - started:.1f}s")
 
         logger.debug(f"SETUP {self.name} connecting to Telegram...")
         started = time.monotonic()
