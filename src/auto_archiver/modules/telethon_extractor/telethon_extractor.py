@@ -64,8 +64,10 @@ class TelethonExtractor(Extractor):
         # initiate the client
         self.client = TelegramClient(self.session_file, self.api_id, self.api_hash)
 
+        logger.debug(f"SETUP {self.name} connecting to Telegram...")
+        started = time.monotonic()
         with self.client.start():
-            logger.info(f"SETUP {self.name} login works.")
+            logger.info(f"SETUP {self.name} login works (took {time.monotonic() - started:.1f}s).")
 
         if self.join_channels and len(self.channel_invites):
             logger.info(f"SETUP {self.name} joining channels...")
