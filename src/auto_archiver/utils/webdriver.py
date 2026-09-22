@@ -194,6 +194,7 @@ class Webdriver:
         if self.facebook_accept_cookies:
             options.add_argument("--lang=en")
 
+        self.driver = None
         try:
             self.driver = CookieSettingDriver(
                 cookie=self.auth.get("cookie"),
@@ -212,7 +213,15 @@ class Webdriver:
         return self.driver
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.driver.close()
-        self.driver.quit()
+        if self.driver is None:
+            return True
+        # the browser/geckodriver session can already be dead here (crash, connection drop) if
+        # something went wrong inside the `with` block, so close()/quit() failing is expected
+        # and shouldn't mask or duplicate whatever error the caller already saw
+        try:
+            self.driver.close()
+            self.driver.quit()
+        except selenium_exceptions.WebDriverException as e:
+            logger.debug(f"Error closing/quitting webdriver, session was likely already dead: {e}")
         del self.driver
         return True

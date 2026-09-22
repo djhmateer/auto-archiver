@@ -43,6 +43,20 @@ New modules should follow the existing pattern:
 3. Implement the appropriate base class (Feeder, Extractor, Enricher, etc.)
 4. Add configuration handling
 
+## Investigating Production Errors
+
+When investigating production errors (e.g. from pasted log snippets), also check the raw debug logs
+mirrored at `/mnt/t/aa-dashboard-log-import/<server_number>/` (one subfolder per production server, e.g.
+`11`-`15`). Each folder contains:
+- `1debug.log` - the current, full DEBUG-level log (large, tens of MB)
+- `3success.log` / `4warning.log` - filtered current-level logs
+- rotated/archived copies named `1debug.<rotation-start-timestamp>.log` for older periods
+
+The DEBUG-level detail around a WARNING/ERROR line (e.g. surrounding requests, timings, retries) often
+gives much better context for root-causing an issue than the bare error line alone - grep the relevant
+server's `1debug.log` for the timestamp/module/request in question rather than relying only on what was
+pasted into the conversation.
+
 ## Version Control
 
 - Never run `git commit` or `git push` (or any equivalent, e.g. via the `cp` skill). The user handles all commits and pushes to the remote manually.
