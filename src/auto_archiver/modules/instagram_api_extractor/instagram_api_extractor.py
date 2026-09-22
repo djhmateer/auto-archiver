@@ -69,11 +69,16 @@ class InstagramAPIExtractor(Extractor):
             logger.warning(f"Unknown instagram regex group match {g1=}")
             return
 
-    @retry(wait_random_min=1000, wait_random_max=3000, stop_max_attempt_number=5)
+    # hikerapi's Cloudflare edge occasionally returns a 502/503 during origin overload and its error
+    # body explicitly asks callers to back off at least 60s before retrying
+    #  8s → 16s → 32s → 60s → 60s
+    @retry(wait_exponential_multiplier=8000, wait_exponential_max=60000, stop_max_attempt_number=5)
     def call_api(self, path: str, params: dict) -> dict:
         headers = {"accept": "application/json", "x-access-key": self.access_token}
         logger.debug(f"Calling {self.api_endpoint}/{path} with {params=}")
-        return requests.get(f"{self.api_endpoint}/{path}", headers=headers, params=params, timeout=60).json()
+        response = requests.get(f"{self.api_endpoint}/{path}", headers=headers, params=params, timeout=60)
+        response.raise_for_status()
+        return response.json()
 
     def cleanup_dict(self, d: dict | list) -> dict:
         # repeats 3 times to remove nested empty values
