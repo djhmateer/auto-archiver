@@ -94,18 +94,30 @@ class GDriveStorage(Storage):
         # upload file to gd
         logger.debug(f"Uploading {filename=} to folder id {upload_to}")
         file_metadata = {"name": [filename], "parents": [upload_to]}
-        try:
-            media_body = MediaFileUpload(media.filename, resumable=True)
-            gd_file = (
-                self.service.files()
-                .create(supportsAllDrives=True, body=file_metadata, media_body=media_body, fields="id")
-                .execute()
-            )
-            logger.debug(f"Uploadf: uploaded file {gd_file['id']} successfully in folder={upload_to}")
-        except FileNotFoundError as e:
-            logger.error(f"GD uploadf: file not found {media.filename=} - {e}")
-        except Exception as e:
-            logger.error(f"GD uploadf: error uploading {media.filename=} to {upload_to} - {e}")
+        retries = 4
+        sleep_seconds = 30
+        for attempt in range(retries):
+            try:
+                media_body = MediaFileUpload(media.filename, resumable=True)
+                gd_file = (
+                    self.service.files()
+                    .create(supportsAllDrives=True, body=file_metadata, media_body=media_body, fields="id")
+                    .execute()
+                )
+                logger.debug(f"Uploadf: uploaded file {gd_file['id']} successfully in folder={upload_to}")
+                return True
+            except FileNotFoundError as e:
+                logger.error(f"GD uploadf: file not found {media.filename=} - {e}")
+                return False
+            except Exception as e:
+                logger.warning(
+                    f"GD uploadf: error uploading {media.filename=} to {upload_to} on attempt {attempt + 1}/{retries} - {e}"
+                )
+                if attempt < retries - 1:
+                    time.sleep(sleep_seconds)
+                else:
+                    logger.error(f"GD uploadf: giving up uploading {media.filename=} to {upload_to} after {retries} attempts - {e}")
+                    return False
 
     # must be implemented even if unused
     def uploadf(self, file: IO[bytes], key: str, **kwargs: dict) -> bool:
