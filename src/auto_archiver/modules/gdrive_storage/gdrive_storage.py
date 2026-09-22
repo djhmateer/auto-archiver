@@ -113,6 +113,14 @@ class GDriveStorage(Storage):
                 logger.warning(
                     f"GD uploadf: error uploading {media.filename=} to {upload_to} on attempt {attempt + 1}/{retries} - {e}"
                 )
+                # the create() call may have succeeded on Drive even though we didn't get a response
+                # (e.g. read timeout) - check before retrying to avoid uploading a duplicate copy
+                existing_id = self._get_id_from_parent_and_name(
+                    upload_to, filename, retries=1, use_mime_type=False, raise_on_missing=False
+                )
+                if existing_id:
+                    logger.debug(f"GD uploadf: {filename=} already exists in {upload_to} as {existing_id}, skipping retry")
+                    return True
                 if attempt < retries - 1:
                     time.sleep(sleep_seconds)
                 else:
