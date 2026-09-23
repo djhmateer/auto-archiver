@@ -3,6 +3,7 @@ from auto_archiver.utils.custom_logger import logger
 import time
 import os
 import base64
+import re
 
 import pytesseract
 from PIL import Image
@@ -23,6 +24,8 @@ FACEBOOK_WARNING_PHRASES = [
     "confirm that this is your account",
     "we locked your account",
 ]
+
+FACEBOOK_STORY_URL_REGEX = re.compile(r"facebook\.com/stories/", re.IGNORECASE)
 
 
 def check_screenshot_for_facebook_issues(screenshot_file: str) -> list[str]:
@@ -46,6 +49,13 @@ class ScreenshotEnricher(Enricher):
 
     def enrich(self, to_enrich: Metadata) -> None:
         url = to_enrich.get_url()
+
+        # DM 23rd Sep 26 - facebook_story_extractor takes its own screenshot after clicking through the
+        # "Click to view story" placeholder - ours would only show the placeholder, and is another story view
+        # from the logged-in account
+        if FACEBOOK_STORY_URL_REGEX.search(url):
+            logger.debug(f"[SKIP] SCREENSHOT for Facebook story, facebook_story_extractor handles it: {url=}")
+            return
 
         logger.debug(f"Enriching screenshot for {url=}")
         auth = self.auth_for_site(url)
