@@ -10,6 +10,7 @@ import re
 from urllib.parse import urlparse, urlunparse
 from http.cookiejar import MozillaCookieJar
 
+import urllib3
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common import exceptions as selenium_exceptions
@@ -31,6 +32,10 @@ COOKIE_BUTTON_XPATHS = [
     f"//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{text.lower()}')]"
     for text in COOKIE_BUTTON_TEXTS
 ]
+
+# how many times to try launching Firefox, and how long to wait between attempts
+STARTUP_ATTEMPTS = 2
+STARTUP_RETRY_DELAY = 5
 
 
 class CookieSettingDriver(webdriver.Firefox):
@@ -212,20 +217,33 @@ class Webdriver:
             options.add_argument("--lang=en")
 
         self.driver = None
-        try:
-            self.driver = CookieSettingDriver(
-                cookie=self.auth.get("cookie"),
-                cookie_jar=self.auth.get("cookies_jar"),
-                facebook_accept_cookies=self.facebook_accept_cookies,
-                options=options,
-            )
-            self.driver.set_window_size(self.width, self.height)
-            self.driver.set_page_load_timeout(self.timeout_seconds)
-            self.driver.print_options = self.print_options
-        except selenium_exceptions.TimeoutException as e:
-            logger.error(
-                f"failed to get new webdriver, possibly due to insufficient system resources or timeout settings: {e}"
-            )
+        # DM 24th Sep 26 - Firefox occasionally hangs on startup and geckodriver's new session request
+        # times out after 120s (urllib3 ReadTimeoutError). It's transient - the next launch normally works -
+        # so retry once. Selenium quits the session and stops geckodriver itself when startup fails.
+        for attempt in range(1, STARTUP_ATTEMPTS + 1):
+            try:
+                self.driver = CookieSettingDriver(
+                    cookie=self.auth.get("cookie"),
+                    cookie_jar=self.auth.get("cookies_jar"),
+                    facebook_accept_cookies=self.facebook_accept_cookies,
+                    options=options,
+                )
+                self.driver.set_window_size(self.width, self.height)
+                self.driver.set_page_load_timeout(self.timeout_seconds)
+                self.driver.print_options = self.print_options
+                break
+            except urllib3.exceptions.ReadTimeoutError as e:
+                if attempt == STARTUP_ATTEMPTS:
+                    raise
+                logger.warning(
+                    f"Firefox did not start (attempt {attempt}/{STARTUP_ATTEMPTS}), retrying in {STARTUP_RETRY_DELAY}s: {e}"
+                )
+                time.sleep(STARTUP_RETRY_DELAY)
+            except selenium_exceptions.TimeoutException as e:
+                logger.error(
+                    f"failed to get new webdriver, possibly due to insufficient system resources or timeout settings: {e}"
+                )
+                break
 
         return self.driver
 

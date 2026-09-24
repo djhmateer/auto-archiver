@@ -51,3 +51,49 @@ def test_skips_hidden_disabled_and_stale_elements():
 def test_only_hidden_matches_returns_false():
     driver = FakeDriver({4: [FakeElement("hidden", displayed=False)]})
     assert CookieSettingDriver._find_clickable_cookie_button(driver) is False
+
+
+def _startup_timeout():
+    import urllib3
+
+    return urllib3.exceptions.ReadTimeoutError(None, "/session", "Read timed out. (read timeout=120)")
+
+
+def test_firefox_startup_timeout_is_retried(mocker):
+    from auto_archiver.utils import webdriver as wd
+
+    mocker.patch.object(wd.time, "sleep")
+    driver = mocker.MagicMock()
+    mock_cls = mocker.patch.object(wd, "CookieSettingDriver", side_effect=[_startup_timeout(), driver])
+
+    result = wd.Webdriver(1280, 1024, 60).__enter__()
+
+    assert result is driver
+    assert mock_cls.call_count == 2
+    driver.set_window_size.assert_called_once_with(1280, 1024)
+
+
+def test_firefox_startup_timeout_raises_after_last_attempt(mocker):
+    import pytest
+    import urllib3
+    from auto_archiver.utils import webdriver as wd
+
+    mocker.patch.object(wd.time, "sleep")
+    mock_cls = mocker.patch.object(
+        wd, "CookieSettingDriver", side_effect=[_startup_timeout() for _ in range(wd.STARTUP_ATTEMPTS)]
+    )
+
+    with pytest.raises(urllib3.exceptions.ReadTimeoutError):
+        wd.Webdriver(1280, 1024, 60).__enter__()
+    assert mock_cls.call_count == wd.STARTUP_ATTEMPTS
+
+
+def test_selenium_timeout_is_not_retried(mocker):
+    from auto_archiver.utils import webdriver as wd
+
+    mock_cls = mocker.patch.object(
+        wd, "CookieSettingDriver", side_effect=selenium_exceptions.TimeoutException("page load")
+    )
+
+    assert wd.Webdriver(1280, 1024, 60).__enter__() is None
+    assert mock_cls.call_count == 1
