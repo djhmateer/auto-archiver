@@ -12,13 +12,25 @@ from http.cookiejar import MozillaCookieJar
 
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.common import exceptions as selenium_exceptions
 from selenium.webdriver.common.print_page_options import PrintOptions
 from selenium.webdriver.common.by import By
 
 # from loguru import logger
 from auto_archiver.utils.custom_logger import logger
+
+# common cookie banner button texts, in order of preference (reject before accept)
+COOKIE_BUTTON_TEXTS = [
+    "Refuse non-essential cookies",
+    "Decline optional cookies",
+    "Reject additional cookies",
+    "Reject all",
+    "Accept all cookies",
+]
+COOKIE_BUTTON_XPATHS = [
+    f"//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{text.lower()}')]"
+    for text in COOKIE_BUTTON_TEXTS
+]
 
 
 class CookieSettingDriver(webdriver.Firefox):
@@ -35,6 +47,19 @@ class CookieSettingDriver(webdriver.Firefox):
         self.cookie = cookie
         self.cookie_jar = cookie_jar
         self.facebook_accept_cookies = facebook_accept_cookies
+
+    @staticmethod
+    def _find_clickable_cookie_button(driver):
+        """WebDriverWait condition: the first visible, enabled cookie button in preference order, or False"""
+        for xpath in COOKIE_BUTTON_XPATHS:
+            for element in driver.find_elements(By.XPATH, xpath):
+                try:
+                    if element.is_displayed() and element.is_enabled():
+                        return element
+                except selenium_exceptions.WebDriverException:
+                    # eg stale element if the page re-rendered between find and check
+                    continue
+        return False
 
     def get(self, url: str):
         step_started = time.monotonic()
@@ -143,21 +168,13 @@ class CookieSettingDriver(webdriver.Firefox):
 
         else:
             # for all other sites, try and use some common button text to reject/accept cookies
-            # NOTE: each miss costs up to 5s (WebDriverWait timeout) - worst case 25s for 5 texts
+            # DM 24th Sep 26 - one shared 5s wait for all texts (was 5s per text, so 25s on every site
+            # without a banner). Texts are checked in priority order on each poll so reject still beats accept.
             banner_search_started = time.monotonic()
-            for text in [
-                "Refuse non-essential cookies",
-                "Decline optional cookies",
-                "Reject additional cookies",
-                "Reject all",
-                "Accept all cookies",
-            ]:
-                try:
-                    xpath = f"//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{text.lower()}')]"
-                    WebDriverWait(self, 5).until(EC.element_to_be_clickable((By.XPATH, xpath))).click()
-                    break
-                except selenium_exceptions.WebDriverException:
-                    pass
+            try:
+                WebDriverWait(self, 5).until(self._find_clickable_cookie_button).click()
+            except selenium_exceptions.WebDriverException:
+                pass
             logger.debug(
                 f"CookieSettingDriver: generic cookie banner search for {url=} took {time.monotonic() - banner_search_started:.1f}s"
             )

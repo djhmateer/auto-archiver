@@ -120,3 +120,30 @@ def test_extract_media(wacz_enricher, metadata, tmp_path, mocker) -> None:
     wacz_enricher.extract_media_from_wacz(metadata, str(wacz_file))
     assert len(metadata.media) == 2
     assert metadata.media[1].properties.get("id") == "browsertrix-screenshot-0"
+
+
+def test_enrich_logs_crawler_errors_on_failure(wacz_enricher, mocker, tmp_path) -> None:
+    import subprocess
+
+    wacz_enricher.tmp_dir = str(tmp_path)
+    stdout = "\n".join(
+        [
+            '{"timestamp":"t","logLevel":"info","context":"general","message":"Seeds","details":{}}',
+            '{"timestamp":"t","logLevel":"error","context":"general","message":"Page Load Timeout","details":{}}',
+            '{"timestamp":"t","logLevel":"info","context":"general","message":"Exiting","details":{}}',
+        ]
+    )
+    mocker.patch("subprocess.run", side_effect=subprocess.CalledProcessError(9, ["docker"], output=stdout, stderr=""))
+    mock_log = mocker.patch("auto_archiver.utils.custom_logger.logger.error")
+
+    assert wacz_enricher.enrich(Metadata().set_url("https://example.com")) is False
+
+    crawler_log = mock_log.call_args_list[-1][0][0]
+    assert "Page Load Timeout" in crawler_log
+    assert "Seeds" not in crawler_log
+
+
+def test_summarise_crawler_output_falls_back_to_tail(wacz_enricher) -> None:
+    stdout = "\n".join(f"line {i}" for i in range(50))
+    summary = wacz_enricher._summarise_crawler_output(stdout, "", max_lines=5)
+    assert summary.splitlines() == [f"line {i}" for i in range(45, 50)]

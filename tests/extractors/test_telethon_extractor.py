@@ -60,3 +60,44 @@ def test_valid_url_regex(url, expected, get_lazy_module):
 def test_invite_pattern_regex(invite, expected, get_lazy_module):
     match = TelethonExtractor.invite_pattern.search(invite)
     assert bool(match) == expected
+
+
+@pytest.fixture
+def telethon_with_mock_client(mocker):
+    extractor = TelethonExtractor.__new__(TelethonExtractor)
+    extractor.client = mocker.MagicMock()
+    extractor.client.get_messages.return_value = None
+    return extractor
+
+
+def test_private_channel_url_uses_marked_channel_id(telethon_with_mock_client):
+    # t.me/c/<id> ids are channels - a bare positive int would be resolved by telethon as a PeerUser
+    telethon_with_mock_client.download(mocker_item("https://t.me/c/1274414965/107212"))
+    telethon_with_mock_client.client.get_messages.assert_called_once_with(-1001274414965, ids=107212)
+
+
+def test_public_channel_url_uses_username(telethon_with_mock_client):
+    telethon_with_mock_client.download(mocker_item("https://t.me/gwaramedia/62274"))
+    telethon_with_mock_client.client.get_messages.assert_called_once_with("gwaramedia", ids=62274)
+    telethon_with_mock_client.client.get_dialogs.assert_not_called()
+
+
+def test_private_channel_not_cached_loads_dialogs_once(telethon_with_mock_client):
+    client = telethon_with_mock_client.client
+    client.get_input_entity.side_effect = ValueError("Could not find the input entity")
+
+    telethon_with_mock_client.download(mocker_item("https://t.me/c/1274414965/107212"))
+    telethon_with_mock_client.download(mocker_item("https://t.me/c/1274414965/107162"))
+
+    client.get_dialogs.assert_called_once()
+
+
+def test_private_channel_already_cached_skips_dialogs(telethon_with_mock_client):
+    telethon_with_mock_client.download(mocker_item("https://t.me/c/1274414965/107212"))
+    telethon_with_mock_client.client.get_dialogs.assert_not_called()
+
+
+def mocker_item(url):
+    from auto_archiver.core import Metadata
+
+    return Metadata().set_url(url)

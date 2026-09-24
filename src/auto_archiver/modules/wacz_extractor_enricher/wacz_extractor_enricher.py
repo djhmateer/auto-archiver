@@ -160,7 +160,13 @@ class WaczExtractorEnricher(Enricher, Extractor):
                 logger.debug("Using SOCKS proxy for browsertrix-crawler")
                 my_env["SOCKS_HOST"] = self.socks_proxy_host
                 my_env["SOCKS_PORT"] = str(self.socks_proxy_port)
-            subprocess.run(cmd, check=True, env=my_env)
+            # DM 24th Sep 26 - capture crawler output so failures (eg exit status 9) can be diagnosed from our logs
+            subprocess.run(cmd, check=True, env=my_env, capture_output=True, text=True)
+        except subprocess.CalledProcessError as e:
+            logger.error(f"WACZ generation failed: {e}")
+            if crawler_log := self._summarise_crawler_output(e.stdout, e.stderr):
+                logger.error(f"browsertrix-crawler output:\n{crawler_log}")
+            return False
         except Exception as e:
             logger.error(f"WACZ generation failed: {e}")
             return False
@@ -213,6 +219,16 @@ class WaczExtractorEnricher(Enricher, Extractor):
                         to_enrich.set_content(obj["text"])
 
         return True
+
+    @staticmethod
+    def _summarise_crawler_output(stdout: str | None, stderr: str | None, max_lines: int = 20) -> str:
+        """
+        browsertrix-crawler logs one JSON object per line. Return the warning/error/fatal lines
+        (falling back to the tail of the output if there are none), capped at max_lines.
+        """
+        lines = [line for line in f"{stdout or ''}\n{stderr or ''}".splitlines() if line.strip()]
+        problems = [line for line in lines if re.search(r'"logLevel"\s*:\s*"(warn|error|fatal)"', line)]
+        return "\n".join((problems or lines)[-max_lines:])
 
     def facebook_extract_media_from_wacz(self, to_enrich: Metadata, wacz_filename: str, url: str) -> None:
         """
@@ -565,7 +581,12 @@ class WaczExtractorEnricher(Enricher, Extractor):
 
             try:
                 logger.info(f"Running browsertrix-crawler: {' '.join(cmd)}")
-                subprocess.run(cmd, check=True)
+                subprocess.run(cmd, check=True, capture_output=True, text=True)
+            except subprocess.CalledProcessError as e:
+                logger.error(f"WACZ generation failed: {e}")
+                if crawler_log := self._summarise_crawler_output(e.stdout, e.stderr):
+                    logger.error(f"browsertrix-crawler output:\n{crawler_log}")
+                return False
             except Exception as e:
                 logger.error(f"WACZ generation failed: {e}")
                 return False

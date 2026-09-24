@@ -160,3 +160,20 @@ def test_enrich_metadata_structure(thumbnail_enricher, metadata_with_video, mock
         assert thumbnail.filename is not None
         assert thumbnail.properties.get("id") == f"thumbnail_{index}"
         assert thumbnail.properties.get("timestamp") == expected_timestamps[index]
+
+
+def test_enrich_stops_after_first_ffmpeg_error(
+    thumbnail_enricher, metadata_with_video, mock_ffmpeg_environment, mocker
+):
+    import ffmpeg
+
+    mock_output = mock_ffmpeg_environment["mock_output"]
+    mock_output.run.side_effect = ffmpeg.Error("ffmpeg", b"", b"Cannot determine format of input stream 0:0 after EOF")
+    mock_log = mocker.patch("auto_archiver.utils.custom_logger.logger.error")
+
+    thumbnail_enricher.enrich(metadata_with_video)
+
+    # a broken file shouldn't be retried for every timestamp (max_thumbnails is 4 here)
+    assert mock_output.run.call_count == 1
+    assert mock_log.call_count == 1
+    assert metadata_with_video.media[0].get("thumbnails") == []

@@ -249,7 +249,8 @@ class LazyBaseModule:
                     return True
 
                 # check if docker daemon is running
-                return dep_exists and subprocess.run(["docker", "ps", "-q"]).returncode == 0
+                # capture output so running container ids aren't printed to stdout
+                return dep_exists and subprocess.run(["docker", "ps", "-q"], capture_output=True).returncode == 0
 
             return dep_exists
 

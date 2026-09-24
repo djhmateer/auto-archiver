@@ -13,7 +13,9 @@ from googleapiclient.errors import HttpError
 # Code below from https://developers.google.com/drive/api/quickstart/python
 # Example invocation: py scripts/create_update_gdrive_oauth_token.py -c secrets/credentials.json -t secrets/gd-token.json
 
-SCOPES = ["https://www.googleapis.com/auth/drive.file"]
+# full drive scope to match gdrive_storage - drive.file only sees files this app created, so can't find
+# folders (eg the root folder) created or shared by anyone else
+SCOPES = ["https://www.googleapis.com/auth/drive"]
 
 
 @click.command(

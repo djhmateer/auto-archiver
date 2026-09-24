@@ -39,7 +39,7 @@ class ThumbnailEnricher(Enricher):
                     probe = ffmpeg.probe(m.filename)
                     video_stream = next(stream for stream in probe["streams"] if stream["codec_type"] == "video")
                     # some containers (e.g. webm) don't set duration on the video stream, only on the overall format
-                    duration = float(video_stream.get("duration", probe["format"]["duration"]))
+                    duration = float(video_stream.get("duration") or probe["format"]["duration"])
                     to_enrich.media[m_id].set("duration", duration)
                 except Exception as e:
                     logger.warning(f"Failed to get duration with FFMPEG from {m.filename}: {e}")
@@ -70,7 +70,12 @@ class ThumbnailEnricher(Enricher):
                         )
                     except ffmpeg.Error as e:
                         stderr = e.stderr.decode(errors="replace") if e.stderr else e
-                        logger.error(f"ffmpeg error creating thumbnail {index} for {m.filename}: {stderr}")
+                        # DM 24th Sep 26 - a broken/truncated file fails the same way for every timestamp,
+                        # so stop here rather than logging the same error up to max_thumbnails times
+                        logger.error(
+                            f"ffmpeg error creating thumbnail {index} for {m.filename}, skipping remaining thumbnails: {stderr}"
+                        )
+                        break
                     except Exception as e:
                         logger.error(f"error creating thumbnail {index} for media: {e}")
 

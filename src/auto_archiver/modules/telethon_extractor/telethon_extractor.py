@@ -136,7 +136,9 @@ class TelethonExtractor(Extractor):
             return False
 
         is_private = match.group(1) == "/c"
-        chat = int(match.group(2)) if is_private else match.group(2)
+        # DM 24th Sep 26 - t.me/c/<id> ids are channel ids. A bare positive int is resolved by telethon
+        # as a PeerUser, so use the -100 prefixed "marked" form which telethon resolves as a PeerChannel
+        chat = int(f"-100{match.group(2)}") if is_private else match.group(2)
         is_story = match.group(3) == "/s"
         post_id = int(match.group(4))
 
@@ -145,6 +147,9 @@ class TelethonExtractor(Extractor):
         # NB: not using bot_token since then private channels cannot be archived: self.client.start(bot_token=self.bot_token)
         with self.client.start():
             # with self.client.start(bot_token=self.bot_token):
+            if is_private:
+                self._ensure_private_channel_cached(chat)
+
             if is_story:
                 try:
                     stories = self.client(functions.stories.GetStoriesByIDRequest(peer=chat, id=[post_id]))
@@ -217,6 +222,23 @@ class TelethonExtractor(Extractor):
                 if post.message != title:
                     result.set_content(post.message)
         return result.success("telethon")
+
+    def _ensure_private_channel_cached(self, chat: int) -> None:
+        """
+        Private channels (t.me/c/...) can only be resolved if their access_hash is in the session's
+        entity cache. If it isn't, load the account's dialogs once to populate the cache.
+        """
+        try:
+            self.client.get_input_entity(chat)
+        except ValueError:
+            if getattr(self, "_dialogs_loaded", False):
+                return
+            logger.debug(f"Private channel {chat} not in session cache, loading dialogs")
+            self._dialogs_loaded = True
+            try:
+                self.client.get_dialogs()
+            except Exception as e:
+                logger.warning(f"Could not load dialogs to resolve private channel {chat}: {e}")
 
     def _get_media_posts_in_group(self, chat, original_post, max_amp=10):
         """
