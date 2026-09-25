@@ -102,6 +102,23 @@ class TestMediaStore:
         media.store(metadata, url="https://example.com", storages=[mock_storage])
         mock_storage.store.assert_called_once()
 
+    def test_failed_store_carries_on_and_is_recorded(self):
+        """eg a video whose upload failed: its .ots proof, and the other storages, are still stored"""
+        from auto_archiver.core import Metadata
+
+        media = Media(filename="test.mp4", _key="row-1/test.mp4")
+        media.set("ots", Media(filename="test.mp4.ots", _key="row-1/test.mp4.ots"))
+        metadata = Metadata()
+        failing, working = Mock(), Mock()
+        failing.store.side_effect = [RuntimeError("upload failed"), None]  # the video fails, the .ots doesn't
+
+        media.store(metadata, url="https://example.com", storages=[failing, working])
+
+        assert failing.store.call_count == 2
+        assert working.store.call_count == 2
+        assert metadata.get_store_failures() == ["row-1/test.mp4"]
+        assert "store_failures" not in metadata.to_json()  # not saved with the archive
+
 
 class TestMediaInnerMedia:
     """Test nested media retrieval."""

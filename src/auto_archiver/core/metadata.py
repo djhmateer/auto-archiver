@@ -253,3 +253,10 @@ class Metadata:
 
     def get_context(self, key: str, default: Any = None) -> Any:
         return self._context.get(key, default)
+
+    def record_store_failure(self, key: str) -> None:
+        """Notes a media file that couldn't be stored (kept in the context, so it isn't saved with the archive)"""
+        self._context.setdefault("store_failures", []).append(key)
+
+    def get_store_failures(self) -> List[str]:
+        return self._context.get("store_failures", [])

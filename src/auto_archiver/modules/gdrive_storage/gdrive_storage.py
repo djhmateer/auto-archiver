@@ -61,7 +61,16 @@ def _is_transient(e: Exception) -> bool:
 
 
 def _describe(e: Exception) -> str:
-    return f"HTTP {e.resp.status}" if isinstance(e, HttpError) else repr(e)
+    """eg 'HTTP 403 userRateLimitExceeded' - the reason is what tells a rate limit from a permissions problem"""
+    if not isinstance(e, HttpError):
+        return repr(e)
+    # read from the body as _should_retry_response does: e.error_details is only filled in if Drive sent a message
+    try:
+        errors = json.loads(e.content)["error"]["errors"]
+        reasons = [err["reason"] for err in errors if err.get("reason")]
+    except (ValueError, KeyError, TypeError, AttributeError):
+        reasons = []
+    return f"HTTP {e.resp.status} {', '.join(reasons) or e.reason}"
 
 
 def _megabytes(path: str) -> str:

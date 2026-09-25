@@ -156,6 +156,29 @@ def test_done_cached(gsheets_db, metadata, mock_gworksheet, mocker):
     assert any(call[2].startswith("[cached]") for call in call_args)
 
 
+@pytest.mark.parametrize(
+    "failures, expected_status",
+    [
+        (["row-1/a.mp4"], "my-archiver: success (1 upload failed - see logs)"),
+        (["row-1/a.mp4", "row-1/a.mp4.ots"], "my-archiver: success (2 uploads failed - see logs)"),
+    ],
+)
+def test_done_reports_files_that_couldnt_be_stored(
+    gsheets_db, metadata, mock_gworksheet, mocker, failures, expected_status
+):
+    mocker.patch(
+        "auto_archiver.modules.gsheet_feeder_db.gsheet_feeder_db.get_current_timestamp",
+        return_value="2025-02-01T00:00:00+00:00",
+    )
+    for key in failures:
+        metadata.record_store_failure(key)
+
+    gsheets_db.done(metadata)
+
+    call_args = mock_gworksheet.batch_set_cell.call_args[0][0]
+    assert (1, "status", expected_status) in call_args
+
+
 def test_done_missing_media(gsheets_db, metadata, mock_gworksheet, mocker):
     # clear media from metadata
     metadata.media = []

@@ -45,7 +45,14 @@ class Media:
 
         for s in storages:
             for any_media in self.all_inner_media(include_self=True):
-                s.store(any_media, url, metadata=metadata)
+                # a failed upload mustn't stop the rest (eg the .ots proof of a video that failed), and is recorded
+                # so the database can report it (otherwise the row just says success with a file missing)
+                try:
+                    s.store(any_media, url, metadata=metadata)
+                except Exception as e:
+                    logger.error(f"Error storing {any_media.key or any_media.filename} in {s.name}, carrying on: {e}")
+                    if metadata is not None:
+                        metadata.record_store_failure(any_media.key or any_media.filename)
 
     def all_inner_media(self, include_self=False) -> Iterator[Media]:
         """Retrieves all media, including nested media within properties or transformations on original media.

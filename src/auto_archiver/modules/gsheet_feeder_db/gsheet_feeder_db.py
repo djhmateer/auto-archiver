@@ -187,6 +187,10 @@ class GsheetsFeederDB(Feeder, Database):
         status_message = item.status
         if cached:
             status_message = f"[cached] {status_message}"
+        # otherwise a row with a file that couldn't be stored looks fully archived
+        if failures := item.get_store_failures():
+            logger.warning(f"{len(failures)} file(s) couldn't be stored for row {row}: {', '.join(failures)}")
+            status_message += f" ({len(failures)} upload{'s' if len(failures) > 1 else ''} failed - see logs)"
         cell_updates.append((row, "status", status_message))
 
         media: Media = item.get_final_media()

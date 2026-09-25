@@ -432,7 +432,7 @@ def test_upload_that_times_out_while_sending_the_file_is_resumed(
 
     assert storage._upload(media_with_key("row-1/a.jpg", tmp_path)) == "file_1"
     assert mock_sleep.call_count == 2
-    assert any("WARNING" in m and "HTTP 403" in m and "retry 1 of" in m for m in log_messages)
+    assert any("WARNING" in m and "HTTP 403 userRateLimitExceeded" in m and "retry 1 of" in m for m in log_messages)
     assert any("WARNING" in m and "TimeoutError" in m and "retry 2 of" in m for m in log_messages)
 
 
