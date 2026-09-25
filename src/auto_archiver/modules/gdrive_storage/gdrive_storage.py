@@ -1,15 +1,23 @@
+import errno
 import json
 import logging
 import os
+import random
+import ssl
 import time
 from typing import IO
 
+import httplib2
 from google.auth.transport.requests import Request
 from google.oauth2 import service_account
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
+
+# private, but it's the library's own "is this error status worth retrying" check (5xx, 429, rate limit 403s), which
+# _send_upload has to apply itself. The lock file pins the library, and the tests fail if this ever disappears
+from googleapiclient.http import _should_retry_response
 from auto_archiver.utils.custom_logger import logger
 
 from auto_archiver.core import Media, Metadata
@@ -19,7 +27,9 @@ from auto_archiver.core import Storage
 # failures (5xx, 429, rate limit 403s, timeouts and dropped connections) with exponential backoff, and fails straight
 # away on anything else (eg 404, permission 403, 400). The wait before retry n is random() * 2^n seconds, so 7 retries
 # wait ~2 minutes in total on average (4 at most) - long enough to get past a rate limit window, as the old fixed
-# 3 x 30s sleeps were
+# 3 x 30s sleeps were.
+# File uploads are the exception: the library's retries don't cover all of a resumable upload, so _send_upload
+# retries those itself, with the same budget and backoff
 NUM_RETRIES = 7
 
 
@@ -35,6 +45,23 @@ def _forward_googleapiclient_logs() -> None:
     if not any(isinstance(h, _ForwardToLoguru) for h in lib_logger.handlers):
         lib_logger.addHandler(_ForwardToLoguru())
         lib_logger.propagate = False
+
+
+# the errno names the client library retries a failed request on (see googleapiclient.http._retry_request)
+_TRANSIENT_ERRNOS = {"WSAETIMEDOUT", "ETIMEDOUT", "EPIPE", "ECONNABORTED", "ECONNREFUSED", "ECONNRESET"}
+
+
+def _is_transient(e: Exception) -> bool:
+    """Whether a failed Drive request is worth retrying, by the same rules as the client library."""
+    if isinstance(e, HttpError):
+        return _should_retry_response(e.resp.status, e.content)
+    if isinstance(e, (ssl.SSLError, TimeoutError, ConnectionError, httplib2.ServerNotFoundError)):
+        return True
+    return isinstance(e, OSError) and errno.errorcode.get(e.errno) in _TRANSIENT_ERRNOS
+
+
+def _describe(e: Exception) -> str:
+    return f"HTTP {e.resp.status}" if isinstance(e, HttpError) else repr(e)
 
 
 def _megabytes(path: str) -> str:
@@ -149,19 +176,16 @@ class GDriveStorage(Storage):
         logger.debug(f"Uploading {media.filename} ({size}) as {media.key}")
         started = time.monotonic()
         try:
-            gd_file = (
-                self.service.files()
-                .create(
-                    supportsAllDrives=True,
-                    body={"name": [filename], "parents": [parent_id]},
-                    media_body=media_body,
-                    fields="id",
-                )
-                .execute(num_retries=NUM_RETRIES)
+            request = self.service.files().create(
+                supportsAllDrives=True,
+                body={"name": [filename], "parents": [parent_id]},
+                media_body=media_body,
+                fields="id",
             )
+            gd_file = self._send_upload(request, media.key)
         except Exception as e:
-            # transient errors have already been retried by the client library. The file may still have been
-            # created if only the response was lost (eg a timeout), so check before reporting a failure
+            # transient errors have already been retried (see _send_upload). The file may still have been created
+            # if only the response was lost, so check before reporting a failure
             if existing_id := self._find_after_failed_upload(parent_id, filename):
                 logger.warning(
                     f"Upload of {media.key} errored but the file is in Drive as {existing_id}, using it: {e}"
@@ -172,6 +196,35 @@ class GDriveStorage(Storage):
 
         logger.debug(f"Uploaded {media.key} ({size}) in {time.monotonic() - started:.1f}s as {gd_file['id']}")
         return gd_file["id"]
+
+    def _send_upload(self, request, key: str) -> dict:
+        """
+        Sends a resumable upload, doing all the retrying itself: request.execute(num_retries=...) retries an error
+        status, but gives up at once if sending the file throws (eg 'The read operation timed out' - seen in
+        production), and never retries the "how much of the file arrived?" check it makes before resuming.
+
+        next_chunk() is called without the library's own retries, so there is one retry budget (NUM_RETRIES, with the
+        library's backoff) rather than retries nested inside retries. After a failure, the next next_chunk() carries
+        on from where the upload got to: it starts the session again if that never started, and otherwise asks Drive
+        how much arrived and sends the rest in the same session - so a retry can't create a duplicate file, and a
+        file that did arrive but whose response was lost is returned rather than sent again.
+        """
+        failures = 0
+        while True:
+            try:
+                _, gd_file = request.next_chunk(num_retries=0)
+                if gd_file is not None:
+                    return gd_file
+            except Exception as e:
+                failures += 1
+                if not _is_transient(e) or failures > NUM_RETRIES:
+                    raise
+                wait = random.random() * 2**failures
+                logger.warning(
+                    f"Sending {key} to Drive failed ({_describe(e)}), resuming the upload in {wait:.1f}s "
+                    f"(retry {failures} of {NUM_RETRIES})"
+                )
+                time.sleep(wait)
 
     def _find_after_failed_upload(self, parent_id: str, filename: str) -> str | None:
         try:
