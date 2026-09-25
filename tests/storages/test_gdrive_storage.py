@@ -425,6 +425,7 @@ def test_upload_that_times_out_while_sending_the_file_is_resumed(
         FOLDER_EXISTS,
         SESSION_STARTED,
         RATE_LIMITED,
+        SESSION_STARTED,  # a rate limited session is replaced (see the test below)
         TIMEOUT,
         ({"status": "308"}, b""),  # asked how much arrived: nothing, so the whole file is sent again
         ({"status": "200"}, _json({"id": "file_1"})),
@@ -434,6 +435,35 @@ def test_upload_that_times_out_while_sending_the_file_is_resumed(
     assert mock_sleep.call_count == 2
     assert any("WARNING" in m and "HTTP 403 userRateLimitExceeded" in m and "retry 1 of" in m for m in log_messages)
     assert any("WARNING" in m and "TimeoutError" in m and "retry 2 of" in m for m in log_messages)
+
+
+@pytest.mark.parametrize("rate_limited", [RATE_LIMITED, ({"status": "429"}, b"")])
+def test_rate_limited_upload_session_is_restarted_not_resumed(
+    real_client_storage, mock_sleep, tmp_path, log_messages, rate_limited
+):
+    """In production a session that got a rate limit 403 answered every 'how much arrived?' check with the same 403
+    for 2.5 minutes, so the upload failed - while the next file's new session worked straight away."""
+    storage = real_client_storage(
+        FOLDER_EXISTS,
+        SESSION_STARTED,
+        rate_limited,
+        SESSION_STARTED,
+        ({"status": "200"}, _json({"id": "file_1"})),
+    )
+
+    assert storage._upload(media_with_key("row-1/a.jpg", tmp_path)) == "file_1"
+    assert sum(1 for m, _ in storage.http.requests if m == "POST") == 2
+    assert _sent_ranges(storage) == ["bytes 0-999/1000", "bytes 0-999/1000"]  # no "bytes */1000" check
+    assert any("restarting the upload in a new session" in m and "retry 1 of" in m for m in log_messages)
+
+
+def test_rate_limit_when_starting_the_session_just_retries_starting_it(real_client_storage, mock_sleep, tmp_path):
+    storage = real_client_storage(
+        FOLDER_EXISTS, RATE_LIMITED, SESSION_STARTED, ({"status": "200"}, _json({"id": "file_1"}))
+    )
+
+    assert storage._upload(media_with_key("row-1/a.jpg", tmp_path)) == "file_1"
+    assert sum(1 for m, _ in storage.http.requests if m == "POST") == 2
 
 
 def test_resumed_upload_only_sends_the_part_that_didnt_arrive(real_client_storage, mock_sleep, tmp_path):

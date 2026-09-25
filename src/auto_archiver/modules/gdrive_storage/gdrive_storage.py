@@ -217,6 +217,11 @@ class GDriveStorage(Storage):
         on from where the upload got to: it starts the session again if that never started, and otherwise asks Drive
         how much arrived and sends the rest in the same session - so a retry can't create a duplicate file, and a
         file that did arrive but whose response was lost is returned rather than sent again.
+
+        The exception is a rate limit (403/429) from a session that has started: Drive then answers every "how much
+        arrived?" check on that session with the same 403, however long we wait (seen in production - 8 attempts over
+        2.5 minutes, while the next file's new session worked at once). So a new session is started instead, sending
+        the whole file again. That can't duplicate it, as a session that errored hasn't created the file.
         """
         failures = 0
         while True:
@@ -228,9 +233,15 @@ class GDriveStorage(Storage):
                 failures += 1
                 if not _is_transient(e) or failures > NUM_RETRIES:
                     raise
+                action = "resuming the upload"
+                if isinstance(e, HttpError) and e.resp.status in (403, 429) and request.resumable_uri is not None:
+                    # next_chunk starts a new session when it has no session uri
+                    request.resumable_uri = None
+                    request.resumable_progress = 0
+                    action = "restarting the upload in a new session"
                 wait = random.random() * 2**failures
                 logger.warning(
-                    f"Sending {key} to Drive failed ({_describe(e)}), resuming the upload in {wait:.1f}s "
+                    f"Sending {key} to Drive failed ({_describe(e)}), {action} in {wait:.1f}s "
                     f"(retry {failures} of {NUM_RETRIES})"
                 )
                 time.sleep(wait)
