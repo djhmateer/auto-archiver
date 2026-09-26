@@ -544,7 +544,8 @@ class WaczExtractorEnricher(Enricher, Extractor):
 
 
     # only used by FB - Part 2
-    def save_images_to_enrich_object_from_url_using_browsertrix(self, url_build, to_enrich: Metadata, current_fb_id):
+    def save_images_to_enrich_object_from_url_using_browsertrix(self, url_build, to_enrich: Metadata, current_fb_id) -> list:
+            # returns the carousel's next fb_ids - empty if the crawl failed, as the caller iterates over it
             logger.debug(f' Inside Part 2')
             # call browsertrix and get a warc file using a logged in facebook profile
             # this will get full resolution image which we can then save as a jpg
@@ -586,10 +587,10 @@ class WaczExtractorEnricher(Enricher, Extractor):
                 logger.error(f"WACZ generation failed: {e}")
                 if crawler_log := self._summarise_crawler_output(e.stdout, e.stderr):
                     logger.error(f"browsertrix-crawler output:\n{crawler_log}")
-                return False
+                return []  # no next fb_ids, so Part 2 carries on with any it already has
             except Exception as e:
                 logger.error(f"WACZ generation failed: {e}")
-                return False
+                return []  # no next fb_ids, so Part 2 carries on with any it already has
 
             if os.getenv('RUNNING_IN_DOCKER'):
                 filename = os.path.join("collections", collection, f"{collection}.wacz")
@@ -598,7 +599,7 @@ class WaczExtractorEnricher(Enricher, Extractor):
 
             if not os.path.exists(filename):
                 logger.warning(f"Unable to locate and upload WACZ  {filename=}")
-                return False
+                return []  # no next fb_ids, so Part 2 carries on with any it already has
 
             warc_filename = filename
             counter = 100
