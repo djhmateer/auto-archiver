@@ -31,8 +31,10 @@ class InstagramAPIExtractor(Extractor):
     # TODO: improvement collect aggregates of locations[0].location and mentions for all posts
     """
 
+    # DM 28th Sep 26 - the / after the stories|p|reel prefix is now required - previously it was optional, so profile
+    # usernames starting with p/reel/stories were misparsed as posts eg /paltimesnews -> post code 'altimesnews'
     valid_url = re.compile(
-        r"(?:(?:http|https):\/\/)?(?:www.)?(?:instagram.com)\/(stories(?:\/highlights)?|p|reel)?\/?([^\/\?]*)\/?(\d+)?"
+        r"(?:(?:http|https):\/\/)?(?:www.)?(?:instagram.com)\/(?:(stories(?:\/highlights)?|p|reel)\/)?([^\/\?]*)\/?(\d+)?"
     )
 
     def setup(self) -> None:
@@ -41,6 +43,16 @@ class InstagramAPIExtractor(Extractor):
         self.full_profile_max_posts = int(self.full_profile_max_posts or 0)
         if self.full_profile_max_posts == 0:
             self.full_profile_max_posts = math.inf
+
+    def sanitize_url(self, url: str) -> str:
+        # DM 28th Sep 26 - we don't support instagram /reels/ links, ask the user to use /p/ instead
+        # raised here as sanitize_url runs before the extractors outside their try/except, so the
+        # AssertionError reaches the orchestrator which writes the message to the spreadsheet status column
+        if reels_match := re.search(r"instagram\.com/reels/([^/?#]+)", url):
+            raise AssertionError(
+                f"- Instagram /reels/ links are not supported, please use /p/ instead eg https://www.instagram.com/p/{reels_match.group(1)}/"
+            )
+        return url
 
     def download(self, item: Metadata) -> Metadata:
         url = item.get_url()

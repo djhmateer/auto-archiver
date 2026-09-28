@@ -447,7 +447,8 @@ class GenericExtractor(Extractor):
             pass
 
         if "entries" in data:
-            entries = data.get("entries", [])
+            # DM 28th Sep 26 - yt-dlp can return None for playlist entries it failed to extract (eg TikTok profile urls)
+            entries = [e for e in (data.get("entries") or []) if e]
             if not len(entries):
                 logger.info("GenericExtractor could not find any video")
                 return False
@@ -496,7 +497,7 @@ class GenericExtractor(Extractor):
             except Exception as e:
                 logger.error(f"Error processing entry {entry}: {e}")
         if not len(result.media):
-            logger.info(f"No media found for entry {entry}, skipping.")
+            logger.info(f"No media found for {url=}, skipping.")
             return False
 
         return self.add_metadata(data, info_extractor, url, result)

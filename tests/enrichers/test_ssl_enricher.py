@@ -21,11 +21,10 @@ def metadata():
     return m
 
 
-def test_http_raises(metadata, enricher):
+def test_http_skipped(metadata, enricher):
     metadata.set_url("http://example.com")
-    with pytest.raises(AssertionError) as exc_info:
-        enricher.enrich(metadata)
-    assert "Invalid URL scheme" in str(exc_info.value)
+    assert enricher.enrich(metadata) is None
+    assert metadata.get_media_by_id("ssl_certificate") is None
 
 
 def test_empty_metadata(metadata, enricher):

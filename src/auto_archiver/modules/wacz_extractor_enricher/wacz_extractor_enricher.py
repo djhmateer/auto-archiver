@@ -1,4 +1,5 @@
 import time
+import json
 import jsonlines
 import mimetypes
 import os
@@ -163,7 +164,9 @@ class WaczExtractorEnricher(Enricher, Extractor):
             # DM 24th Sep 26 - capture crawler output so failures (eg exit status 9) can be diagnosed from our logs
             subprocess.run(cmd, check=True, env=my_env, capture_output=True, text=True)
         except subprocess.CalledProcessError as e:
-            logger.error(f"WACZ generation failed: {e}")
+            # DM 28th Sep 26 - put the crawler's reason on the first line as the dashboard only shows that
+            reason = self._crawler_failure_reason(e.stdout, e.stderr) or "no crawler output"
+            logger.error(f"WACZ generation failed (exit status {e.returncode}) for {url}: {reason}")
             if crawler_log := self._summarise_crawler_output(e.stdout, e.stderr):
                 logger.error(f"browsertrix-crawler output:\n{crawler_log}")
             return False
@@ -219,6 +222,19 @@ class WaczExtractorEnricher(Enricher, Extractor):
                         to_enrich.set_content(obj["text"])
 
         return True
+
+    @staticmethod
+    def _crawler_failure_reason(stdout: str | None, stderr: str | None) -> str:
+        """Distinct warning/error messages from browsertrix-crawler's JSON log output, joined onto one line."""
+        messages = []
+        for line in f"{stdout or ''}\n{stderr or ''}".splitlines():
+            try:
+                entry = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(entry, dict) and entry.get("logLevel") in ("warn", "error", "fatal") and entry.get("message") not in messages:
+                messages.append(entry.get("message"))
+        return "; ".join(messages)
 
     @staticmethod
     def _summarise_crawler_output(stdout: str | None, stderr: str | None, max_lines: int = 20) -> str:
@@ -693,10 +709,13 @@ class WaczExtractorEnricher(Enricher, Extractor):
                     if ext == ".ico": should_add_media = False
                     if ext == None : should_add_media = False
 
+                    # remove bad videos eg tiny DASH init/segment fragments which ffmpeg can't read
+                    m = Media(filename=fn)
+                    if should_add_media and m.is_video() and not m.is_valid_video(): should_add_media = False
+
                     # add media
                     # there will be duplicates but deduplication is handled in the file upload code 
                     if should_add_media:
-                        m = Media(filename=fn)
                         m.set("src", record_url)
                         m.set("src_alternative", record_url)
                         to_enrich.add_media(m, warc_fn)

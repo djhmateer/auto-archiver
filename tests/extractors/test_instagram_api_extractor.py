@@ -87,8 +87,12 @@ class TestInstagramAPIExtractor(TestExtractorBase):
         "url,expected",
         [
             ("https://instagram.com/user", [("", "user", "")]),
+            # usernames starting with a post prefix are profiles, not posts
+            ("https://www.instagram.com/paltimesnews", [("", "paltimesnews", "")]),
+            ("https://www.instagram.com/reelsfan/", [("", "reelsfan", "")]),
             ("https://instagr.am/p/post_id", []),
             ("https://youtube.com", []),
+            ("https://www.instagram.com/p/C9QmUGDNOd0/", [("p", "C9QmUGDNOd0", "")]),
             ("https://www.instagram.com/reel/reel_id", [("reel", "reel_id", "")]),
             ("https://instagram.com/stories/highlights/123", [("stories/highlights", "123", "")]),
             ("https://instagram.com/stories/user/123", [("stories", "user", "123")]),
@@ -96,6 +100,18 @@ class TestInstagramAPIExtractor(TestExtractorBase):
     )
     def test_url_parsing(self, url, expected):
         assert self.extractor.valid_url.findall(url) == expected
+
+    @pytest.mark.parametrize(
+        "url",
+        ["https://www.instagram.com/reels/C9QmUGDNOd0/", "https://instagram.com/reels/C9QmUGDNOd0?igsh=abc"],
+    )
+    def test_sanitize_url_rejects_reels(self, url):
+        with pytest.raises(AssertionError, match=r"use /p/ instead eg https://www.instagram.com/p/C9QmUGDNOd0/"):
+            self.extractor.sanitize_url(url)
+
+    def test_sanitize_url_leaves_other_urls(self):
+        url = "https://www.instagram.com/reel/C9QmUGDNOd0/"
+        assert self.extractor.sanitize_url(url) == url
 
     def test_initialize(self):
         assert self.extractor.api_endpoint[-1] != "/"
@@ -108,6 +124,7 @@ class TestInstagramAPIExtractor(TestExtractorBase):
             f"{self.extractor.api_endpoint}/v2/user/by/username",
             headers={"accept": "application/json", "x-access-key": "test_access_token"},
             params={"username": "test_user"},
+            timeout=60,
         )
 
     @pytest.mark.parametrize(

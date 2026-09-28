@@ -147,3 +147,35 @@ def test_summarise_crawler_output_falls_back_to_tail(wacz_enricher) -> None:
     stdout = "\n".join(f"line {i}" for i in range(50))
     summary = wacz_enricher._summarise_crawler_output(stdout, "", max_lines=5)
     assert summary.splitlines() == [f"line {i}" for i in range(45, 50)]
+
+
+def test_crawler_failure_reason(wacz_enricher) -> None:
+    rate_limited = '{"logLevel":"warn","message":"Page possibly rate limited, retrying"}'
+    stdout = "\n".join(
+        [
+            '{"logLevel":"info","message":"Seeds"}',
+            *[rate_limited] * 5,
+            '{"logLevel":"error","message":"Crawl failed, no pages crawled successfully"}',
+            "not json",
+        ]
+    )
+    assert wacz_enricher._crawler_failure_reason(stdout, "") == (
+        "Page possibly rate limited, retrying; Crawl failed, no pages crawled successfully"
+    )
+    assert wacz_enricher._crawler_failure_reason(None, None) == ""
+
+
+def test_enrich_failure_first_log_line_has_reason(wacz_enricher, mocker, tmp_path) -> None:
+    import subprocess
+
+    wacz_enricher.tmp_dir = str(tmp_path)
+    stdout = '{"timestamp":"t","logLevel":"error","context":"general","message":"Crawl failed, no pages crawled successfully","details":{}}'
+    mocker.patch("subprocess.run", side_effect=subprocess.CalledProcessError(9, ["docker"], output=stdout, stderr=""))
+    mock_log = mocker.patch("auto_archiver.utils.custom_logger.logger.error")
+
+    assert wacz_enricher.enrich(Metadata().set_url("https://example.com")) is False
+
+    first_line = mock_log.call_args_list[0][0][0]
+    assert first_line == (
+        "WACZ generation failed (exit status 9) for https://example.com: Crawl failed, no pages crawled successfully"
+    )

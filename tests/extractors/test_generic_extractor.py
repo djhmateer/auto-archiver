@@ -302,6 +302,30 @@ class TestGenericExtractor(TestExtractorBase):
         assert post.get_title() == "Bellingcat"
 
 
+class TestGenericExtractorNoneResults:
+    """yt-dlp can return None playlist entries, eg for TikTok profile urls"""
+
+    @pytest.fixture
+    def extractor(self):
+        extractor = GenericExtractor()
+        extractor.comments = False
+        extractor.subtitles = False
+        return extractor
+
+    @pytest.fixture
+    def tiktok_ie(self):
+        from yt_dlp.extractor import get_info_extractor
+
+        return get_info_extractor("TikTok")
+
+    def test_none_playlist_entries_are_skipped(self, extractor, tiktok_ie, mocker):
+        ydl = mocker.Mock(params={})
+        ydl.extract_info.return_value = {"id": "abc", "entries": [None, None]}
+        error_log = mocker.patch("auto_archiver.utils.custom_logger.logger.error")
+        assert extractor.get_metadata_for_video({}, tiktok_ie, "https://www.tiktok.com/@someone", ydl) is False
+        error_log.assert_not_called()
+
+
 class TestGenericExtractorPoToken:
     @pytest.fixture
     def extractor(self, mocker):

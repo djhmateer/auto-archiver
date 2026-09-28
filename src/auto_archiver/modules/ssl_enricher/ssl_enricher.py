@@ -19,7 +19,9 @@ class SSLEnricher(Enricher):
 
         url = to_enrich.get_url()
         parsed = urlparse(url)
-        assert parsed.scheme in ["https"], "Invalid URL scheme"
+        if parsed.scheme != "https":
+            logger.info(f"Skipping SSL certificate as URL scheme is not https: {url}")
+            return
 
         domain = parsed.netloc
         logger.debug(f"Fetching SSL certificate for {domain=}")

@@ -686,7 +686,12 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
             self.cleanup()
             exit()
         except Exception as e:
-            logger.error(f"Got unexpected error: {e}\n{traceback.format_exc()}")
+            # DM 27th Sep 26 - AssertionErrors are expected failures with a message for the spreadsheet
+            # eg instagram /reels/ links, so no need for a traceback
+            if isinstance(e, AssertionError):
+                logger.warning(f"Archive failed: {e}")
+            else:
+                logger.error(f"Got unexpected error: {e}\n{traceback.format_exc()}")
 
             # DM 7th Nov 25 - disconnect vpn if connected and we throw an exception
             # not in finally block as we want to disconnect before calls to spreadsheet

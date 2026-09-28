@@ -60,7 +60,8 @@ poetry run python src/auto_archiver --config secrets/orchestration-aa-demo-main.
 
 # poetry run python src/auto_archiver --config secrets/orchestration-aa-hrw.yaml
 
-poetry run python src/auto_archiver --config secrets/orchestration-aa-tfgbv.yaml
+# this one is useful for the next demo
+# poetry run python src/auto_archiver --config secrets/orchestration-aa-tfgbv.yaml
 
 #poetry run python src/auto_archiver --config secrets/orchestration-aa-disarm.yaml
 
