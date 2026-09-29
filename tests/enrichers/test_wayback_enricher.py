@@ -74,6 +74,16 @@ def test_download_success(wayback_extractor_enricher, mock_is_auth_wall, mock_po
     assert result.get("wayback") == "https://web.archive.org/web/20250101010101/https://example.com"
 
 
+def test_download_failure_skips_later_enrich(wayback_extractor_enricher, mock_is_auth_wall, mock_post_success, mock_get_success):
+    mock_is_auth_wall(False)
+    post = mock_post_success()
+    mock_get_success({"status": "error", "status_ext": "error:job-failed", "message": "Job failed."})
+    metadata = Metadata().set_url("https://example.com")
+    assert wayback_extractor_enricher.download(metadata) is None
+    assert wayback_extractor_enricher.enrich(metadata) is False
+    assert post.call_count == 1
+
+
 def test_enrich_auth_wall(wayback_extractor_enricher, metadata, mock_is_auth_wall):
     mock_is_auth_wall(True)
     result = wayback_extractor_enricher.enrich(metadata)

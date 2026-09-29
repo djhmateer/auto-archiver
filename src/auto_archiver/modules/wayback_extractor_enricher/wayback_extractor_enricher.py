@@ -21,6 +21,9 @@ class WaybackExtractorEnricher(Enricher, Extractor):
         result.merge(item)
         if self.enrich(result):
             return result.success("wayback")
+        # DM 29th Sep 26 - remember the failure on the orchestrator's item so the enricher step doesn't
+        # resubmit the same URL straight away (IA hands back the same failed job_id, and a slow POST can cost minutes)
+        item.set_context("wayback_failed", True)
 
     def enrich(self, to_enrich: Metadata) -> bool:
         proxies = {}
@@ -37,6 +40,10 @@ class WaybackExtractorEnricher(Enricher, Extractor):
         if to_enrich.get("wayback"):
             logger.info(f"Wayback enricher had already been executed: {to_enrich.get('wayback')}")
             return True
+
+        if to_enrich.get_context("wayback_failed"):
+            logger.debug("[SKIP] WAYBACK since it already failed for this url as an extractor")
+            return False
 
         logger.debug("Calling Wayback")
 
