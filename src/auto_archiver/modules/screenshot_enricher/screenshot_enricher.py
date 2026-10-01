@@ -23,6 +23,11 @@ FACEBOOK_WARNING_PHRASES = [
     "you must log in to continue",
     "confirm that this is your account",
     "we locked your account",
+    # DM 30th Sep 26 - logged out login wall, which has none of the phrases above
+    "see more on facebook",
+    "create new account",
+    "forgotten password",
+    "forgot password",
 ]
 
 FACEBOOK_STORY_URL_REGEX = re.compile(r"facebook\.com/stories/", re.IGNORECASE)

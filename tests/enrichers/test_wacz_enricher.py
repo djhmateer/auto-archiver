@@ -71,6 +71,17 @@ def test_download_success(wacz_enricher, mocker) -> None:
     assert result.status == "wacz: success"
 
 
+def test_download_failure_skips_later_enrich(wacz_enricher, mocker, tmp_path) -> None:
+    import subprocess
+
+    wacz_enricher.tmp_dir = str(tmp_path)
+    mock_run = mocker.patch("subprocess.run", side_effect=subprocess.CalledProcessError(9, ["docker"], output="", stderr=""))
+    metadata = Metadata().set_url("https://example.com")
+    assert wacz_enricher.download(metadata) is None
+    assert wacz_enricher.enrich(metadata) is False
+    assert mock_run.call_count == 1
+
+
 def test_enrich_already_executed(wacz_enricher, mocker) -> None:
     """Test enrich  if already executed."""
     mock_log = mocker.patch("auto_archiver.utils.custom_logger.logger.info")
@@ -154,7 +165,10 @@ def test_crawler_failure_reason(wacz_enricher) -> None:
     stdout = "\n".join(
         [
             '{"logLevel":"info","message":"Seeds"}',
+            '{"logLevel":"warn","context":"redis","message":"ioredis error"}',
+            '{"logLevel":"warn","context":"redis","message":"Waiting for redis at redis://localhost:6379/0"}',
             *[rate_limited] * 5,
+            '{"logLevel":"warn","message":"Page date missing, setting to now"}',
             '{"logLevel":"error","message":"Crawl failed, no pages crawled successfully"}',
             "not json",
         ]

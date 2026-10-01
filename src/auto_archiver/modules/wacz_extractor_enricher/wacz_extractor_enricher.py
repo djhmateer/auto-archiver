@@ -17,6 +17,9 @@ from auto_archiver.utils import url as UrlUtil, random_str
 
 LOGIN_PAGE_TITLE = re.compile(r"\b(log ?in|sign ?in)\b", re.IGNORECASE)
 NOTIFICATION_COUNT_PREFIX = re.compile(r"^\(\d+\)\s*")
+# DM 1st Oct 26 - browsertrix-crawler warnings that show up on most failed (and successful) crawls, so say nothing
+# about why the crawl failed - kept out of the one-line failure reason the dashboard shows
+CRAWLER_NOISE_MESSAGE = re.compile(r"^(ioredis error|Waiting for redis\b|Page date missing\b)")
 
 
 def is_bare_site_name(title: str, url: str) -> bool:
@@ -60,11 +63,18 @@ class WaczExtractorEnricher(Enricher, Extractor):
         result.merge(item)
         if self.enrich(result):
             return result.success("wacz")
+        # DM 1st Oct 26 - remember the failure on the orchestrator's item so the enricher step doesn't
+        # rerun the same crawl straight away (it fails the same way, and costs 35-70s)
+        item.set_context("wacz_failed", True)
 
     def enrich(self, to_enrich: Metadata) -> bool:
         if to_enrich.get_media_by_id("browsertrix"):
             logger.info(f"WACZ enricher had already been executed: {to_enrich.get_media_by_id('browsertrix')}")
             return True
+
+        if to_enrich.get_context("wacz_failed"):
+            logger.debug("[SKIP] WACZ since it already failed for this url as an extractor")
+            return False
 
         url = to_enrich.get_url()
 
@@ -232,8 +242,11 @@ class WaczExtractorEnricher(Enricher, Extractor):
                 entry = json.loads(line)
             except ValueError:
                 continue
-            if isinstance(entry, dict) and entry.get("logLevel") in ("warn", "error", "fatal") and entry.get("message") not in messages:
-                messages.append(entry.get("message"))
+            if not isinstance(entry, dict) or entry.get("logLevel") not in ("warn", "error", "fatal"):
+                continue
+            message = entry.get("message")
+            if message not in messages and not CRAWLER_NOISE_MESSAGE.match(str(message)):
+                messages.append(message)
         return "; ".join(messages)
 
     @staticmethod
