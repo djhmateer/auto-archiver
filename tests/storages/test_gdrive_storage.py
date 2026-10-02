@@ -14,7 +14,7 @@ from googleapiclient.http import HttpMockSequence
 
 from auto_archiver.core import Media
 from auto_archiver.modules.gdrive_storage import GDriveStorage
-from auto_archiver.modules.gdrive_storage.gdrive_storage import NUM_RETRIES
+from auto_archiver.modules.gdrive_storage.gdrive_storage import NUM_RETRIES, SIMPLE_UPLOAD_MAX_BYTES
 from auto_archiver.utils.custom_logger import logger
 from tests.storages.test_storage_base import TestStorageBase
 
@@ -144,16 +144,19 @@ class FakeDrive:
                 raise error
             return {"id": _id}
 
-        return _Request(execute)
+        return _Request(execute, is_upload=media_body is not None)
 
 
 class _Request:
-    def __init__(self, execute):
+    def __init__(self, execute, is_upload=False):
         self._execute = execute
+        self._is_upload = is_upload
 
     def execute(self, num_retries=0):
-        # FakeDrive errors stand for errors that are left after the client library's own retries
-        _Request.drive_num_retries.add(num_retries)
+        # FakeDrive errors stand for errors that are left after the client library's own retries. Uploads are
+        # retried by _send_upload/_send_simple_upload rather than the library, so aren't counted
+        if not self._is_upload:
+            _Request.drive_num_retries.add(num_retries)
         return self._execute()
 
     def next_chunk(self, num_retries=0):
@@ -356,7 +359,10 @@ class _HttpMockSequenceWithErrors(HttpMockSequence):
 
 
 @pytest.fixture
-def real_client_storage(gdrive_storage):
+def real_client_storage(gdrive_storage, mocker):
+    # the upload tests use 1000 byte files: send them as resumable uploads unless a test sets this back
+    mocker.patch("auto_archiver.modules.gdrive_storage.gdrive_storage.SIMPLE_UPLOAD_MAX_BYTES", 0)
+
     def with_responses(*responses):
         gdrive_storage.http = _HttpMockSequenceWithErrors(list(responses))
         gdrive_storage.service = build("drive", "v3", http=gdrive_storage.http, static_discovery=True)
@@ -567,6 +573,79 @@ def test_network_errors_are_retried(real_client_storage, mock_sleep, tmp_path, e
     )
 
     assert storage._upload(media_with_key("row-1/a.jpg", tmp_path)) == "f"
+
+
+@pytest.fixture
+def simple_uploads(mocker):
+    mocker.patch("auto_archiver.modules.gdrive_storage.gdrive_storage.SIMPLE_UPLOAD_MAX_BYTES", SIMPLE_UPLOAD_MAX_BYTES)
+
+
+def test_small_file_is_sent_in_one_request(real_client_storage, simple_uploads, mock_sleep, tmp_path):
+    storage = real_client_storage(FOLDER_EXISTS, ({"status": "200"}, _json({"id": "file_1"})))
+
+    assert storage._upload(media_with_key("row-1/a.ots", tmp_path)) == "file_1"
+    assert [m for m, _ in storage.http.requests] == ["GET", "POST"]  # folder search, then the upload itself
+    mock_sleep.assert_not_called()
+
+
+def test_large_file_is_sent_as_a_resumable_upload(real_client_storage, mock_sleep, tmp_path, mocker):
+    mocker.patch("auto_archiver.modules.gdrive_storage.gdrive_storage.SIMPLE_UPLOAD_MAX_BYTES", 999)
+    storage = real_client_storage(FOLDER_EXISTS, SESSION_STARTED, ({"status": "200"}, _json({"id": "file_1"})))
+
+    assert storage._upload(media_with_key("row-1/a.mp4", tmp_path)) == "file_1"
+    assert [m for m, _ in storage.http.requests] == ["GET", "POST", "PUT"]
+
+
+@pytest.mark.parametrize("error", [({"status": "503"}, b""), RATE_LIMITED])
+def test_small_file_error_response_is_sent_again_without_checking_drive(
+    real_client_storage, simple_uploads, mock_sleep, tmp_path, log_messages, error
+):
+    # an error response means Drive didn't create the file, so there's nothing to look for
+    storage = real_client_storage(FOLDER_EXISTS, error, ({"status": "200"}, _json({"id": "file_1"})))
+
+    assert storage._upload(media_with_key("row-1/a.ots", tmp_path)) == "file_1"
+    assert [m for m, _ in storage.http.requests] == ["GET", "POST", "POST"]
+    assert any("sending it again" in m and "retry 1 of" in m for m in log_messages)
+
+
+def test_small_file_whose_response_was_lost_is_not_sent_again(
+    real_client_storage, simple_uploads, mock_sleep, tmp_path
+):
+    storage = real_client_storage(
+        FOLDER_EXISTS,
+        TIMEOUT,
+        ({"status": "200"}, _json({"files": [{"id": "file_1"}]})),  # it did arrive
+    )
+
+    assert storage._upload(media_with_key("row-1/a.ots", tmp_path)) == "file_1"
+    assert [m for m, _ in storage.http.requests] == ["GET", "POST", "GET"]
+    mock_sleep.assert_not_called()
+
+
+def test_small_file_that_times_out_and_did_not_arrive_is_sent_again(
+    real_client_storage, simple_uploads, mock_sleep, tmp_path
+):
+    storage = real_client_storage(FOLDER_EXISTS, TIMEOUT, NOT_IN_DRIVE, ({"status": "200"}, _json({"id": "file_1"})))
+
+    assert storage._upload(media_with_key("row-1/a.ots", tmp_path)) == "file_1"
+    assert [m for m, _ in storage.http.requests] == ["GET", "POST", "GET", "POST"]
+    assert mock_sleep.call_count == 1
+
+
+def test_small_file_permanent_error_is_not_retried(real_client_storage, simple_uploads, mock_sleep, tmp_path):
+    storage = real_client_storage(FOLDER_EXISTS, ({"status": "400"}, b""), NOT_IN_DRIVE)
+
+    assert storage._upload(media_with_key("row-1/a.ots", tmp_path)) is None
+    mock_sleep.assert_not_called()
+
+
+def test_small_file_gives_up_after_num_retries(real_client_storage, simple_uploads, mock_sleep, tmp_path):
+    storage = real_client_storage(FOLDER_EXISTS, *[({"status": "503"}, b"")] * (NUM_RETRIES + 1), NOT_IN_DRIVE)
+
+    assert storage._upload(media_with_key("row-1/a.ots", tmp_path)) is None
+    assert mock_sleep.call_count == NUM_RETRIES
+    # one request per retry - not the library's NUM_RETRIES retries inside each of ours
+    assert sum(1 for m, _ in storage.http.requests if m == "POST") == NUM_RETRIES + 1
 
 
 def test_library_retry_messages_reach_our_logs(real_client_storage, log_messages):

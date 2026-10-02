@@ -30,51 +30,70 @@ class TelethonExtractor(Extractor):
 
     def setup(self) -> None:
         """
-        1. makes a copy of session_file that is removed in cleanup
-        2. trigger login process for telegram or proceed if already saved in a session file
-        3. joins channel_invites where needed
+        Prepares the session file only; connecting is deferred to the first t.me url (see _connect).
+        DM 2nd Oct 26 - cron runs every minute and most runs are idle, so connecting here meant ~12k logins/day
         """
-        logger.info(f"SETUP {self.name} checking login...")
-
         # in case the user already added '.session' to the session_file
         base_session_name = self.session_file.removesuffix(".session")
-        base_session_filepath = f"{base_session_name}.session"
+        self.base_session_filepath = f"{base_session_name}.session"
+        self.client = None
+        self.session_copy = None  # this run's copy of the session (no .session suffix); None until _connect
 
-        if self.session_file and not os.path.exists(base_session_filepath):
+        if self.session_file and not os.path.exists(self.base_session_filepath):
             logger.warning(
-                f"SETUP - Session file {base_session_filepath} does not exist for {self.name}, creating an empty one."
+                f"SETUP - Session file {self.base_session_filepath} does not exist for {self.name}, creating an empty one."
             )
-            Path(base_session_filepath).touch()
+            Path(self.base_session_filepath).touch()
 
         # delete copies left behind by runs that were killed or failed before cleanup (older than a day, so live runs are safe)
-        for old in Path(base_session_filepath).parent.glob("telethon-*.session"):
+        for old in Path(self.base_session_filepath).parent.glob("telethon-*.session"):
             try:
                 if time.time() - old.stat().st_mtime > 24 * 3600:
                     old.unlink()
             except OSError:
                 pass  # e.g. another run just deleted it, not worth failing setup over
 
-        # make a copy of the session that is used exclusively with this archiver instance
-        self.session_file = os.path.join(
-            os.path.dirname(base_session_filepath), f"telethon-{date.today().strftime('%Y-%m-%d')}{random_str(8)}"
-        )
-        logger.debug(f"Making a copy of the session file {base_session_filepath} to {self.session_file}.session")
-        started = time.monotonic()
-        shutil.copy(base_session_filepath, f"{self.session_file}.session")
-        logger.debug(f"SETUP {self.name} copying the session file took {time.monotonic() - started:.1f}s")
+    def _connect(self) -> None:
+        """
+        Called before the first Telegram request of the run (and again after a failed login):
+        1. copies session_file to a per-run file, removed in cleanup
+        2. checks the login (prompts if the session isn't authorised)
+        3. joins channel_invites where needed
+        """
+        logger.info(f"{self.name} checking login...")
+
+        if self.session_copy is None:
+            # make a copy of the session that is used exclusively with this archiver instance
+            self.session_copy = os.path.join(
+                os.path.dirname(self.base_session_filepath),
+                f"telethon-{date.today().strftime('%Y-%m-%d')}{random_str(8)}",
+            )
+            logger.debug(
+                f"Making a copy of the session file {self.base_session_filepath} to {self.session_copy}.session"
+            )
+            started = time.monotonic()
+            shutil.copy(self.base_session_filepath, f"{self.session_copy}.session")
+            logger.debug(f"{self.name} copying the session file took {time.monotonic() - started:.1f}s")
 
         # initiate the client
         started = time.monotonic()
-        self.client = TelegramClient(self.session_file, self.api_id, self.api_hash)
-        logger.debug(f"SETUP {self.name} creating the client took {time.monotonic() - started:.1f}s")
+        client = TelegramClient(self.session_copy, self.api_id, self.api_hash)
+        logger.debug(f"{self.name} creating the client took {time.monotonic() - started:.1f}s")
 
-        logger.debug(f"SETUP {self.name} connecting to Telegram...")
+        logger.debug(f"{self.name} connecting to Telegram...")
         started = time.monotonic()
-        with self.client.start():
-            logger.info(f"SETUP {self.name} login works (took {time.monotonic() - started:.1f}s).")
+        try:
+            with client.start():
+                logger.info(f"{self.name} login works (took {time.monotonic() - started:.1f}s).")
+        except BaseException:
+            # start() connects before authorising, so a failure leaves the socket and sqlite session open
+            client.disconnect()
+            raise
+        # only kept once login works, so the next t.me url retries it
+        self.client = client
 
         if self.join_channels and len(self.channel_invites):
-            logger.info(f"SETUP {self.name} joining channels...")
+            logger.info(f"{self.name} joining channels...")
             with self.client.start():
                 # get currently joined channels
                 # https://docs.telethon.dev/en/stable/modules/custom.html#module-telethon.tl.custom.dialog
@@ -118,8 +137,11 @@ class TelethonExtractor(Extractor):
                     pbar.update()
 
     def cleanup(self) -> None:
-        logger.info(f"CLEANUP {self.name} - removing session file {self.session_file}.session")
-        session_file_name = f"{self.session_file}.session"
+        # only ever remove our copy - self.session_file is the shared original
+        if not getattr(self, "session_copy", None):
+            return
+        session_file_name = f"{self.session_copy}.session"
+        logger.info(f"CLEANUP {self.name} - removing session file {session_file_name}")
         if os.path.exists(session_file_name):
             os.remove(session_file_name)
 
@@ -141,6 +163,9 @@ class TelethonExtractor(Extractor):
         chat = int(f"-100{match.group(2)}") if is_private else match.group(2)
         is_story = match.group(3) == "/s"
         post_id = int(match.group(4))
+
+        if getattr(self, "client", None) is None:
+            self._connect()
 
         result = Metadata()
 

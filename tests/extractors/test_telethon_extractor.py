@@ -1,4 +1,3 @@
-import os
 from datetime import date
 
 import pytest
@@ -11,21 +10,80 @@ def mock_client_setup(mocker):
     mocker.patch("telethon.client.auth.AuthMethods.start")
 
 
-def test_setup_fails_clear_session_file(get_lazy_module, tmp_path, mocker):
-    start = mocker.patch("telethon.client.auth.AuthMethods.start")
-    start.side_effect = Exception("Test exception")
-
-    # make sure the default setup file is created
+@pytest.fixture
+def telethon_config(tmp_path):
     session_file = tmp_path / "test.session"
+    session_file.touch()
+    return session_file, {"telethon_extractor": {"session_file": str(session_file), "api_id": 123, "api_hash": "ABC"}}
 
-    lazy_module = get_lazy_module("telethon_extractor")
 
-    with pytest.raises(Exception):
-        lazy_module.load({"telethon_extractor": {"session_file": str(session_file), "api_id": 123, "api_hash": "ABC"}})
+def session_copies(session_file):
+    return list(session_file.parent.glob("telethon-*.session"))
+
+
+def test_setup_does_not_connect_or_copy_the_session(get_lazy_module, telethon_config, mocker):
+    start = mocker.patch("telethon.client.auth.AuthMethods.start")
+    session_file, config = telethon_config
+
+    extractor = get_lazy_module("telethon_extractor").load(config)
+
+    start.assert_not_called()
+    assert session_copies(session_file) == []
+    assert extractor.client is None
+
+
+def test_cleanup_without_connecting_leaves_the_original_session(get_lazy_module, telethon_config):
+    session_file, config = telethon_config
+
+    get_lazy_module("telethon_extractor").load(config).cleanup()
 
     assert session_file.exists()
-    assert f"telethon-{date.today().strftime('%Y-%m-%d')}" in lazy_module._instance.session_file
-    assert os.path.exists(lazy_module._instance.session_file + ".session")
+
+
+def test_non_telegram_url_does_not_connect(get_lazy_module, telethon_config, mocker):
+    start = mocker.patch("telethon.client.auth.AuthMethods.start")
+    session_file, config = telethon_config
+    extractor = get_lazy_module("telethon_extractor").load(config)
+
+    assert extractor.download(mocker_item("https://example.com/post/123")) is False
+    start.assert_not_called()
+
+
+def test_first_telegram_url_connects_once_and_cleanup_removes_the_copy(get_lazy_module, telethon_config, mocker):
+    start = mocker.patch("telethon.client.auth.AuthMethods.start")
+    mocker.patch("telethon.sync.TelegramClient.get_messages", return_value=None)
+    session_file, config = telethon_config
+    extractor = get_lazy_module("telethon_extractor").load(config)
+
+    extractor.download(mocker_item("https://t.me/channel/1"))
+    extractor.download(mocker_item("https://t.me/channel/2"))
+
+    assert len(session_copies(session_file)) == 1
+    assert f"telethon-{date.today().strftime('%Y-%m-%d')}" in extractor.session_copy
+    assert start.call_count == 3  # the login check, then one per download
+    extractor.cleanup()
+    assert session_copies(session_file) == []
+    assert session_file.exists()
+
+
+def test_failed_login_raises_and_is_tried_again_on_the_next_url(get_lazy_module, telethon_config, mocker):
+    start = mocker.patch("telethon.client.auth.AuthMethods.start", side_effect=Exception("Test exception"))
+    disconnect = mocker.patch("telethon.sync.TelegramClient.disconnect")
+    session_file, config = telethon_config
+    extractor = get_lazy_module("telethon_extractor").load(config)
+
+    with pytest.raises(Exception, match="Test exception"):
+        extractor.download(mocker_item("https://t.me/channel/1"))
+    with pytest.raises(Exception, match="Test exception"):
+        extractor.download(mocker_item("https://t.me/channel/2"))
+
+    assert start.call_count == 2
+    assert disconnect.call_count == 2  # each failed client is closed, not leaked
+    assert extractor.client is None
+    assert len(session_copies(session_file)) == 1  # the copy is reused, not made again
+    extractor.cleanup()
+    assert session_copies(session_file) == []
+    assert session_file.exists()
 
 
 @pytest.mark.parametrize(

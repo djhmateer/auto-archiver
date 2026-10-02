@@ -28,9 +28,13 @@ from auto_archiver.core import Storage
 # away on anything else (eg 404, permission 403, 400). The wait before retry n is random() * 2^n seconds, so 7 retries
 # wait ~2 minutes in total on average (4 at most) - long enough to get past a rate limit window, as the old fixed
 # 3 x 30s sleeps were.
-# File uploads are the exception: the library's retries don't cover all of a resumable upload, so _send_upload
-# retries those itself, with the same budget and backoff
+# File uploads are the exception: _send_upload / _send_simple_upload retry those themselves, with the same budget
+# and backoff
 NUM_RETRIES = 7
+
+# DM 2nd Oct 26 - files up to this size go in one request; resumable costs an extra round trip to open a session,
+# which dominated small files (<0.1 MB took a median 2.7s in prod). 5 MB is Google's suggested cut-off
+SIMPLE_UPLOAD_MAX_BYTES = 5 * 1024 * 1024
 
 
 class _ForwardToLoguru(logging.Handler):
@@ -71,10 +75,6 @@ def _describe(e: Exception) -> str:
     except (ValueError, KeyError, TypeError, AttributeError):
         reasons = []
     return f"HTTP {e.resp.status} {', '.join(reasons) or e.reason}"
-
-
-def _megabytes(path: str) -> str:
-    return f"{os.path.getsize(path) / 1_000_000:.1f} MB"
 
 
 class GDriveStorage(Storage):
@@ -176,8 +176,10 @@ class GDriveStorage(Storage):
             parent_id = self._get_folder_id(parent_id, folder, create=True)
 
         try:
-            size = _megabytes(media.filename)
-            media_body = MediaFileUpload(media.filename, resumable=True)
+            size_bytes = os.path.getsize(media.filename)
+            size = f"{size_bytes / 1_000_000:.1f} MB"
+            resumable = size_bytes > SIMPLE_UPLOAD_MAX_BYTES
+            media_body = MediaFileUpload(media.filename, resumable=resumable)
         except FileNotFoundError as e:
             logger.error(f"Can't upload {media.key}, local file is missing: {e}")
             return None
@@ -191,9 +193,12 @@ class GDriveStorage(Storage):
                 media_body=media_body,
                 fields="id",
             )
-            gd_file = self._send_upload(request, media.key)
+            if resumable:
+                gd_file = self._send_upload(request, media.key)
+            else:
+                gd_file = self._send_simple_upload(request, media.key, parent_id, filename)
         except Exception as e:
-            # transient errors have already been retried (see _send_upload). The file may still have been created
+            # transient errors have already been retried (see _send_upload / _send_simple_upload). The file may still have been created
             # if only the response was lost, so check before reporting a failure
             if existing_id := self._find_after_failed_upload(parent_id, filename):
                 logger.warning(
@@ -242,6 +247,36 @@ class GDriveStorage(Storage):
                 wait = random.random() * 2**failures
                 logger.warning(
                     f"Sending {key} to Drive failed ({_describe(e)}), {action} in {wait:.1f}s "
+                    f"(retry {failures} of {NUM_RETRIES})"
+                )
+                time.sleep(wait)
+
+    def _send_simple_upload(self, request, key: str, parent_id: str, filename: str) -> dict:
+        """
+        Sends a single request upload, retrying transient errors with the same budget and backoff as _send_upload.
+        Not left to execute(num_retries=...), which would blindly resend: if the response is lost after Drive created
+        the file, that makes a duplicate. An HTTP error response means nothing was created, so just resend; after a
+        transport error (eg read timeout) look for the file first.
+        Best effort: Drive search can lag behind a create, so a duplicate is still possible if the check misses it.
+        """
+        failures = 0
+        while True:
+            try:
+                return request.execute(num_retries=0)
+            except Exception as e:
+                failures += 1
+                if not _is_transient(e) or failures > NUM_RETRIES:
+                    raise
+                if not isinstance(e, HttpError) and (
+                    existing_id := self._find_after_failed_upload(parent_id, filename)
+                ):
+                    logger.warning(
+                        f"Sending {key} to Drive failed ({_describe(e)}) but the file arrived as {existing_id}"
+                    )
+                    return {"id": existing_id}
+                wait = random.random() * 2**failures
+                logger.warning(
+                    f"Sending {key} to Drive failed ({_describe(e)}), sending it again in {wait:.1f}s "
                     f"(retry {failures} of {NUM_RETRIES})"
                 )
                 time.sleep(wait)
