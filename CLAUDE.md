@@ -57,6 +57,14 @@ gives much better context for root-causing an issue than the bare error line alo
 server's `1debug.log` for the timestamp/module/request in question rather than relying only on what was
 pasted into the conversation.
 
+## Testing
+
+- Run tests with `poetry run pytest -m "not download"`.
+- Never run the live tests (`-m download`, or plain `pytest`, which includes them), and don't offer to run them.
+- Never run anything by hand (yt-dlp, browsertrix-crawler, curl, scripts) that loads cookies or sessions from
+  `secrets/` (`*_cookies.txt`, `profile.tar.gz`, `*.session`) against real sites.
+- Why: sending real cookies outside production can trip bot detectors and get the accounts banned.
+
 ## Version Control
 
 - Never run `git commit` or `git push` (or any equivalent, e.g. via the `cp` skill). The user handles all commits and pushes to the remote manually.

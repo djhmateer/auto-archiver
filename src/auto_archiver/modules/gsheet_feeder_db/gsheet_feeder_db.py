@@ -27,6 +27,11 @@ from auto_archiver.modules.gsheet_feeder_db import GWorksheet
 from auto_archiver.utils.misc import get_current_timestamp
 
 
+# sheet "screenshot" column source, in order of preference: facebook_story_extractor, screenshot_enricher,
+# antibot_extractor_enricher
+SCREENSHOT_MEDIA_IDS = ("screenshot", "webdriverscreenshot", "antibot_screenshot")
+
+
 class GsheetsFeederDB(Feeder, Database):
     def setup(self) -> None:
         self.gsheets_client = gspread.service_account(filename=self.service_account)
@@ -212,10 +217,16 @@ class GsheetsFeederDB(Feeder, Database):
         if len(pdq_hashes):
             batch_if_valid("pdq_hash", ",".join(pdq_hashes))
 
-        if (screenshot := item.get_media_by_id("screenshot")) and hasattr(screenshot, "urls"):
-            batch_if_valid("screenshot", "\n".join(screenshot.urls))
+        # DM 2nd Oct 26 - each module uses its own screenshot id (add_media rejects duplicate ids), so take the first
+        # present. Only "screenshot" was checked since the Jun 25 rename, leaving the column empty bar fb stories
+        for screenshot_id in SCREENSHOT_MEDIA_IDS:
+            if (screenshot := item.get_media_by_id(screenshot_id)) and getattr(screenshot, "urls", None):
+                batch_if_valid("screenshot", "\n".join(screenshot.urls))
+                break
 
-        if (thumbnail := item.get_first_image("thumbnail")) and hasattr(thumbnail, "urls"):
+        # DM 2nd Oct 26 - a media whose upload failed has urls == [], which made urls[0] raise and lose the whole row
+        # update (7x in prod, 6-15 Sep 26)
+        if (thumbnail := item.get_first_image("thumbnail")) and getattr(thumbnail, "urls", None):
             batch_if_valid("thumbnail", f'=IMAGE("{thumbnail.urls[0]}")')
 
         if browsertrix := item.get_media_by_id("browsertrix"):

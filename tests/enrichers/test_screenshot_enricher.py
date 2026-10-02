@@ -95,7 +95,7 @@ def test_enrich_adds_screenshot(
     mock_driver.save_screenshot.assert_called_once_with(str(tmp_path / "test.png"))
     # Check that the media was added (2 = original video + screenshot)
     assert len(metadata_with_video.media) == 2
-    assert metadata_with_video.media[1].properties.get("id") == "screenshot"
+    assert metadata_with_video.media[1].properties.get("id") == "webdriverscreenshot"
 
 
 @pytest.mark.parametrize(
@@ -121,11 +121,12 @@ def test_enrich_auth_wall(
     else:
         mock_driver.get.assert_called_once_with(url)
         assert len(metadata_with_video.media) == 2
-        assert metadata_with_video.media[1].properties.get("id") == "screenshot"
+        assert metadata_with_video.media[1].properties.get("id") == "webdriverscreenshot"
 
 
 def test_skip_authwall_no_cookies(screenshot_enricher, caplog):
-    with caplog.at_level("WARNING"):
+    # logged at INFO since DM 3rd Jun 25
+    with caplog.at_level("INFO"):
         screenshot_enricher.enrich(Metadata().set_url("https://instagram.com"))
     assert "[SKIP] SCREENSHOT since url" in caplog.text
 
@@ -160,9 +161,10 @@ def test_handle_timeout_exception(screenshot_enricher, metadata_with_video, mock
     mock_driver, mock_driver_class, mock_options_instance = mock_selenium_env
 
     mock_driver.get.side_effect = TimeoutException
-    mock_log = mocker.patch("loguru.logger.info")
+    # patch the module's logger - custom_logger wraps loguru's (logger.patch), so loguru.logger isn't it
+    mock_log = mocker.patch("auto_archiver.modules.screenshot_enricher.screenshot_enricher.logger")
     screenshot_enricher.enrich(metadata_with_video)
-    mock_log.assert_called_once_with("TimeoutException loading page for screenshot")
+    mock_log.warning.assert_called_once_with("TimeoutException loading page for screenshot: https://example.com")
     assert len(metadata_with_video.media) == 1
 
 
@@ -173,10 +175,12 @@ def test_handle_general_exception(screenshot_enricher, metadata_with_video, mock
     mock_driver.get.return_value = None
     mock_driver.save_screenshot.side_effect = Exception("Unexpected Error")
 
-    mock_log = mocker.patch("loguru.logger.error")
+    mock_log = mocker.patch("auto_archiver.modules.screenshot_enricher.screenshot_enricher.logger")
     screenshot_enricher.enrich(metadata_with_video)
     # Verify that the exception was logged with the log
-    mock_log.assert_called_once_with("Got error while loading webdriver for screenshot enricher: Unexpected Error")
+    mock_log.error.assert_called_once_with(
+        "Got error while loading webdriver for screenshot enricher: Unexpected Error"
+    )
     # And no new media was added due to the error
     assert len(metadata_with_video.media) == 1
 
@@ -205,7 +209,7 @@ def test_pdf_creation(mocker, screenshot_enricher, metadata_with_video, mock_sel
 
     # Ensure both screenshot and PDF were added as media
     assert len(metadata_with_video.media) == 3
-    assert metadata_with_video.media[1].properties.get("id") == "screenshot"
+    assert metadata_with_video.media[1].properties.get("id") == "webdriverscreenshot"
     assert metadata_with_video.media[2].properties.get("id") == "pdf"
 
 

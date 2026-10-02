@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from unittest.mock import ANY
 import pytest
 
 from auto_archiver.core import Metadata, Media
@@ -127,7 +128,10 @@ def test_started(gsheets_db, mock_metadata, mock_gworksheet):
 def test_failed(gsheets_db, mock_metadata, mock_gworksheet):
     reason = "Test failure"
     gsheets_db.failed(mock_metadata, reason)
-    mock_gworksheet.set_cell.assert_called_once_with(1, "status", f"Archive failed {reason}")
+    # failed() also stamps the archive date
+    assert mock_gworksheet.set_cell.call_count == 2
+    mock_gworksheet.set_cell.assert_any_call(1, "status", f"Archive failed {reason}")
+    mock_gworksheet.set_cell.assert_any_call(1, "date", ANY)
 
 
 def test_aborted(gsheets_db, mock_metadata, mock_gworksheet):
@@ -142,6 +146,61 @@ def test_done(gsheets_db, metadata, mock_gworksheet, expected_calls, mocker):
     )
     gsheets_db.done(metadata)
     mock_gworksheet.batch_set_cell.assert_called_once_with(expected_calls)
+
+
+@pytest.mark.parametrize(
+    "media_ids, expected_url",
+    [
+        (["webdriverscreenshot"], "http://example.com/webdriverscreenshot.png"),
+        (["antibot_screenshot"], "http://example.com/antibot_screenshot.png"),
+        (["antibot_screenshot", "webdriverscreenshot"], "http://example.com/webdriverscreenshot.png"),
+        (["webdriverscreenshot", "screenshot"], "http://example.com/screenshot.png"),
+    ],
+)
+def test_done_fills_screenshot_column_from_preferred_screenshot(
+    gsheets_db, mock_gworksheet, mocker, media_ids, expected_url
+):
+    mocker.patch(
+        "auto_archiver.modules.gsheet_feeder_db.gsheet_feeder_db.get_current_timestamp",
+        return_value="2025-02-01T00:00:00+00:00",
+    )
+    item = Metadata().set_url("http://example.com").success("my-archiver")
+    for media_id in media_ids:
+        item.add_media(Media(filename=f"{media_id}.png", urls=[f"http://example.com/{media_id}.png"]), id=media_id)
+
+    gsheets_db.done(item)
+
+    screenshot_calls = [c for c in mock_gworksheet.batch_set_cell.call_args[0][0] if c[1] == "screenshot"]
+    assert screenshot_calls == [(1, "screenshot", expected_url)]
+
+
+def test_done_skips_screenshot_that_was_not_uploaded(gsheets_db, mock_gworksheet, mocker):
+    mocker.patch(
+        "auto_archiver.modules.gsheet_feeder_db.gsheet_feeder_db.get_current_timestamp",
+        return_value="2025-02-01T00:00:00+00:00",
+    )
+    item = Metadata().set_url("http://example.com").success("my-archiver")
+    item.add_media(Media(filename="s.png"), id="screenshot")  # upload failed, so no urls
+    item.add_media(Media(filename="w.png", urls=["http://example.com/w.png"]), id="webdriverscreenshot")
+
+    gsheets_db.done(item)
+
+    assert (1, "screenshot", "http://example.com/w.png") in mock_gworksheet.batch_set_cell.call_args[0][0]
+
+
+def test_done_with_thumbnail_that_was_not_uploaded_still_updates_the_row(gsheets_db, mock_gworksheet, mocker):
+    mocker.patch(
+        "auto_archiver.modules.gsheet_feeder_db.gsheet_feeder_db.get_current_timestamp",
+        return_value="2025-02-01T00:00:00+00:00",
+    )
+    item = Metadata().set_url("http://example.com").success("my-archiver")
+    item.add_media(Media(filename="a.jpg"))  # upload failed, so no urls
+
+    gsheets_db.done(item)
+
+    calls = mock_gworksheet.batch_set_cell.call_args[0][0]
+    assert (1, "status", "my-archiver: success") in calls
+    assert all(c[1] != "thumbnail" for c in calls)
 
 
 def test_done_cached(gsheets_db, metadata, mock_gworksheet, mocker):

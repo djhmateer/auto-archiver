@@ -32,7 +32,7 @@ def test_get_metadata(enricher, output, expected, mocker):
 
     result = enricher.get_metadata("test.jpg")
     assert result == expected
-    mock_run.assert_called_once_with(["exiftool", "test.jpg"], capture_output=True, text=True)
+    mock_run.assert_called_once_with(["exiftool", "test.jpg"], capture_output=True, text=True, timeout=60)
 
 
 def test_get_metadata_exiftool_not_found(enricher, mocker):
