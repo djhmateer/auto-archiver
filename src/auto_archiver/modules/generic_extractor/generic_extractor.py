@@ -1,3 +1,5 @@
+import contextlib
+import io
 import shutil
 import sys
 import datetime
@@ -23,6 +25,52 @@ from auto_archiver.utils import get_datetime_from_str
 from auto_archiver.utils.misc import ydl_entry_to_filename
 from auto_archiver.utils.deletion_detection import detect_deletion, flag_as_deleted
 from .dropin import GenericDropin
+
+# DM 2nd Oct 26 - yt-dlp's default is no socket timeout, so a connection that goes silent hangs the run (prod: 1-6h).
+# Per read, not per download, so slow-but-moving downloads are fine; yt-dlp retries a timed-out read.
+# ytdlp_args is applied after this, so a config can still override it
+YTDLP_SOCKET_TIMEOUT = 60
+
+
+class _YtdlpLogger:
+    """
+    Sends yt-dlp's output to our logs - it printed to stdout, which cron discards, so hangs left no trace.
+    All at DEBUG: yt-dlp warns a lot, and this extractor already logs its own failures.
+    """
+
+    def debug(self, msg: str) -> None:
+        # --verbose dumps every param in plain text, incl. password and http_headers (an auth "cookie" lives there)
+        if msg.startswith("[debug] params:"):
+            msg = "[debug] params: (omitted - contains credentials)"
+        logger.debug(f"yt-dlp: {msg}")
+
+    def info(self, msg: str) -> None:
+        logger.debug(f"yt-dlp: {msg}")
+
+    def warning(self, msg: str) -> None:
+        logger.debug(f"yt-dlp: WARNING: {msg}")
+
+    def error(self, msg: str) -> None:
+        logger.debug(f"yt-dlp: {msg}")  # already starts with "ERROR:"
+
+
+def _parse_ytdlp_options(args: list[str]) -> dict:
+    """
+    yt_dlp.parse_options, returning YoutubeDL params that log through _YtdlpLogger.
+    parse_options writes the --verbose "Override config" line to stderr before any logger exists, so capture it
+    (credentials there are already shown as PRIVATE by yt-dlp)
+    """
+    captured = io.StringIO()
+    try:
+        with contextlib.redirect_stderr(captured):
+            *_, options = yt_dlp.parse_options(args)
+    finally:
+        # in finally so anything written before an error is logged too (the error itself is raised as OptParseError)
+        for line in captured.getvalue().splitlines():
+            if line.strip():
+                logger.debug(f"yt-dlp: {line}")
+    options["logger"] = _YtdlpLogger()
+    return options
 
 
 class SkipYtdlp(Exception):
@@ -389,6 +437,7 @@ class GenericExtractor(Extractor):
                 "--sleep-interval", str(self.subtitle_sleep_interval),
                 "--max-sleep-interval", str(self.subtitle_max_sleep_interval),
                 "--sleep-subtitles", str(self.subtitle_sleep_requests),
+                "--socket-timeout", str(YTDLP_SOCKET_TIMEOUT),
             ]
 
             # Add proxy if configured
@@ -417,8 +466,7 @@ class GenericExtractor(Extractor):
                         arg_str = str(args)
                     subtitle_ydl_options.extend(["--extractor-args", f"{key}:{arg_str}"])
 
-            *_, validated_options = yt_dlp.parse_options(subtitle_ydl_options)
-            subtitle_ydl = yt_dlp.YoutubeDL(validated_options)
+            subtitle_ydl = yt_dlp.YoutubeDL(_parse_ytdlp_options(subtitle_ydl_options))
 
             # Try to download subtitles only
             subtitle_data = subtitle_ydl.extract_info(url, ie_key=info_extractor.ie_key(), download=True)
@@ -662,6 +710,8 @@ class GenericExtractor(Extractor):
             "--live-from-start" if self.live_from_start else "--no-live-from-start",
             "--postprocessor-args",
             "ffmpeg:-bitexact",  # ensure bitexact output to avoid mismatching hashes for same video
+            "--socket-timeout",
+            str(YTDLP_SOCKET_TIMEOUT),
         ]
 
         # proxy handling
@@ -705,10 +755,8 @@ class GenericExtractor(Extractor):
             logger.debug(f"Adding additional ytdlp arguments: {self.ytdlp_args}")
             ydl_options += self.ytdlp_args.split(" ")
 
-        *_, validated_options = yt_dlp.parse_options(ydl_options)
-        ydl = yt_dlp.YoutubeDL(
-            validated_options
-        )  # allsubtitles and subtitleslangs not working as expected, so default lang is always "en"
+        # allsubtitles and subtitleslangs not working as expected, so default lang is always "en"
+        ydl = yt_dlp.YoutubeDL(_parse_ytdlp_options(ydl_options))
 
         result: Metadata = None
         for info_extractor in self.suitable_extractors(url):

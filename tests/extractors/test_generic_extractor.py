@@ -363,3 +363,118 @@ class TestGenericExtractorPoToken:
         extractor.in_docker = True
         extractor.setup_po_tokens()
         extractor.setup_token_generation_script.assert_called_once()
+
+
+class TestGenericExtractorYtdlpOptions:
+    """Options passed to yt-dlp - YoutubeDL is mocked, so nothing touches the network"""
+
+    @pytest.fixture
+    def extractor(self, setup_module, mocker):
+        extractor = setup_module("generic_extractor", TestGenericExtractor.config)
+        mocker.patch.object(extractor, "suitable_extractors", return_value=[])
+        return extractor
+
+    @pytest.fixture
+    def youtube_dl(self, mocker):
+        import yt_dlp
+
+        validate_outtmpl = yt_dlp.YoutubeDL.validate_outtmpl  # parse_options calls this static method
+        mock = mocker.patch("auto_archiver.modules.generic_extractor.generic_extractor.yt_dlp.YoutubeDL")
+        mock.validate_outtmpl = validate_outtmpl
+        return mock
+
+    def _options(self, youtube_dl):
+        return youtube_dl.call_args[0][0]
+
+    def test_download_sets_socket_timeout_and_logger(self, extractor, youtube_dl, make_item):
+        from auto_archiver.modules.generic_extractor.generic_extractor import YTDLP_SOCKET_TIMEOUT, _YtdlpLogger
+
+        extractor.download(make_item("https://example.com/video"))
+
+        options = self._options(youtube_dl)
+        assert options["socket_timeout"] == YTDLP_SOCKET_TIMEOUT
+        assert isinstance(options["logger"], _YtdlpLogger)
+
+    def test_ytdlp_args_can_override_socket_timeout(self, extractor, youtube_dl, make_item):
+        extractor.ytdlp_args = "--socket-timeout 5"
+
+        extractor.download(make_item("https://example.com/video"))
+
+        assert self._options(youtube_dl)["socket_timeout"] == 5
+
+    def test_subtitle_download_sets_socket_timeout_and_logger(self, extractor, youtube_dl, mocker):
+        from auto_archiver.modules.generic_extractor.generic_extractor import YTDLP_SOCKET_TIMEOUT, _YtdlpLogger
+
+        extractor.download_subtitles_separately("https://example.com/video", mocker.Mock(), "abc")
+
+        options = self._options(youtube_dl)
+        assert options["socket_timeout"] == YTDLP_SOCKET_TIMEOUT
+        assert isinstance(options["logger"], _YtdlpLogger)
+
+    @pytest.mark.parametrize(
+        "level, message, expected",
+        [
+            ("debug", "[youtube] abc: Downloading webpage", "yt-dlp: [youtube] abc: Downloading webpage"),
+            ("info", "something", "yt-dlp: something"),
+            ("warning", "Some formats may be missing", "yt-dlp: WARNING: Some formats may be missing"),
+            ("error", "ERROR: Unable to download", "yt-dlp: ERROR: Unable to download"),
+        ],
+    )
+    def test_ytdlp_output_is_logged_at_debug(self, mocker, level, message, expected):
+        from auto_archiver.modules.generic_extractor.generic_extractor import _YtdlpLogger
+
+        log = mocker.patch("auto_archiver.modules.generic_extractor.generic_extractor.logger")
+
+        getattr(_YtdlpLogger(), level)(message)
+
+        log.debug.assert_called_once_with(expected)
+        log.warning.assert_not_called()
+        log.error.assert_not_called()
+
+    def test_real_youtubedl_output_reaches_our_log_not_stdout(self, mocker, capsys):
+        import yt_dlp
+        from auto_archiver.modules.generic_extractor.generic_extractor import _YtdlpLogger
+
+        log = mocker.patch("auto_archiver.modules.generic_extractor.generic_extractor.logger")
+        ydl = yt_dlp.YoutubeDL({"logger": _YtdlpLogger(), "quiet": True, "verbose": True})
+
+        ydl.to_screen("[download] Destination: a.mp4")
+        ydl.report_warning("Some formats may be missing")
+        ydl.write_debug("Proxy map: {}")
+
+        logged = [c.args[0] for c in log.debug.call_args_list]
+        assert "yt-dlp: [download] Destination: a.mp4" in logged
+        assert "yt-dlp: WARNING: Some formats may be missing" in logged
+        assert any("Proxy map" in m for m in logged)
+        assert capsys.readouterr().out == ""
+
+    def test_verbose_params_dump_is_not_logged(self, mocker):
+        # the dump holds credentials in plain text (yt-dlp only hides them on the "Override config" line)
+        import yt_dlp
+        from auto_archiver.modules.generic_extractor.generic_extractor import _YtdlpLogger
+
+        log = mocker.patch("auto_archiver.modules.generic_extractor.generic_extractor.logger")
+        *_, options = yt_dlp.parse_options(["--username", "u", "--password", "SECRET123", "--verbose"])
+        options["logger"] = _YtdlpLogger()
+
+        yt_dlp.YoutubeDL(options)  # writes the verbose header on init, no network
+
+        logged = [c.args[0] for c in log.debug.call_args_list]
+        assert "yt-dlp: [debug] params: (omitted - contains credentials)" in logged
+        assert not any("SECRET123" in m for m in logged)
+
+    def test_override_config_line_is_logged_not_printed(self, mocker, capsys):
+        from auto_archiver.modules.generic_extractor.generic_extractor import _parse_ytdlp_options, _YtdlpLogger
+
+        log = mocker.patch("auto_archiver.modules.generic_extractor.generic_extractor.logger")
+
+        options = _parse_ytdlp_options(
+            ["--username", "u", "--password", "SECRET123", "--socket-timeout", "60", "--verbose"]
+        )
+
+        logged = [c.args[0] for c in log.debug.call_args_list]
+        assert any(m.startswith("yt-dlp: [debug] Override config:") and "'--socket-timeout', '60'" in m for m in logged)
+        assert not any("SECRET123" in m for m in logged)  # yt-dlp shows it as PRIVATE
+        assert isinstance(options["logger"], _YtdlpLogger)
+        out = capsys.readouterr()
+        assert out.out == "" and out.err == ""
