@@ -1,55 +1,31 @@
 #!/bin/bash
-
-# called from /etc/cron.d/run-auto-archive
-# notice this script depends on the logs/1trace.log file being present to know if another instance of script is running
+# called every minute from /etc/cron.d/run-auto-archive
 
 cd /home/dave/auto-archiver
-# PATH=/usr/local/bin:$PATH
 
-# so poetry can be used
-export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH" # poetry
+export PATH="$HOME/.deno/bin:$PATH"  # deno, needed by yt-dlp
 
-# so deno can be used (needed by yt-dlp)
-export PATH="$HOME/.deno/bin:$PATH"
-
-# only 1 instance of this will run if job lasts longer than 1 minute
+# only one instance at a time - a run can last much longer than a minute
+# counts processes named after this script (so start it as ./cron_12.sh, not bash cron_12.sh)
 # https://askubuntu.com/a/915731/677298
-if [ $(pgrep -c "${0##*/}") -gt 1 ]; then
-     now_human=$(date)
-     # printf "\ndate: $now_human \n" >> /home/dave/log.txt 2>&1
-     # get last modified date of log file
-     # y is human readable, Y is unix epoch
-     last_modified_time=$(stat -c %Y logs/1trace.log)
-     #echo "last_modified: $last_modified_time" >> /home/dave/time_log.txt 2>&1
-
-     now=$(date +%s)
-     #echo "now: $now" >> /home/dave/time_log.txt 2>&1
-
-     difference=$(($now-last_modified_time))
-     # echo "difference between 1trace.log file last modified and now: $difference seconds" >> /home/dave/log.txt 2>&1
-
-     # NOTE HAVE DISABLED THE KILL FOR NOW
-     TIMETOWAIT=3600
-     if (($difference > $TIMETOWAIT)); then
-          # printf "\ndate: $now_human \n" >> /home/dave/kill_log.txt 2>&1
-          # echo "time diff greater then $TIMETOWAIT seconds - kill the process as cron.sh has produced no stdout!" >> /home/dave/log.txt 2>&1
-          # echo "time diff greater then $TIMETOWAIT seconds - kill the process as cron.sh has produced no stdout!" >> /home/dave/kill_log.txt 2>&1
-          # # pid=$(pgrep -f auto_archive_fb)
-          # echo "pid is $pid" >> /home/dave/log.txt 2>&1
-          # # kill -9 $pid
-          # echo "killed" >> /home/dave/log.txt 2>&1
-          # echo "killed" >> /home/dave/kill_log.txt 2>&1
-          # # as there are firefox processes which need to be killed
-          # sudo reboot
-          echo "problem - probably a stuck process"
-     else
-          # echo "time diff less then $TIMETOWAIT - normal control flow when the archiver is running" >> /home/dave/log.txt 2>&1
-          echo "normal control flow when archiver is running"
-     fi
-
-     # echo "Another instance of the script is running. Aborting this run of cron.sh " >> /home/dave/log.txt 2>&1
-     echo "Another instance of the script is running. Aborting this run of cron.sh "
+if [ "$(pgrep -c "${0##*/}")" -gt 1 ]; then
+     echo "Another instance of the script is running. Aborting this run of cron_12.sh"
      exit
+fi
+
+# DM 2nd Oct 26 - daily reboot at the first idle minute after REBOOT_AT (UK time), at most once a day.
+# Safe here: the pgrep check above means no other instance is archiving, and this one hasn't started.
+REBOOT_AT="04:30"
+reboot_target=$(TZ=Europe/London date -d "today $REBOOT_AT" +%s)
+booted_at=$(awk '/^btime/ {print $2}' /proc/stat) # epoch, so no timezone ambiguity
+if (( $(date +%s) >= reboot_target && booted_at < reboot_target )); then
+     echo "$(date) daily reboot (up since $(date -d @$booted_at))" >> /home/dave/auto-archiver/logs/reboot.log
+     # -n: fail rather than wait for a password; needs a NOPASSWD sudoers rule for /sbin/reboot
+     if sudo -n /sbin/reboot; then
+          exit
+     fi
+     echo "$(date) daily reboot FAILED (sudo) - archiving instead" >> /home/dave/auto-archiver/logs/reboot.log
 fi
 
 TIME=5
