@@ -196,6 +196,8 @@ class GsheetsFeederDB(Feeder, Database):
         if failures := item.get_store_failures():
             logger.warning(f"{len(failures)} file(s) couldn't be stored for row {row}: {', '.join(failures)}")
             status_message += f" ({len(failures)} upload{'s' if len(failures) > 1 else ''} failed - see logs)"
+        for note in item.get_status_notes():
+            status_message += f" ({note})"
         cell_updates.append((row, "status", status_message))
 
         media: Media = item.get_final_media()

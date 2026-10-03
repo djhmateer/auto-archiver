@@ -199,6 +199,9 @@ class TelethonExtractor(Extractor):
                     post = self.client.get_messages(chat, ids=post_id)
                 except ValueError as e:
                     logger.error(f"Could not fetch telegram URL possibly it's private: {e}")
+                    # DM 3rd Oct 26 - the other extractors still archive the login page, so flag it on the sheet
+                    if is_private:
+                        item.add_status_note("possible private channel issue - telegram account may not be a member")
                     return False
                 except ChannelInvalidError as e:
                     logger.error(

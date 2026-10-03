@@ -238,6 +238,19 @@ def test_done_reports_files_that_couldnt_be_stored(
     assert (1, "status", expected_status) in call_args
 
 
+def test_done_appends_status_notes(gsheets_db, metadata, mock_gworksheet, mocker):
+    mocker.patch(
+        "auto_archiver.modules.gsheet_feeder_db.gsheet_feeder_db.get_current_timestamp",
+        return_value="2025-02-01T00:00:00+00:00",
+    )
+    metadata.add_status_note("possible private channel issue")
+
+    gsheets_db.done(metadata)
+
+    call_args = mock_gworksheet.batch_set_cell.call_args[0][0]
+    assert (1, "status", "my-archiver: success (possible private channel issue)") in call_args
+
+
 def test_done_missing_media(gsheets_db, metadata, mock_gworksheet, mocker):
     # clear media from metadata
     metadata.media = []

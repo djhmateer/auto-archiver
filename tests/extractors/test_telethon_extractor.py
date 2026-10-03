@@ -150,6 +150,22 @@ def test_private_channel_not_cached_loads_dialogs_once(telethon_with_mock_client
     client.get_dialogs.assert_called_once()
 
 
+def test_private_channel_not_found_adds_status_note(telethon_with_mock_client):
+    telethon_with_mock_client.client.get_messages.side_effect = ValueError("Could not find the input entity")
+    item = mocker_item("https://t.me/c/1274414965/107959")
+
+    assert telethon_with_mock_client.download(item) is False
+    assert item.get_status_notes() == ["possible private channel issue - telegram account may not be a member"]
+
+
+def test_public_channel_not_found_adds_no_status_note(telethon_with_mock_client):
+    telethon_with_mock_client.client.get_messages.side_effect = ValueError("No user has that username")
+    item = mocker_item("https://t.me/gwaramedia/62274")
+
+    assert telethon_with_mock_client.download(item) is False
+    assert item.get_status_notes() == []
+
+
 def test_private_channel_already_cached_skips_dialogs(telethon_with_mock_client):
     telethon_with_mock_client.download(mocker_item("https://t.me/c/1274414965/107212"))
     telethon_with_mock_client.client.get_dialogs.assert_not_called()

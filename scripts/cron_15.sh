@@ -16,7 +16,7 @@ fi
 
 # DM 2nd Oct 26 - daily reboot at the first idle minute after REBOOT_AT (UK time), at most once a day.
 # Safe here: the pgrep check above means no other instance is archiving, and this one hasn't started.
-REBOOT_AT="06:30"
+REBOOT_AT="05:50"
 reboot_target=$(TZ=Europe/London date -d "today $REBOOT_AT" +%s)
 booted_at=$(awk '/^btime/ {print $2}' /proc/stat) # epoch, so no timezone ambiguity
 if (( $(date +%s) >= reboot_target && booted_at < reboot_target )); then

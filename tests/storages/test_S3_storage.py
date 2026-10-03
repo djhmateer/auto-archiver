@@ -117,6 +117,29 @@ class TestS3Storage:
             ExtraArgs={"ACL": "public-read", "ContentType": "image/png"},
         )
 
+    def test_upload_logs_before_and_after(self, mocker, tmp_path):
+        from auto_archiver.utils.custom_logger import logger
+
+        messages = []
+        sink_id = logger.add(
+            lambda m: messages.append(m.record["message"]),
+            level="DEBUG",
+            filter=lambda r: r["name"].endswith("s3_storage") or r["name"].endswith("core.storage"),
+        )
+        local_file = tmp_path / "video.mp4"
+        local_file.write_bytes(b"x" * 2_500_000)
+        media = Media(str(local_file))
+        media._key = "folder/video.mp4"
+        mocker.patch.object(self.storage.s3, "upload_fileobj")
+        try:
+            self.storage.upload(media)
+        finally:
+            logger.remove(sink_id)
+
+        assert messages[0] == f"Uploading {local_file} (2.5 MB) as folder/video.mp4"
+        assert messages[1].startswith("Uploaded folder/video.mp4 (2.5 MB) in ")
+        assert len(messages) == 2  # no "storing file" line from Storage.upload
+
     def test_file_in_folder_exists(self, mocker):
         mocker.patch.object(self.storage.s3, "list_objects", return_value={"Contents": [{"Key": "path/to/file.txt"}]})
         assert self.storage.file_in_folder("path/to/") == "path/to/file.txt"

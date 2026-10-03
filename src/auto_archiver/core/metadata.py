@@ -260,3 +260,10 @@ class Metadata:
 
     def get_store_failures(self) -> List[str]:
         return self._context.get("store_failures", [])
+
+    def add_status_note(self, note: str) -> None:
+        """Notes something to show alongside the status (kept in the context, so not saved with the archive)"""
+        self._context.setdefault("status_notes", []).append(note)
+
+    def get_status_notes(self) -> List[str]:
+        return self._context.get("status_notes", [])

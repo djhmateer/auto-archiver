@@ -780,9 +780,7 @@ class WaczExtractorEnricher(Enricher, Extractor):
 
         # DM 17th Sep 26 - skip entirely if VPN isn't in use, no point checking/disconnecting
         # something that was never connected
-        if not self.config.get("use_vpn", False):
-            logger.debug("use_vpn is disabled, skipping VPN disconnect check")
-        else:
+        if self.config.get("use_vpn", False):
             is_wsl = os.getenv('RUNNING_IN_WSL', 'false').lower() == 'true'
             if not is_wsl:
                 logger.debug("Attempting to disconnect VPN")
