@@ -124,6 +124,10 @@ class Media:
         try:
             streams = ffmpeg.probe(self.filename, select_streams="v")["streams"]
             logger.debug(f"Streams for {self.filename}: {streams}")
+            # DM 6th Oct 26 - a DASH init segment from a WARC (eg 982 bytes) has a header declaring a duration
+            # but no frames, so ffmpeg can't make a thumbnail from it. Nothing that small is a real video
+            if os.path.getsize(self.filename) < 20_000:
+                return False
             return any(s.get("duration_ts", 0) > 0 for s in streams)
         except Error:
             return False  # ffmpeg errors when reading bad files

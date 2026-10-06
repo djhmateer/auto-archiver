@@ -45,17 +45,28 @@ New modules should follow the existing pattern:
 
 ## Investigating Production Errors
 
-When investigating production errors (e.g. from pasted log snippets), also check the raw debug logs
-mirrored at `/mnt/t/aa-dashboard-log-import/<server_number>/` (one subfolder per production server, e.g.
-`11`-`15`). Each folder contains:
+When asked to look at the prod logs, query the PostgreSQL database `aa_logs` first. The `aa-logs` project
+(`/home/dave/code/aa-logs`) imports every log line, at all levels, from the production servers into it:
+- Connect with `PGPASSWORD=password psql -h localhost -U bob -d aa_logs`
+- `logs` (`server_id` 11-15, `timestamp` TIMESTAMPTZ, `log_level`, `message`) - one row per log entry, all levels
+  (DEBUG/INFO/SUCCESS/WARNING/ERROR), multi-line entries kept together
+- `reboot` (`server_id`, `rebooted_at`) - daily reboot times; `log_files_parsed` - which files were imported
+- Server log times are UTC; compare in UTC (e.g. `timestamp >= '2026-10-03 08:00+00'`)
+- `message` keeps the module prefix (e.g. `auto_archiver.modules.s3_storage.s3_storage:uploadf:58 - Uploading ...`),
+  so match with `LIKE '%Uploading %'`, not `LIKE 'Uploading %'`
+- The data is only as fresh as the last `aa-logs` import, so check `max(timestamp)` per server.
+  Don't run the import yourself; ask the user.
+
+The same log files are also mirrored at `/mnt/t/aa-dashboard-log-import/<server_number>/` (one subfolder per
+production server, e.g. `11`-`15`). Use them for anything not in the database. Each folder contains:
 - `1debug.log` - the current, full DEBUG-level log (large, tens of MB)
 - `3success.log` / `4warning.log` - filtered current-level logs
 - rotated/archived copies named `1debug.<rotation-start-timestamp>.log` for older periods
 
 The DEBUG-level detail around a WARNING/ERROR line (e.g. surrounding requests, timings, retries) often
-gives much better context for root-causing an issue than the bare error line alone - grep the relevant
-server's `1debug.log` for the timestamp/module/request in question rather than relying only on what was
-pasted into the conversation.
+gives much better context for root-causing an issue than the bare error line alone - query the surrounding
+rows in `aa_logs` (or grep the relevant server's `1debug.log`) for the timestamp/module/request in question
+rather than relying only on what was pasted into the conversation.
 
 ## Testing
 
@@ -64,6 +75,9 @@ pasted into the conversation.
 - Never run anything by hand (yt-dlp, browsertrix-crawler, curl, scripts) that loads cookies or sessions from
   `secrets/` (`*_cookies.txt`, `profile.tar.gz`, `*.session`) against real sites.
 - Why: sending real cookies outside production can trip bot detectors and get the accounts banned.
+- Never run anything against a real site (browsertrix-crawler, yt-dlp, curl, scripts, a docker crawl), even
+  without cookies, unless the user explicitly says to run it. Agreeing to "try" an approach is not permission
+  to run it: propose the exact command and wait for a go-ahead.
 
 ## Version Control
 

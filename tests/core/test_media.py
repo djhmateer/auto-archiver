@@ -191,15 +191,24 @@ class TestMediaValidVideo:
 
         mock_streams = {"streams": [{"duration_ts": 1000}]}
 
-        with patch("ffmpeg.probe", return_value=mock_streams):
+        with patch("ffmpeg.probe", return_value=mock_streams), patch("os.path.getsize", return_value=30000):
             assert media.is_valid_video() is True
+
+    def test_is_valid_video_with_tiny_file(self):
+        # eg a DASH init segment from a WARC: the header declares a duration but there are no frames
+        media = Media(filename="test.mp4")
+
+        mock_streams = {"streams": [{"duration_ts": 771072}]}
+
+        with patch("ffmpeg.probe", return_value=mock_streams), patch("os.path.getsize", return_value=982):
+            assert media.is_valid_video() is False
 
     def test_is_valid_video_with_no_duration(self):
         media = Media(filename="test.mp4")
 
         mock_streams = {"streams": [{"duration_ts": 0}]}
 
-        with patch("ffmpeg.probe", return_value=mock_streams):
+        with patch("ffmpeg.probe", return_value=mock_streams), patch("os.path.getsize", return_value=30000):
             assert media.is_valid_video() is False
 
     def test_is_valid_video_with_ffmpeg_error(self):

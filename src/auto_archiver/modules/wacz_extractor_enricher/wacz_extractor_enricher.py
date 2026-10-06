@@ -112,6 +112,11 @@ class WaczExtractorEnricher(Enricher, Extractor):
             str(self.timeout),
             "--diskUtilization",
             "99",
+            # DM 6th Oct 26 - replace browsertrix's default rule (src="/_Incapsula_Resource?:200) which flags every
+            # Imperva-fronted page as rate limited, as Imperva injects that script tag into real pages too (eg idf.il).
+            # Only Imperva's hard block page now counts; the 403/429/503 status checks are unaffected
+            "--rateLimitOnMatch",
+            "Incapsula incident ID",
             # "--blockAds" # note: this has been known to cause issues on cloudflare protected sites
         ]
 
