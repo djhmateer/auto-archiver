@@ -1,5 +1,7 @@
 import time
+import hashlib
 import json
+from collections import Counter
 import jsonlines
 import mimetypes
 import os
@@ -272,6 +274,7 @@ class WaczExtractorEnricher(Enricher, Extractor):
         Part 2 - 
         """
         logger.info(f"Facebook Part 1 - extracting media from {wacz_filename=}")
+        fb_start = time.perf_counter()
 
         # unzipping the .wacz
         tmp_dir = self.tmp_dir
@@ -336,6 +339,8 @@ class WaczExtractorEnricher(Enricher, Extractor):
                             continue
 
                         logger.info(f" found {set_id=} in bulk-route-definitions and adding to list so can calculate most prevalent")
+                        # DM 8th Oct 26 - diagnosing ~20 min FB posts: same set_id seen across unrelated posts, so log where it came from
+                        logger.debug(f"FB set_id source - {set_id=} {fb_id=} {uri=}")
                         list_of_set_ids.append(set_id)
 
         if list_of_set_ids: pass
@@ -356,6 +361,7 @@ class WaczExtractorEnricher(Enricher, Extractor):
 
         unique_set_ids = list(set(list_of_set_ids))
         logger.debug(f" looping over all {unique_set_ids=}")
+        logger.info(f"FB set_id counts for {url} - {dict(Counter(list_of_set_ids))}")
 
         for most_prevalent_set_id in unique_set_ids:
             logger.debug(f" processing {most_prevalent_set_id=}")
@@ -461,6 +467,9 @@ class WaczExtractorEnricher(Enricher, Extractor):
                                 # Part 2
                                 fb_ids_to_request = []
                                 fb_ids_requested = []
+                                walk_start = time.perf_counter()
+                                walk_media_start = len(to_enrich.media)
+                                walk_stop_reason = "queue empty"
                                 while (True):
                                     builder_url = f"https://www.facebook.com/photo?fbid={fb_id}&set=pcb.{set_id}"
     
@@ -471,10 +480,19 @@ class WaczExtractorEnricher(Enricher, Extractor):
                                     # next_fb_id = self.save_images_to_enrich_object_from_url_using_browsertrix(builder_url, to_enrich, fb_id)
                                     list_of_next_fb_ids = self.save_images_to_enrich_object_from_url_using_browsertrix(builder_url, to_enrich, fb_id)
     
+                                    # DM 8th Oct 26 - log why the queue doesn't shrink (only checks fb_ids_requested, not fb_ids_to_request)
+                                    already_requested = [x for x in list_of_next_fb_ids if x in fb_ids_requested]
+                                    already_queued = [x for x in list_of_next_fb_ids if x in fb_ids_to_request]
+                                    logger.debug(
+                                        f"FB walk {set_id=} crawl {len(fb_ids_requested)} {fb_id=} returned {list_of_next_fb_ids=} "
+                                        f"{already_requested=} {already_queued=}"
+                                    )
+
                                     # iterate over list_of_next_fb_ids and add to fb_ids_to_request if not in fb_ids_requested
                                     for next_fb_id in list_of_next_fb_ids:
                                         if next_fb_id not in fb_ids_requested:
                                             fb_ids_to_request.append(next_fb_id)
+                                    logger.debug(f"FB walk {set_id=} queue now {fb_ids_to_request=}")
     
                                     logger.debug(f"Part 2 - fb_ids_to_request {len(fb_ids_to_request)}")
                                     logger.debug(f"Part 2 - fb_ids_requested {len(fb_ids_requested)}")
@@ -491,8 +509,14 @@ class WaczExtractorEnricher(Enricher, Extractor):
                                     logger.debug(f"Part 2 - total_images {total_images} - includes duplicates")
                                     if total_images > 90:
                                         logger.info('Total images is > max so stopping crawl')
+                                        walk_stop_reason = "image cap (>90 incl duplicates)"
                                         break # out of while
                                     
+                                self._log_fb_walk_summary(
+                                    url, set_id, fb_ids_requested, fb_ids_to_request, walk_stop_reason,
+                                    walk_start, to_enrich.media[walk_media_start:],
+                                )
+
                                 if len(fb_ids_requested) == 1:
                                     logger.debug("Probably the wrong fb_id url here in Part 2, as only 1 fb_ids_requested")
                                     logger.debug("so not the carousel we want")
@@ -574,8 +598,31 @@ class WaczExtractorEnricher(Enricher, Extractor):
         logger.info(
             f"Facebook WACZ extract_media/extract_screenshot finished, found {counter_warc_files + counter_screenshots} relevant media file(s)"
         )
+        logger.info(
+            f"FB timing - facebook_extract_media_from_wacz took {time.perf_counter() - fb_start:.0f}s for {url} "
+            f"({len(unique_set_ids)} set_id(s), {len(to_enrich.media)} media on item incl duplicates)"
+        )
 
 
+
+    def _log_fb_walk_summary(self, url, set_id, fb_ids_requested, fb_ids_to_request, stop_reason, walk_start, walk_media) -> None:
+        """DM 8th Oct 26 - one line per Part 2 carousel walk, to diagnose ~20 min FB posts (crawl count, time, repeated images)"""
+        hashes = Counter(self._short_file_hash(m.filename) for m in walk_media)
+        repeated = {h: n for h, n in hashes.items() if n > 1}
+        logger.info(
+            f"FB walk summary {url} {set_id=} stopped: {stop_reason} - {len(fb_ids_requested)} crawl(s) in "
+            f"{time.perf_counter() - walk_start:.0f}s, {len(walk_media)} media added, {len(hashes)} unique by content, "
+            f"{len(fb_ids_to_request)} fb_id(s) left in queue"
+        )
+        logger.debug(f"FB walk summary {set_id=} {fb_ids_requested=} repeated content hash:count {repeated}")
+
+    @staticmethod
+    def _short_file_hash(filename) -> str:
+        try:
+            with open(filename, "rb") as f:
+                return hashlib.md5(f.read()).hexdigest()[:10]
+        except (OSError, TypeError):
+            return "unreadable"
 
     # only used by FB - Part 2
     def save_images_to_enrich_object_from_url_using_browsertrix(self, url_build, to_enrich: Metadata, current_fb_id) -> list:
@@ -614,6 +661,7 @@ class WaczExtractorEnricher(Enricher, Extractor):
                 shutil.copyfile(self.profile, profile_fn)
                 cmd.extend(["--profile", os.path.join("/crawls", "profile.tar.gz")])
 
+            crawl_start = time.perf_counter()
             try:
                 logger.info(f"Running browsertrix-crawler: {' '.join(cmd)}")
                 subprocess.run(cmd, check=True, capture_output=True, text=True)
@@ -621,10 +669,12 @@ class WaczExtractorEnricher(Enricher, Extractor):
                 logger.error(f"WACZ generation failed: {e}")
                 if crawler_log := self._summarise_crawler_output(e.stdout, e.stderr):
                     logger.error(f"browsertrix-crawler output:\n{crawler_log}")
+                logger.debug(f"FB crawl {current_fb_id=} failed after {time.perf_counter() - crawl_start:.0f}s")
                 return []  # no next fb_ids, so Part 2 carries on with any it already has
             except Exception as e:
                 logger.error(f"WACZ generation failed: {e}")
                 return []  # no next fb_ids, so Part 2 carries on with any it already has
+            crawl_seconds = time.perf_counter() - crawl_start
 
             if os.getenv('RUNNING_IN_DOCKER'):
                 filename = os.path.join("collections", collection, f"{collection}.wacz")
@@ -640,6 +690,7 @@ class WaczExtractorEnricher(Enricher, Extractor):
             seen_urls = set()
             # next_fb_id = 0
             list_of_next_fb_ids = []
+            added_this_crawl = []  # size:hash:url-path-tail, to spot the same UI image added on every crawl
             with open(warc_filename, 'rb') as warc_stream:
                 for record in ArchiveIterator(warc_stream):
 
@@ -738,6 +789,7 @@ class WaczExtractorEnricher(Enricher, Extractor):
                         m.set("src_alternative", record_url)
                         to_enrich.add_media(m, warc_fn)
                         logger.debug(f"Part 2 - Added {fn} which is {fs} bytes and extension {ext}")
+                        added_this_crawl.append(f"{fs}:{self._short_file_hash(fn)}:{urlparse(record_url).path[-40:]}")
                         counter += 1 # starts at 100 and makes filename unique  
                         seen_urls.add(record_url)
                     else:
@@ -746,6 +798,11 @@ class WaczExtractorEnricher(Enricher, Extractor):
                     
                     # logger.debug('Part 2 - On to next record')
 
+            logger.info(
+                f"FB crawl {current_fb_id=} took {crawl_seconds:.0f}s, added {len(added_this_crawl)} media, "
+                f"next fb_ids {list_of_next_fb_ids}"
+            )
+            logger.debug(f"FB crawl {current_fb_id=} added size:hash:path {added_this_crawl}")
             # is normally a list of 2 id's for a carousel
             return list_of_next_fb_ids
 

@@ -37,6 +37,8 @@ class InstagramAPIExtractor(Extractor):
         r"(?:(?:http|https):\/\/)?(?:www.)?(?:instagram.com)\/(?:(stories(?:\/highlights)?|p|reel)\/)?([^\/\?]*)\/?(\d+)?"
     )
 
+    _skipped_items = 0  # per download(), see there
+
     def setup(self) -> None:
         if self.api_endpoint[-1] == "/":
             self.api_endpoint = self.api_endpoint[:-1]
@@ -55,6 +57,16 @@ class InstagramAPIExtractor(Extractor):
         return url
 
     def download(self, item: Metadata) -> Metadata:
+        # DM 8th Oct 26 - posts/carousel items that fail are skipped so the rest is archived, but the row still
+        # says success, so count them and show it in the status column
+        self._skipped_items = 0
+        result = self._download(item)
+        if result and self._skipped_items:
+            logger.warning(f"{self._skipped_items} Instagram item(s) failed to download for {item.get_url()}")
+            result.add_status_note(f"{self._skipped_items} Instagram item(s) failed to download - see logs")
+        return result
+
+    def _download(self, item: Metadata) -> Metadata:
         url = item.get_url()
         url = url.replace("instagr.com", "instagram.com").replace("instagr.am", "instagram.com")
         insta_matches = self.valid_url.findall(url)
@@ -237,6 +249,7 @@ class InstagramAPIExtractor(Extractor):
                 self.scrape_item(result, h, "highlight")
             except Exception as e:
                 result.append("errors", f"Error downloading highlight {h.get('id')}")
+                self._skipped_items += 1
                 logger.error(f"Error downloading highlight, skipping {h.get('id')}: {e} {traceback.format_exc()}")
 
         return h_info
@@ -260,6 +273,7 @@ class InstagramAPIExtractor(Extractor):
                 self.scrape_item(result, s, "story")
             except Exception as e:
                 result.append("errors", f"Error downloading story {s.get('id')}")
+                self._skipped_items += 1
                 logger.error(f"Error downloading story, skipping {s.get('id')}: {e} {traceback.format_exc()}")
         return stories
 
@@ -280,6 +294,7 @@ class InstagramAPIExtractor(Extractor):
                     self.scrape_item(result, p, "post")
                 except Exception as e:
                     result.append("errors", f"Error downloading post {p.get('id')}")
+                    self._skipped_items += 1
                     logger.error(f"Error downloading post, skipping {p.get('id')}: {e} {traceback.format_exc()}")
                 pbar.update(1)
                 post_count += 1
@@ -308,6 +323,7 @@ class InstagramAPIExtractor(Extractor):
                     self.scrape_item(result, p, "tagged")
                 except Exception as e:
                     result.append("errors", f"Error downloading tagged post {p.get('id')}")
+                    self._skipped_items += 1
                     logger.error(f"Error downloading tagged post, skipping {p.get('id')}: {e} {traceback.format_exc()}")
                 pbar.update(1)
                 tagged_count += 1
@@ -347,7 +363,13 @@ class InstagramAPIExtractor(Extractor):
         # posts with multiple items contain a resources list
         resources_metadata = Metadata()
         for r in resources:
-            self.scrape_item(resources_metadata, r)
+            # one carousel item failing (eg a 429 on its video) shouldn't drop the whole post
+            try:
+                self.scrape_item(resources_metadata, r)
+            except Exception as e:
+                result.append("errors", f"Error downloading carousel item {r.get('id')}")
+                self._skipped_items += 1
+                logger.error(f"Error downloading carousel item, skipping {r.get('id')}: {e}")
         if not resources_metadata.is_empty():
             media.set("other media", resources_metadata.media)
 

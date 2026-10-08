@@ -211,3 +211,55 @@ class TestInstagramAPIExtractor(TestExtractorBase):
 
         assert result.is_success()
         assert "Error downloading stories for test_user" in result.metadata["errors"]
+
+    def test_carousel_item_failure_skips_only_that_item(self, mocker):
+        """A carousel item whose video fails (eg a CDN 429) is skipped, the rest of the post is kept and noted"""
+        post = {
+            "id": "post_1",
+            "code": "abc123",
+            "carousel_media": [
+                {"id": "c1", "thumbnail_url": "http://example.com/c1.jpg"},
+                {"id": "c2", "video_url": "http://example.com/c2.mp4", "thumbnail_url": "http://example.com/c2.jpg"},
+                {"id": "c3", "thumbnail_url": "http://example.com/c3.jpg"},
+            ],
+        }
+        mocker.patch.object(self.extractor, "call_api", return_value=post)
+        mocker.patch.object(
+            self.extractor,
+            "download_from_url",
+            side_effect=lambda url, verbose=True: None if url.endswith(".mp4") else url.rsplit("/", 1)[-1],
+        )
+        item = Metadata().set_url("https://www.instagram.com/p/abc123/")
+
+        result = self.extractor.download(item)
+
+        assert result.is_success()
+        assert len(result.media) == 1
+        assert result.media[0].filename == "c1.jpg"
+        assert [m.filename for m in result.media[0].get("other media")] == ["c3.jpg"]
+        assert "Error downloading carousel item c2" in result.get("errors")
+        assert result.get_status_notes() == ["1 Instagram item(s) failed to download - see logs"]
+
+    def test_skipped_profile_posts_are_noted_and_counter_resets(self, mocker):
+        """Posts skipped during a full profile download are counted in the status note, per download() call"""
+        self.extractor.full_profile = True
+        mocker.patch.object(self.extractor, "_download_stories_reusable", return_value=[])
+        mocker.patch.object(self.extractor, "download_all_tagged", return_value=0)
+        mocker.patch.object(self.extractor, "download_all_highlights", return_value=0)
+        mocker.patch.object(self.extractor, "download_from_url", return_value=None)
+        posts = [{"id": "p1", "video_url": "http://example.com/1.mp4"}, {"id": "p2", "video_url": "http://example.com/2.mp4"}]
+        mocker.patch.object(
+            self.extractor,
+            "call_api",
+            side_effect=lambda path, params: {"user": {"pk": "123", "username": "u"}}
+            if path == "v2/user/by/username"
+            else [posts, ""],
+        )
+
+        result = self.extractor.download(Metadata().set_url("https://www.instagram.com/test_user/"))
+        assert result.get_status_notes() == ["2 Instagram item(s) failed to download - see logs"]
+
+        # nothing fails on the next row, so no stale note carried over
+        self.extractor.full_profile = False
+        clean = self.extractor.download(Metadata().set_url("https://www.instagram.com/test_user/"))
+        assert clean.get_status_notes() == []

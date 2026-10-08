@@ -11,6 +11,8 @@ from abc import abstractmethod
 from contextlib import suppress
 import mimetypes
 import os
+import time
+from urllib.parse import urlparse
 import requests
 from auto_archiver.utils.custom_logger import logger
 from retrying import retry
@@ -71,6 +73,17 @@ class Extractor(BaseModule):
             return mime.split("/")[0]
         return ""
 
+    MAX_429_ATTEMPTS = 3
+    MAX_429_WAIT_SECONDS = 60
+
+    def _retry_after_seconds(self, retry_after: str | None, default: int) -> int:
+        """Seconds to wait from a Retry-After header (delta-seconds only, not the HTTP-date form), capped"""
+        try:
+            wait = int(retry_after)
+        except (TypeError, ValueError):
+            wait = default
+        return max(1, min(wait, self.MAX_429_WAIT_SECONDS))
+
     @retry(wait_random_min=500, wait_random_max=3500, stop_max_attempt_number=5)
     def download_from_url(
         self, url: str, to_filename: str = None, verbose=True, try_best_quality=False, quiet_on_failure=False
@@ -102,7 +115,19 @@ class Extractor(BaseModule):
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36"
         }
         try:
-            d = requests.get(url, stream=True, headers=headers, timeout=30)
+            # DM 8th Oct 26 - a CDN 429 (eg cdninstagram) used to fail straight away as the @retry above never sees
+            # the exception (caught below), so back off and retry here, honouring Retry-After (capped)
+            for attempt in range(1, self.MAX_429_ATTEMPTS + 1):
+                d = requests.get(url, stream=True, headers=headers, timeout=30)
+                if d.status_code != 429 or attempt == self.MAX_429_ATTEMPTS:
+                    break
+                wait = self._retry_after_seconds(d.headers.get("Retry-After"), default=10 * attempt)
+                logger.warning(
+                    f"HTTP 429 Too Many Requests from {urlparse(url).netloc}, retrying in {wait}s "
+                    f"(attempt {attempt} of {self.MAX_429_ATTEMPTS})"
+                )
+                d.close()
+                time.sleep(wait)
             d.raise_for_status()
 
             # get mimetype from the response headers
