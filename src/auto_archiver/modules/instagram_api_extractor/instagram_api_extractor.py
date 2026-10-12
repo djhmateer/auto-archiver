@@ -8,6 +8,8 @@ data, reducing JSON output size, and handling large profiles.
 
 """
 
+import base64
+import binascii
 import math
 import random
 import re
@@ -69,6 +71,22 @@ class InstagramAPIExtractor(Extractor):
     def _download(self, item: Metadata) -> Metadata:
         url = item.get_url()
         url = url.replace("instagr.com", "instagram.com").replace("instagr.am", "instagram.com")
+
+        # DM 12th Oct 26 - /s/<base64 of "highlight:<id>">?story_media_id=<id> is a highlight share link, it was
+        # misparsed by valid_url as the profile 's' so every one failed with a 400 from v2/user/by/username
+        if share_match := re.search(r"instagram\.com/s/([^/?#]+)", url):
+            if story_media_match := re.search(r"[?&]story_media_id=(\d+)", url):
+                return self.download_post(item, id=story_media_match.group(1), context="story")
+            share_id = share_match.group(1)
+            try:
+                decoded = base64.urlsafe_b64decode(share_id + "=" * (-len(share_id) % 4)).decode()
+            except (binascii.Error, UnicodeDecodeError):
+                decoded = ""
+            if decoded.startswith("highlight:"):
+                return self.download_highlights(item, decoded.removeprefix("highlight:"))
+            logger.warning(f"Unknown instagram share link {share_id=} {decoded=}")
+            return
+
         insta_matches = self.valid_url.findall(url)
 
         if not len(insta_matches) or len(insta_matches[0]) != 3:

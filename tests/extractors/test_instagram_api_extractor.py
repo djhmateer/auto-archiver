@@ -113,6 +113,27 @@ class TestInstagramAPIExtractor(TestExtractorBase):
         url = "https://www.instagram.com/reel/C9QmUGDNOd0/"
         assert self.extractor.sanitize_url(url) == url
 
+    def test_share_link_with_story_media_id_downloads_story_item(self, mocker):
+        mock_post = mocker.patch.object(self.extractor, "download_post")
+        item = Metadata().set_url(
+            "https://www.instagram.com/s/aGlnaGxpZ2h0OjE4MDI3MzY4NjU2ODk2NTQ0?story_media_id=3407094886497195411"
+        )
+        self.extractor.download(item)
+        mock_post.assert_called_once_with(item, id="3407094886497195411", context="story")
+
+    def test_share_link_without_story_media_id_downloads_highlight(self, mocker):
+        mock_highlights = mocker.patch.object(self.extractor, "download_highlights")
+        mock_profile = mocker.patch.object(self.extractor, "download_profile")
+        item = Metadata().set_url("https://www.instagram.com/s/aGlnaGxpZ2h0OjE4MDI3MzY4NjU2ODk2NTQ0")
+        self.extractor.download(item)
+        mock_highlights.assert_called_once_with(item, "18027368656896544")
+        mock_profile.assert_not_called()
+
+    def test_unknown_share_link_is_skipped(self, mocker):
+        mock_profile = mocker.patch.object(self.extractor, "download_profile")
+        assert self.extractor.download(Metadata().set_url("https://www.instagram.com/s/!!notbase64")) is None
+        mock_profile.assert_not_called()
+
     def test_initialize(self):
         assert self.extractor.api_endpoint[-1] != "/"
 

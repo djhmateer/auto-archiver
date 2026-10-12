@@ -1,5 +1,7 @@
 import pytest
 import hashlib
+import socket
+import time
 
 from opentimestamps.core.timestamp import Timestamp, DetachedTimestampFile
 from opentimestamps.calendar import RemoteCalendar
@@ -162,7 +164,7 @@ def test_full_enriching(setup_module, sample_file_path, sample_media, mocker):
     mock_calendar = mocker.patch.object(RemoteCalendar, "submit")
 
     # Create a function that returns a new timestamp for each call
-    def side_effect(digest):
+    def side_effect(digest, timeout=None):
         test_timestamp = Timestamp(digest)
         # Add a bitcoin attestation to the test timestamp
         bitcoin = BitcoinBlockHeaderAttestation(783000)
@@ -274,3 +276,52 @@ def test_no_files_to_stamp(setup_module):
     # Verify no timestamping occurred
     assert metadata.get("opentimestamped") is None
     assert len(metadata.media) == 0
+
+
+@pytest.mark.parametrize("config, expected_timeout", [({}, 20), ({"calendar_timeout": 5}, 5)])
+def test_calendar_timeout_passed_to_submit(
+    setup_module, sample_file_path, sample_media, mocker, config, expected_timeout
+):
+    """Each calendar submit gets the configured timeout, so a dead calendar can't block for the OS TCP timeout"""
+    mock_calendar = mocker.patch.object(RemoteCalendar, "submit", side_effect=Exception("Calendar server error"))
+
+    ots = setup_module("opentimestamps_enricher", config)
+
+    metadata = Metadata().set_url("https://example.com")
+    sample_media.filename = sample_file_path
+    metadata.add_media(sample_media)
+
+    ots.enrich(metadata)
+
+    assert mock_calendar.call_count == 3
+    for call in mock_calendar.call_args_list:
+        assert call.kwargs["timeout"] == expected_timeout
+
+
+def test_unresponsive_calendar_times_out(setup_module, sample_file_path, sample_media):
+    """A calendar that accepts the connection but never replies is given up on after calendar_timeout"""
+    # local server that accepts connections and never responds
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind(("127.0.0.1", 0))
+    server.listen()
+    url = f"http://127.0.0.1:{server.getsockname()[1]}"
+
+    try:
+        ots = setup_module(
+            "opentimestamps_enricher",
+            {"calendar_urls": [url], "calendar_whitelist": [url], "calendar_timeout": 1},
+        )
+
+        metadata = Metadata().set_url("https://example.com")
+        sample_media.filename = sample_file_path
+        metadata.add_media(sample_media)
+
+        started = time.monotonic()
+        ots.enrich(metadata)
+        elapsed = time.monotonic() - started
+    finally:
+        server.close()
+
+    assert elapsed < 10
+    assert metadata.get("opentimestamped") is False
+    assert metadata.media[0].get("opentimestamps") is False

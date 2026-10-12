@@ -25,6 +25,11 @@ https://opentimestamps.org/#calendars",
             "help": "Optional whitelist of calendar servers. Override this if you are using your own calendar servers. e.g. ['https://mycalendar.com']",
             "type": "list",
         },
+        "calendar_timeout": {
+            "default": 20,
+            "type": "int",
+            "help": "Seconds to wait on each calendar server (applies to connecting and to each read) before giving up on it. Without it a down calendar blocks for the OS TCP timeout (~2 minutes) per file.",
+        },
     },
     "description": """
     Creates OpenTimestamps proofs for archived files, providing blockchain-backed evidence of file existence at a specific time.

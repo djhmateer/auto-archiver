@@ -73,7 +73,7 @@ class OpentimestampsEnricher(Enricher):
                 # Submit the hash to every calendar at once (each submit is a slow blocking HTTP call)
                 def submit(calendar):
                     started = time.monotonic()
-                    calendar_timestamp = calendar.submit(file_hash)
+                    calendar_timestamp = calendar.submit(file_hash, timeout=self.calendar_timeout)
                     logger.debug(
                         f"Calendar {calendar.url} took {time.monotonic() - started:.1f}s (thread {threading.current_thread().name})"
                     )
