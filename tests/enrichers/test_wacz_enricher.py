@@ -253,10 +253,21 @@ def test_fb_photo_route(body, route, carousel_set_id) -> None:
         assert WaczExtractorEnricher._fb_carousel_set_id(route[1], route[2]) == carousel_set_id
 
 
-def _write_fb_photo_wacz(wacz_path, photo_url: str, route: bool = True) -> None:
+FB_PHOTO_URL = "https://www.facebook.com/photo/?fbid=1329142910787472&set=a.132433247125117"
+FB_PHOTO_IMAGE_URL = "https://scontent.xx.fbcdn.net/v/t1.6435-9/153394039_1329142914120805_n.jpg?stp=dst-jpg_tt6&_nc_cat=111"
+FB_STICKER_URL = "https://scontent.xx.fbcdn.net/v/t39.1997-6/12057124_787824104676675_170142219_n.png?stp=dst-png_p240x240"
+# shaped like a /photo page's html - the photo's node with its full res image, the url's slashes escaped
+FB_PHOTO_HTML = (
+    b'{"__isNode":"Photo","id":"1329142910787472","owner":{"__typename":"User","id":"100010753278573"},'
+    b'"created_time":1614097595,"image":{"uri":"' + FB_PHOTO_IMAGE_URL.replace("/", "\\/").encode() + b'"}}'
+)
+
+
+def _write_fb_photo_wacz(wacz_path, photo_url: str, route: bool = True, page_html: bytes = None) -> None:
     """A wacz like a crawl of a Facebook /photo page: a bulk-route-definitions request for a photo in the author's
     album (an a. set, so no carousel set_id), the full resolution image response and the browsertrix screenshot.
-    Without the route it is like a video page, which has no photo routes at all"""
+    Without the route it is like a video page, which has no photo routes at all.
+    With page_html, also the page's html and a comment sticker png big enough to pass the size filters"""
     from io import BytesIO
 
     from warcio.statusandheaders import StatusAndHeaders
@@ -272,6 +283,23 @@ def _write_fb_photo_wacz(wacz_path, photo_url: str, route: bool = True) -> None:
                 "request",
                 payload=BytesIO(route_body),
                 http_headers=StatusAndHeaders("POST /ajax/bulk-route-definitions/ HTTP/1.1", [], is_http_request=True),
+            )
+        )
+    if page_html is not None:
+        writer.write_record(
+            writer.create_warc_record(
+                FB_PHOTO_URL,
+                "response",
+                payload=BytesIO(page_html),
+                http_headers=StatusAndHeaders("200 OK", [("Content-Type", 'text/html; charset="utf-8"')], protocol="HTTP/1.1"),
+            )
+        )
+        writer.write_record(
+            writer.create_warc_record(
+                FB_STICKER_URL,
+                "response",
+                payload=BytesIO(b"\x89PNG" + b"0" * 60000),
+                http_headers=StatusAndHeaders("200 OK", [("Content-Type", "image/png")], protocol="HTTP/1.1"),
             )
         )
     writer.write_record(
@@ -312,6 +340,27 @@ def test_facebook_single_photo_without_carousel_set_id(wacz_enricher, tmp_path, 
     crawl.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    "page_html, srcs",
+    [
+        # the photo's node gives its image, so the comment sticker isn't kept
+        (FB_PHOTO_HTML, [FB_PHOTO_IMAGE_URL]),
+        # no photo node in the html - every image passing the size filters, as before
+        (b"<html></html>", [FB_STICKER_URL, FB_PHOTO_IMAGE_URL]),
+    ],
+)
+def test_facebook_single_photo_keeps_only_the_photos_image(wacz_enricher, tmp_path, mocker, page_html, srcs) -> None:
+    wacz_enricher.tmp_dir = str(tmp_path)
+    wacz_enricher.extract_media = True
+    wacz_file = tmp_path / "fb.wacz"
+    _write_fb_photo_wacz(wacz_file, FB_PHOTO_IMAGE_URL, page_html=page_html)
+
+    metadata = Metadata().set_url(FB_PHOTO_URL)
+    wacz_enricher.facebook_extract_media_from_wacz(metadata, str(wacz_file), FB_PHOTO_URL)
+
+    assert [m.get("src") for m in metadata.media if m.get("src")] == srcs
+
+
 def test_facebook_screenshot_without_carousel_set_id(wacz_enricher, tmp_path, mocker) -> None:
     """A video page has no pcb. set_id, but the browsertrix screenshot is still extracted - and only once"""
     wacz_enricher.tmp_dir = str(tmp_path)
@@ -328,3 +377,85 @@ def test_facebook_screenshot_without_carousel_set_id(wacz_enricher, tmp_path, mo
     with open(metadata.media[0].filename, "rb") as f:
         assert f.read() == b"png-bytes"
     crawl.assert_not_called()
+
+
+FB_POST_URL = "https://www.facebook.com/khitthitnews/posts/pfbid0PTvT6iAccWqatvbDQNuqpFwL5WKzHuLK4QjP97Fwut637CV3XXQU53z1s2bJMAKwl"
+# shaped like the post page's html - the post's own story, then a recommended group post (eg the car) with its carousel
+FB_OWN_STORY = (
+    b'{"post_id":"1646726145764725","attachments":[{"mediaset_token":"pcb.1646726145764725"}],'
+    rb'"tracking":"{\"top_level_post_id\":\"1646726145764725\",\"page_id\":\"385165108587508\"}"}'
+)
+FB_RECOMMENDED_STORY = (
+    b'{"post_id":"1424364323199649","attachments":[{"mediaset_token":"pcb.1424364323199649"}],'
+    rb'"tracking":"{\"top_level_post_id\":\"1424364323199649\",\"originated_from_recommendation\":\"1\"}"}'
+)
+FB_POST_HTML = FB_OWN_STORY + FB_RECOMMENDED_STORY
+
+
+def _write_fb_post_wacz(wacz_path, html: bytes) -> None:
+    """A wacz like a crawl of a Facebook post page: the page's html, then bulk-route-definitions requests for its own
+    carousel and a recommended post's carousel"""
+    from io import BytesIO
+
+    from warcio.statusandheaders import StatusAndHeaders
+    from warcio.warcwriter import WARCWriter
+
+    warc = BytesIO()
+    writer = WARCWriter(warc, gzip=True)
+    writer.write_record(
+        writer.create_warc_record(
+            FB_POST_URL,
+            "response",
+            payload=BytesIO(html),
+            http_headers=StatusAndHeaders("200 OK", [("Content-Type", 'text/html; charset="utf-8"')], protocol="HTTP/1.1"),
+        )
+    )
+    for fb_id, set_id in [("1646726095764730", "1646726145764725"), ("2172007990360001", "1424364323199649")]:
+        body = f"route_urls[0]=%2Fphoto%2F%3Ffbid%3D{fb_id}%26set%3Dpcb.{set_id}%26__tn__%3DEH-R".encode()
+        writer.write_record(
+            writer.create_warc_record(
+                "https://www.facebook.com/ajax/bulk-route-definitions/",
+                "request",
+                payload=BytesIO(body),
+                http_headers=StatusAndHeaders("POST /ajax/bulk-route-definitions/ HTTP/1.1", [], is_http_request=True),
+            )
+        )
+    with ZipFile(wacz_path, "w") as zf:
+        zf.writestr("archive/data.warc.gz", warc.getvalue())
+
+
+@pytest.mark.parametrize(
+    "html, crawled_set_ids",
+    [
+        # only the post's own carousel, not the recommended post's
+        (FB_POST_HTML, ["1646726145764725"]),
+        # page html without stories - crawl every carousel found, as before
+        (b"<html></html>", ["1424364323199649", "1646726145764725"]),
+    ],
+)
+def test_facebook_crawls_only_the_posts_own_carousel(wacz_enricher, tmp_path, mocker, html, crawled_set_ids) -> None:
+    wacz_enricher.tmp_dir = str(tmp_path)
+    wacz_enricher.extract_media = True
+    mocker.patch("os.path.expanduser", return_value=str(tmp_path / "aatmp"))
+    crawl = mocker.patch.object(wacz_enricher, "save_images_to_enrich_object_from_url_using_browsertrix", return_value=[])
+    wacz_file = tmp_path / "fb.wacz"
+    _write_fb_post_wacz(wacz_file, html)
+
+    metadata = Metadata().set_url(FB_POST_URL)
+    wacz_enricher.facebook_extract_media_from_wacz(metadata, str(wacz_file), FB_POST_URL)
+
+    assert sorted(c.args[3] for c in crawl.call_args_list) == crawled_set_ids
+
+
+def test_fb_own_post_id_skips_recommended_posts(tmp_path) -> None:
+    from auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher import WaczExtractorEnricher
+
+    # recommended post first in the html
+    wacz_file = tmp_path / "fb.wacz"
+    _write_fb_post_wacz(wacz_file, FB_RECOMMENDED_STORY + FB_OWN_STORY)
+    with ZipFile(wacz_file) as zf:
+        zf.extract("archive/data.warc.gz", tmp_path)
+    warc = str(tmp_path / "archive" / "data.warc.gz")
+
+    assert WaczExtractorEnricher._fb_own_post_id(warc, FB_POST_URL) == "1646726145764725"
+    assert WaczExtractorEnricher._fb_own_post_id(warc, "https://www.facebook.com/other") is None

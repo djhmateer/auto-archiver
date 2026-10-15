@@ -9,7 +9,7 @@ import re
 import shutil
 import subprocess
 from zipfile import ZipFile
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 from auto_archiver.utils.custom_logger import logger
 from warcio.archiveiterator import ArchiveIterator
 
@@ -31,6 +31,13 @@ CRAWLER_NOISE_MESSAGE = re.compile(r"^(ioredis error|Waiting for redis\b|Page da
 # and as those links are on every page by the author, the walk crawled the author's album instead of the post
 FB_PHOTO_ROUTE = re.compile(r"photo%2F%3Ffbid%3D(\d+)(?:%26set%3D([^%&']*)(%26)?)?")
 FB_CAROUSEL_SET = re.compile(r"pcb\.(\d+)")
+# DM 15th Oct 26 - stories in a post page's html. A post's carousel set is pcb.<post_id>. Facebook adds recommended
+# posts from elsewhere (eg a group post with a car), whose tracking json is marked originated_from_recommendation
+FB_POST_ID = re.compile(rb'"post_id":"(\d+)"')
+# DM 15th Oct 26 - a /photo page's html has the photo's node, eg "id":"<fbid>",...,"image":{"uri":"<full res url>"}
+FB_PHOTO_IMAGE_URI = re.compile(rb'"image":\{"uri":"([^"]+)"')
+FB_PHOTO_IMAGE_WINDOW = 3000
+FB_RECOMMENDED_POST_ID = re.compile(rb'top_level_post_id\\":\\"(\d+)\\"[^}]*?originated_from_recommendation\\":\\"1\\"')
 # DM 14th Oct 26 - each crawl adds ~3 files but only ~1 new photo, so cap on crawls not images
 FB_WALK_MAX_CRAWLS = 30
 
@@ -316,7 +323,13 @@ class WaczExtractorEnricher(Enricher, Extractor):
         # or Part 2 crawl is needed. This used to run inside the set_id loop below, so the image was lost when no pcb.
         # set_id was found, eg a photo in the author's album (set=a.<id>)
         if self.extract_media and "facebook.com/photo" in url:
-            counter_warc_files = self._facebook_extract_single_photo(to_enrich, warc_filename)
+            # DM 15th Oct 26 - keep only the photo's own image, not comment stickers, profile pictures or the album's next
+            # photo. If its image isn't found, keep every image which passes the size filters as before
+            photo_path = self._fb_photo_image_path(warc_filename, url)
+            counter_warc_files = self._facebook_extract_single_photo(to_enrich, warc_filename, photo_path)
+            if photo_path and counter_warc_files == 0:
+                logger.info(f"FB photo image {photo_path=} not in the wacz, so keeping every image which passes the size filters")
+                counter_warc_files = self._facebook_extract_single_photo(to_enrich, warc_filename)
 
         if not self.extract_media or "facebook.com/photo" in url:
             logger.info(
@@ -381,8 +394,18 @@ class WaczExtractorEnricher(Enricher, Extractor):
         # logger.warning(f" lowest number in list_of_set_ids is {min(list_of_set_ids, key=lambda x: int(x))}")
 
         unique_set_ids = list(set(list_of_set_ids))
-        logger.debug(f" looping over all {unique_set_ids=}")
         logger.info(f"FB set_id counts for {url} - {dict(Counter(list_of_set_ids))}")
+
+        # DM 15th Oct 26 - only crawl the post's own carousel, not ones on recommended posts further down the page.
+        # If the post's own one wasn't found, crawl them all as before
+        own_post_id = self._fb_own_post_id(warc_filename, url)
+        if own_post_id in unique_set_ids:
+            if len(unique_set_ids) > 1:
+                logger.info(f"FB only crawling the post's own carousel {own_post_id=}, ignoring {sorted(set(unique_set_ids) - {own_post_id})}")
+            unique_set_ids = [own_post_id]
+        else:
+            logger.info(f"FB post's own carousel {own_post_id=} not in found set_ids, so crawling them all")
+        logger.debug(f" looping over all {unique_set_ids=}")
 
         for most_prevalent_set_id in unique_set_ids:
             logger.debug(f" processing {most_prevalent_set_id=}")
@@ -523,6 +546,24 @@ class WaczExtractorEnricher(Enricher, Extractor):
 
 
 
+    @staticmethod
+    def _fb_own_post_id(warc_filename: str, url: str) -> str | None:
+        """post_id of the post the url is for - the first story in the page's html which isn't a recommended post.
+        None if the page's html isn't in the warc or has no stories"""
+        with open(warc_filename, "rb") as warc_stream:
+            for record in ArchiveIterator(warc_stream):
+                if record.rec_type != "response" or record.rec_headers.get_header("WARC-Target-URI") != url:
+                    continue
+                if "text/html" not in (record.http_headers.get_header("Content-Type") or ""):
+                    continue
+                body = record.content_stream().read()
+                recommended = {m.group(1) for m in FB_RECOMMENDED_POST_ID.finditer(body)}
+                for m in FB_POST_ID.finditer(body):
+                    if m.group(1) not in recommended:
+                        return m.group(1).decode()
+                return None
+        return None
+
     def _facebook_extract_screenshots(self, to_enrich: Metadata, warc_filename: str) -> int:
         """The browsertrix screenshot(s) from a Facebook page's wacz. Returns the number added"""
         counter_screenshots = 0
@@ -538,8 +579,30 @@ class WaczExtractorEnricher(Enricher, Extractor):
                     counter_screenshots += 1
         return counter_screenshots
 
-    def _facebook_extract_single_photo(self, to_enrich: Metadata, warc_filename: str) -> int:
-        """Part 1 - Strategy 0 - the full resolution image from a /photo page's wacz. Returns the number of media added"""
+    @staticmethod
+    def _fb_photo_image_path(warc_filename: str, url: str) -> str | None:
+        """url path of the full res image of the photo a /photo?fbid= page is for, from the photo's node in the page's
+        html. None if there is no fbid, the page's html isn't in the warc or the node has no image"""
+        fbid = parse_qs(urlparse(url).query).get("fbid", [None])[0]
+        if not fbid or not fbid.isdigit():
+            return None
+        with open(warc_filename, "rb") as warc_stream:
+            for record in ArchiveIterator(warc_stream):
+                if record.rec_type != "response" or record.rec_headers.get_header("WARC-Target-URI") != url:
+                    continue
+                if "text/html" not in (record.http_headers.get_header("Content-Type") or ""):
+                    continue
+                body = record.content_stream().read()
+                for node in re.finditer(rb'"id":"' + fbid.encode() + rb'"', body):
+                    image = FB_PHOTO_IMAGE_URI.search(body, node.end(), node.end() + FB_PHOTO_IMAGE_WINDOW)
+                    if image:
+                        return urlparse(image.group(1).decode().replace("\\/", "/")).path
+                return None
+        return None
+
+    def _facebook_extract_single_photo(self, to_enrich: Metadata, warc_filename: str, photo_path: str | None = None) -> int:
+        """Part 1 - Strategy 0 - the full resolution image from a /photo page's wacz. Returns the number of media added.
+        With photo_path only that image is kept (once, whatever its size), otherwise every image passing the size filters"""
         tmp_dir = self.tmp_dir
         counter_warc_files = 0
         seen_urls = set()
@@ -557,6 +620,8 @@ class WaczExtractorEnricher(Enricher, Extractor):
                 if record_url in seen_urls:
                     logger.debug(f"Skipping already seen URL {record_url}.")
                     continue
+
+                if photo_path and (urlparse(record_url).path != photo_path or counter_warc_files): continue
 
                 # filter by media mimetypes
                 content_type = record.http_headers.get("Content-Type")
@@ -577,15 +642,16 @@ class WaczExtractorEnricher(Enricher, Extractor):
                     outf.write(record.raw_stream.read())
 
                 fs = os.path.getsize(fn)
-                if fs < 13500 and ext == ".jpg": continue
-                if fs < 6000 and ext == ".webp": continue
-                if fs < 37000 and ext == ".png": continue
-                # there are files from youtube avif < 24kb which are thumbnails previews images.
-                # todo dm 16th Sept 2026 - possibly do <24k to get rid of these
-                if fs < 12000 and ext == ".avif": continue
-                if ext == ".gif": continue
-                if ext == ".ico": continue
                 if ext == None : continue
+                if not photo_path:
+                    if fs < 13500 and ext == ".jpg": continue
+                    if fs < 6000 and ext == ".webp": continue
+                    if fs < 37000 and ext == ".png": continue
+                    # there are files from youtube avif < 24kb which are thumbnails previews images.
+                    # todo dm 16th Sept 2026 - possibly do <24k to get rid of these
+                    if fs < 12000 and ext == ".avif": continue
+                    if ext == ".gif": continue
+                    if ext == ".ico": continue
 
                 logger.debug(f"Part 1 - Strategy 0 - saving the single relevant full resolution image from wacz")
                 logger.debug(f"Part 1 - Added {fn} which is {fs} and extension {ext}")
@@ -752,7 +818,9 @@ class WaczExtractorEnricher(Enricher, Extractor):
                     else: continue # to next record
 
                     record_url = record.rec_headers.get_header('WARC-Target-URI')
-                    
+                    # DM 15th Oct 26 - eg facebook.com/rsrc.php/ interface images added on every crawl
+                    if not UrlUtil.is_relevant_url(record_url): continue
+
                     content_type = record.http_headers.get("Content-Type")
                     if not content_type: continue
                     if not any(x in content_type for x in ["video", "image", "audio"]): continue

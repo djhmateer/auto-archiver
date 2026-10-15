@@ -121,6 +121,9 @@ def is_relevant_url(url: str) -> bool:
         ("emoji.redditmedia.com",),
         # linkedin
         ("static.licdn.com",),
+        # facebook - its own interface images (icons, sprite sheets), never post content
+        ("facebook.com/rsrc.php/",),
+        ("fbcdn.net/rsrc.php/",),
     ]
 
     # TODO: make these globally configurable

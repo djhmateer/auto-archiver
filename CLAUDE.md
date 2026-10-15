@@ -78,6 +78,10 @@ rather than relying only on what was pasted into the conversation.
 - Never run anything against a real site (browsertrix-crawler, yt-dlp, curl, scripts, a docker crawl), even
   without cookies, unless the user explicitly says to run it. Agreeing to "try" an approach is not permission
   to run it: propose the exact command and wait for a go-ahead.
+- Never run the project's code yourself outside `poetry run pytest -m "not download"` unless the user explicitly
+  says to. That includes the app and ad-hoc scripts that import its modules (e.g. calling an extractor or
+  enricher on a downloaded WACZ to check a fix), even offline. Reading data with plain tools (warcio, grep) to
+  investigate is fine; to check a fix against real data, propose the exact command and wait for a go-ahead.
 
 ## Version Control
 
