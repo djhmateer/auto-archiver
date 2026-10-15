@@ -61,6 +61,18 @@ def test_basic_call_execution(wacz_enricher, mocker):
     assert "--url https://example.com" in " ".join(mock_run.call_args[0][0])
 
 
+def test_window_size_passed_as_geometry(wacz_enricher, mocker):
+    """browsertrix sizes its window (and so a Facebook fullPage screenshot) from the GEOMETRY env var"""
+    mock_run = mocker.patch("subprocess.run")
+    wacz_enricher.use_docker = True
+    wacz_enricher.window_size = "1280x2048"
+    wacz_enricher.enrich(Metadata().set_url("https://example.com"))
+    cmd = mock_run.call_args[0][0]
+    assert cmd[cmd.index("-e") + 1] == "GEOMETRY=1280x2048x16"
+    assert cmd.index("-e") < cmd.index("webrecorder/browsertrix-crawler")
+    assert mock_run.call_args[1]["env"]["GEOMETRY"] == "1280x2048x16"
+
+
 def test_download_success(wacz_enricher, mocker) -> None:
     """Test download returns metadata on successful enrichment."""
     basic_metadata = Metadata().set_url("https://example.com")
@@ -193,3 +205,126 @@ def test_enrich_failure_first_log_line_has_reason(wacz_enricher, mocker, tmp_pat
     assert first_line == (
         "WACZ generation failed (exit status 9) for https://example.com: Crawl failed, no pages crawled successfully"
     )
+
+
+
+@pytest.mark.parametrize(
+    "body, route, carousel_set_id",
+    [
+        # post carousel
+        (
+            "b'av=1&route_urls[0]=%2Fphoto%2F%3Ffbid%3D1646726009098072%26set%3Dpcb.1646726145764725%26__tn__%3DEH-R'",
+            ("1646726009098072", "pcb.1646726145764725", True),
+            "1646726145764725",
+        ),
+        # post carousel set ending the route - the old slice made this non-numeric and skipped it, so still skipped
+        (
+            "b'route_urls[0]=%2Fphoto%2F%3Ffbid%3D8610356029060306%26set%3Dpcb.8610357259060183&routing_namespace=fb_comet'",
+            ("8610356029060306", "pcb.8610357259060183", False),
+            None,
+        ),
+        # author's album and profile photos - the old +13 slice truncated these to numeric set_ids
+        (
+            "b'route_urls[0]=%2Fphoto%2F%3Ffbid%3D1012033847292808%26set%3Da.107969117699290%26__tn__'",
+            ("1012033847292808", "a.107969117699290", True),
+            None,
+        ),
+        (
+            "b'route_urls[0]=%2Fphoto%2F%3Ffbid%3D2439550876400757%26set%3Dpb.100022186927255.-2207520000&routing_namespace'",
+            ("2439550876400757", "pb.100022186927255.-2207520000", False),
+            None,
+        ),
+        # no set on the route
+        ("b'route_urls[0]=%2Fphoto%2F%3Ffbid%3D2439550876400757&routing_namespace'", ("2439550876400757", None, False), None),
+        # only the first photo route is used, as before - a later carousel route doesn't override an album one
+        (
+            "b'x=%2Fphoto%2F%3Ffbid%3D1%26set%3Da.107969117699290%26y=%2Fphoto%2F%3Ffbid%3D2%26set%3Dpcb.3%26'",
+            ("1", "a.107969117699290", True),
+            None,
+        ),
+        ("b'route_urls[0]=%2Fstory.php%3Fstory_fbid%3D1'", None, None),
+    ],
+)
+def test_fb_photo_route(body, route, carousel_set_id) -> None:
+    from auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher import WaczExtractorEnricher
+
+    assert WaczExtractorEnricher._first_fb_photo_route(body) == route
+    if route:
+        assert WaczExtractorEnricher._fb_carousel_set_id(route[1], route[2]) == carousel_set_id
+
+
+def _write_fb_photo_wacz(wacz_path, photo_url: str, route: bool = True) -> None:
+    """A wacz like a crawl of a Facebook /photo page: a bulk-route-definitions request for a photo in the author's
+    album (an a. set, so no carousel set_id), the full resolution image response and the browsertrix screenshot.
+    Without the route it is like a video page, which has no photo routes at all"""
+    from io import BytesIO
+
+    from warcio.statusandheaders import StatusAndHeaders
+    from warcio.warcwriter import WARCWriter
+
+    warc = BytesIO()
+    writer = WARCWriter(warc, gzip=True)
+    route_body = b"route_urls[0]=%2Fphoto%2F%3Ffbid%3D1329142910787472%26set%3Da.132433247125117&routing_namespace=fb_comet"
+    if route:
+        writer.write_record(
+            writer.create_warc_record(
+                "https://www.facebook.com/ajax/bulk-route-definitions/",
+                "request",
+                payload=BytesIO(route_body),
+                http_headers=StatusAndHeaders("POST /ajax/bulk-route-definitions/ HTTP/1.1", [], is_http_request=True),
+            )
+        )
+    writer.write_record(
+        writer.create_warc_record(
+            photo_url,
+            "response",
+            payload=BytesIO(b"\xff\xd8" + b"0" * 20000),
+            http_headers=StatusAndHeaders("200 OK", [("Content-Type", "image/jpeg")], protocol="HTTP/1.1"),
+        )
+    )
+    writer.write_record(
+        writer.create_warc_record(
+            "urn:view:https://www.facebook.com/photo/",
+            "resource",
+            payload=BytesIO(b"png-bytes"),
+            warc_content_type="image/png",
+        )
+    )
+    with ZipFile(wacz_path, "w") as zf:
+        zf.writestr("archive/data.warc.gz", warc.getvalue())
+
+
+def test_facebook_single_photo_without_carousel_set_id(wacz_enricher, tmp_path, mocker) -> None:
+    """A /photo page in the author's album has no pcb. set_id, but its image and screenshot are still extracted"""
+    wacz_enricher.tmp_dir = str(tmp_path)
+    wacz_enricher.extract_media = True
+    mocker.patch("os.path.expanduser", return_value=str(tmp_path / "aatmp"))
+    crawl = mocker.patch.object(wacz_enricher, "save_images_to_enrich_object_from_url_using_browsertrix")
+    image_url = "https://scontent.xx.fbcdn.net/v/t39.30808-6/1329142910787472_n.jpg"
+    wacz_file = tmp_path / "fb.wacz"
+    _write_fb_photo_wacz(wacz_file, image_url)
+
+    metadata = Metadata().set_url("https://www.facebook.com/photo/?fbid=1329142910787472&set=a.132433247125117")
+    wacz_enricher.facebook_extract_media_from_wacz(metadata, str(wacz_file), metadata.get_url())
+
+    assert [m.properties.get("id") for m in metadata.media] == ["browsertrix-screenshot-0", "warc-file-0.jpg"]
+    assert metadata.media[1].get("src") == image_url
+    crawl.assert_not_called()
+
+
+def test_facebook_screenshot_without_carousel_set_id(wacz_enricher, tmp_path, mocker) -> None:
+    """A video page has no pcb. set_id, but the browsertrix screenshot is still extracted - and only once"""
+    wacz_enricher.tmp_dir = str(tmp_path)
+    wacz_enricher.extract_media = True
+    mocker.patch("os.path.expanduser", return_value=str(tmp_path / "aatmp"))
+    crawl = mocker.patch.object(wacz_enricher, "save_images_to_enrich_object_from_url_using_browsertrix")
+    wacz_file = tmp_path / "fb.wacz"
+    _write_fb_photo_wacz(wacz_file, "https://scontent.xx.fbcdn.net/v/t15.5256-10/thumb.jpg", route=False)
+
+    metadata = Metadata().set_url("https://www.facebook.com/djhmateer/videos/763070998370197")
+    wacz_enricher.facebook_extract_media_from_wacz(metadata, str(wacz_file), metadata.get_url())
+
+    assert [m.properties.get("id") for m in metadata.media] == ["browsertrix-screenshot-0"]
+    with open(metadata.media[0].filename, "rb") as f:
+        assert f.read() == b"png-bytes"
+    crawl.assert_not_called()

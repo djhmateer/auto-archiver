@@ -22,6 +22,17 @@ NOTIFICATION_COUNT_PREFIX = re.compile(r"^\(\d+\)\s*")
 # DM 1st Oct 26 - browsertrix-crawler warnings that show up on most failed (and successful) crawls, so say nothing
 # about why the crawl failed - kept out of the one-line failure reason the dashboard shows
 CRAWLER_NOISE_MESSAGE = re.compile(r"^(ioredis error|Waiting for redis\b|Page date missing\b)")
+# photo route in a bulk-route-definitions request body: fb_id, then the raw set value if there is one, then whether
+# another param (%26) follows the set. eg
+#   photo%2F%3Ffbid%3D1646726009098072%26set%3Dpcb.1646726145764725%26  - post carousel
+#   photo%2F%3Ffbid%3D...%26set%3Dpcb.8610357259060183&routing_namespace=... - post carousel, set ends the route
+#   photo%2F%3Ffbid%3D...%26set%3Da.<id>  or  set%3Dpb.<id>.-2207520000  - author's album / profile photos
+# DM 14th Oct 26 - the old fixed +13 slice turned a./pb. sets into truncated numeric set_ids (eg 0937538699197),
+# and as those links are on every page by the author, the walk crawled the author's album instead of the post
+FB_PHOTO_ROUTE = re.compile(r"photo%2F%3Ffbid%3D(\d+)(?:%26set%3D([^%&']*)(%26)?)?")
+FB_CAROUSEL_SET = re.compile(r"pcb\.(\d+)")
+# DM 14th Oct 26 - each crawl adds ~3 files but only ~1 new photo, so cap on crawls not images
+FB_WALK_MAX_CRAWLS = 30
 
 
 def is_bare_site_name(title: str, url: str) -> bool:
@@ -152,6 +163,8 @@ class WaczExtractorEnricher(Enricher, Extractor):
                     "--rm",
                     "-v",
                     f"{browsertrix_home_host}:/crawls/",
+                    "-e",
+                    f"GEOMETRY={self.window_size}x16",
                     "webrecorder/browsertrix-crawler",
                 ] + cmd
 
@@ -171,6 +184,8 @@ class WaczExtractorEnricher(Enricher, Extractor):
         try:
             logger.info(f"Running browsertrix-crawler: {' '.join(cmd)}")
             my_env = os.environ.copy()
+            # used when running inside the browsertrix image (not docker), the docker run above passes it with -e
+            my_env["GEOMETRY"] = f"{self.window_size}x16"
             if self.proxy_server:
                 logger.debug("Using PROXY_SERVER proxy for browsertrix-crawler")
                 my_env["PROXY_SERVER"] = self.proxy_server
@@ -271,7 +286,7 @@ class WaczExtractorEnricher(Enricher, Extractor):
         Facebook specific extractor
         Receives a .wacz archive, and extracts all relevant media from it, adding them to to_enrich.
         Part 1 - extract images from the wacz. Only relevant for /photo (strategy 0) pages. This includes full resolution image so no need to crawl.
-        Part 2 - 
+        Part 2 - for posts, find the carousel's pcb. set_id and crawl each photo page in it to get the full resolution images
         """
         logger.info(f"Facebook Part 1 - extracting media from {wacz_filename=}")
         fb_start = time.perf_counter()
@@ -292,10 +307,25 @@ class WaczExtractorEnricher(Enricher, Extractor):
                     with open(chunk_file, "rb") as infile:
                         shutil.copyfileobj(infile, outfile)
 
-        # get media out of .warc
+        # DM 15th Oct 26 - the browsertrix screenshot, for every FB url. This used to run inside the set_id loop below,
+        # so was lost when no pcb. set_id was found (eg a video page), and added once per set_id when there were several
+        counter_screenshots = self._facebook_extract_screenshots(to_enrich, warc_filename) if self.extract_screenshot else 0
         counter_warc_files = 0
-        counter_screenshots = 0
-        seen_urls = set()
+
+        # DM 15th Oct 26 - Strategy 0 - a /photo page has its single full resolution image in its own wacz, so no set_id
+        # or Part 2 crawl is needed. This used to run inside the set_id loop below, so the image was lost when no pcb.
+        # set_id was found, eg a photo in the author's album (set=a.<id>)
+        if self.extract_media and "facebook.com/photo" in url:
+            counter_warc_files = self._facebook_extract_single_photo(to_enrich, warc_filename)
+
+        if not self.extract_media or "facebook.com/photo" in url:
+            logger.info(
+                f"Facebook WACZ extract_media/extract_screenshot finished, found {counter_warc_files + counter_screenshots} relevant media file(s)"
+            )
+            logger.info(
+                f"FB timing - facebook_extract_media_from_wacz took {time.perf_counter() - fb_start:.0f}s for {url} (no carousel crawl)"
+            )
+            return
 
         # using a separate linux_tmp_dir for Part 2 to avoid confusion with the tmp_dir used for Part 1
         linux_tmp_dir = os.path.expanduser('~/aatmp')
@@ -321,21 +351,12 @@ class WaczExtractorEnricher(Enricher, Extractor):
                 uri = record.rec_headers.get_header('WARC-Target-URI')
 
                 if "bulk-route-definitions/" in uri:
-                    content = record.content_stream().read()
-                    foo = str(content)
-                    photo_string_start_pos = foo.find(f'photo%2F%3Ffbid%3D',0)
-                    # photo_string_start_pos = foo.find(f'photo%3Ffbid%3D',0)
-
-                    if (photo_string_start_pos > 0):
-                        fbid_start_pos = photo_string_start_pos + 18
-                        # fbid_start_pos = photo_string_start_pos + 15
-                        middle_26_start_pos = foo.find(f'%26', fbid_start_pos)
-                        fb_id = foo[fbid_start_pos:middle_26_start_pos]
-                        set_end_pos = foo.find(f'%26', middle_26_start_pos+1)
-                        set_id = foo[middle_26_start_pos+13:set_end_pos]
-
-                        if not set_id.isdigit():
-                            logger.debug(f"skipping non-numeric {set_id=} - likely a parsing artifact, not a real Facebook set_id")
+                    route = self._first_fb_photo_route(str(record.content_stream().read()))
+                    if route:
+                        fb_id, set_value, more_params = route
+                        set_id = self._fb_carousel_set_id(set_value, more_params)
+                        if set_id is None:
+                            logger.debug(f"skipping {set_value=} {fb_id=} - not a post carousel (pcb.) set, eg the author's album or profile photos")
                             continue
 
                         logger.info(f" found {set_id=} in bulk-route-definitions and adding to list so can calculate most prevalent")
@@ -369,232 +390,129 @@ class WaczExtractorEnricher(Enricher, Extractor):
             with open(warc_filename, "rb") as warc_stream:
                 full_crawl_done = False
                 for record in ArchiveIterator(warc_stream):
-                    # extract just the screenshot from the facebook page wacz
-                    if (record.rec_type == "resource" and record.content_type == "image/png" and self.extract_screenshot):
-                        fn = os.path.join(tmp_dir, f"warc-file-{counter_screenshots}.png")
-                        with open(fn, "wb") as outf:
-                            outf.write(record.raw_stream.read())
-                        m = Media(filename=fn)
-                        to_enrich.add_media(m, f"browsertrix-screenshot-{counter_screenshots}")
-                        logger.debug(f"Part 1 - Added Screenshot")
-                        logger.debug(f"Part 1 - is a chance that will not be called browser-screenshot, as may have been added already, and will get deleted in deduplication.")
-                        counter_screenshots += 1
-                        
-                    # purely to make sure we get the screenshot
-                    if full_crawl_done: continue # to next record
-    
-                    # continue to next if don't want media (essentially do nothing else but the screenshot above)
-                    if self.extract_media: pass
-                    else: continue
-    
-                    # Strategy 0 - single image
-                    if "facebook.com/photo" in url:
-                        # eg single lady
-                        # https://www.facebook.com/khitthitnews/posts/pfbid0PTvT6iAccWqatvbDQNuqpFwL5WKzHuLK4QjP97Fwut637CV3XXQU53z1s2bJMAKwl
-                        # logger.debug(f"Strategy 0 - this is a /photo page so the image will be at full resolution and don't need to crawl")
-                        crawl_and_get_media_from_sub_page = False
-                    else:
-                        # eg 3 images
-                        # https://www.facebook.com/khitthitnews/posts/pfbid0PTvT6iAccWqatvbDQNuqpFwL5WKzHuLK4QjP97Fwut637CV3XXQU53z1s2bJMAKwl
-                        # eg 15 images
-                        # https://www.facebook.com/permalink.php?story_fbid=pfbid0BqNZHQaQfqTAKzVaaeeYNuyPXFJhkPmzwWT7mZPZJLFnHNEvsdbnLJRPkHJDMcqFl&id=100082135548177
-                        crawl_and_get_media_from_sub_page = True
-    
-                    if crawl_and_get_media_from_sub_page:
-                        if record.rec_type == "request": pass
-                        else: continue # to next record - we are only interested in the request at the moment to get the fb_id and set_id
-    
-                        # CRAWL START
-                        # logger.debug(f"Strategy 1 + - crawling the sub page to get the media")
-    
-                        # Get fb_id and set_id
-                        # strategy 1 - 3 images and want full resolution images
-                        # https://www.facebook.com/khitthitnews/posts/pfbid0PTvT6iAccWqatvbDQNuqpFwL5WKzHuLK4QjP97Fwut637CV3XXQU53z1s2bJMAKwl
-    
-                        # writing in table image: 
-                        # https://www.facebook.com/photo/?fbid=1646726009098072&set=pcb.1646726145764725
-                        # fbid = 1646726009098072 
-    
-                        # set = 1646726145764725
-    
-                        # crosshairs image
-                        # https://www.facebook.com/photo?fbid=1646726045764735&set=pcb.1646726145764725
-                        # fbid = 1646726045764735
-                        
-                        # printout of map image
-                        # https://www.facebook.com/photo?fbid=1646726095764730&set=pcb.1646726145764725
-                        # fbid = 1646726095764730
-                        
-                        uri = record.rec_headers.get_header('WARC-Target-URI')
-    
-                        # There are many instances of this and it is possible to get the wrong one.
-                        # DM 13th Jun 25 - we already know the most prevalent set_id that we want
-                        if "bulk-route-definitions/" in uri:
-                            content = record.content_stream().read()
-                            foo = str(content)
-    
-                            # Strategy 1 - 3 images
-                            # photo%2F%3Ffbid%3D1646726009098072%26set%3Dpcb.1646726145764725%26
-                            # writing in table image 
-                            # fbid = 1646726009098072
-                            # set = pcb.1646726145764725
-    
-                            photo_string_start_pos = foo.find(f'photo%2F%3Ffbid%3D',0)
-                            # photo_string_start_pos = foo.find(f'photo%3Ffbid%3D',0)
-    
-                            if (photo_string_start_pos > 0):
-                                logger.debug("Part 1 - found photo string so get the fb_id and set_id so can request it to get full res image")
-                                logger.debug("   and then the next fb_id from the carousel")
-                                fbid_start_pos = photo_string_start_pos + 18
-                                # fbid_start_pos = photo_string_start_pos + 15
-    
-                                middle_26_start_pos = foo.find(f'%26', fbid_start_pos)
-    
-                                fb_id = foo[fbid_start_pos:middle_26_start_pos]
-                                # # photo%2F%3Ffbid%3D1646726009098072%26set%3Dpcb.1646726145764725%26
-                                set_end_pos = foo.find(f'%26', middle_26_start_pos+1)
-    
-                                set_id = foo[middle_26_start_pos+13:set_end_pos]
-    
-                                if set_id == most_prevalent_set_id: pass
-                                else:
-                                    logger.info(f"Part 1 - skipping set_id {set_id=} as not the most prevalent set_id {most_prevalent_set_id=}")
-                                    continue # to next record
-    
-                                logger.info(f"  *** Part 1 - Strategy 1 {fb_id=} and {set_id=}")
-                                # bar = f'https://www.facebook.com/photo/?fbid={fb_id}&set=pcb.{set_id}'
-    
-                                # Part 2
-                                fb_ids_to_request = []
-                                fb_ids_requested = []
-                                walk_start = time.perf_counter()
-                                walk_media_start = len(to_enrich.media)
-                                walk_stop_reason = "queue empty"
-                                while (True):
-                                    builder_url = f"https://www.facebook.com/photo?fbid={fb_id}&set=pcb.{set_id}"
-    
-                                    fb_ids_requested.append(fb_id)
-    
-                                    logger.info(f"  *** Part 2 next trying url for js page {builder_url}")
-    
-                                    # next_fb_id = self.save_images_to_enrich_object_from_url_using_browsertrix(builder_url, to_enrich, fb_id)
-                                    list_of_next_fb_ids = self.save_images_to_enrich_object_from_url_using_browsertrix(builder_url, to_enrich, fb_id)
-    
-                                    # DM 8th Oct 26 - log why the queue doesn't shrink (only checks fb_ids_requested, not fb_ids_to_request)
-                                    already_requested = [x for x in list_of_next_fb_ids if x in fb_ids_requested]
-                                    already_queued = [x for x in list_of_next_fb_ids if x in fb_ids_to_request]
-                                    logger.debug(
-                                        f"FB walk {set_id=} crawl {len(fb_ids_requested)} {fb_id=} returned {list_of_next_fb_ids=} "
-                                        f"{already_requested=} {already_queued=}"
-                                    )
+                    if full_crawl_done: break # out of the records for this set_id
 
-                                    # iterate over list_of_next_fb_ids and add to fb_ids_to_request if not in fb_ids_requested
-                                    for next_fb_id in list_of_next_fb_ids:
-                                        if next_fb_id not in fb_ids_requested:
-                                            fb_ids_to_request.append(next_fb_id)
-                                    logger.debug(f"FB walk {set_id=} queue now {fb_ids_to_request=}")
+                    if record.rec_type == "request": pass
+                    else: continue # to next record - we are only interested in the request at the moment to get the fb_id and set_id
     
-                                    logger.debug(f"Part 2 - fb_ids_to_request {len(fb_ids_to_request)}")
-                                    logger.debug(f"Part 2 - fb_ids_requested {len(fb_ids_requested)}")
+                    # CRAWL START
+                    # logger.debug(f"Strategy 1 + - crawling the sub page to get the media")
     
-                                    if len(fb_ids_to_request) == 0:
-                                        logger.debug(f"Part 2 - no more fb_ids to request so end")
-                                        break # out of while
+                    # Get fb_id and set_id
+                    # strategy 1 - 3 images and want full resolution images
+                    # https://www.facebook.com/khitthitnews/posts/pfbid0PTvT6iAccWqatvbDQNuqpFwL5WKzHuLK4QjP97Fwut637CV3XXQU53z1s2bJMAKwl
     
-                                    fb_id = fb_ids_to_request.pop(0)
+                    # writing in table image: 
+                    # https://www.facebook.com/photo/?fbid=1646726009098072&set=pcb.1646726145764725
+                    # fbid = 1646726009098072 
     
-                                    # iterate over fb_ids_to_request and request the url
+                    # set = 1646726145764725
     
-                                    total_images = len(to_enrich.media)
-                                    logger.debug(f"Part 2 - total_images {total_images} - includes duplicates")
-                                    if total_images > 90:
-                                        logger.info('Total images is > max so stopping crawl')
-                                        walk_stop_reason = "image cap (>90 incl duplicates)"
-                                        break # out of while
-                                    
-                                self._log_fb_walk_summary(
-                                    url, set_id, fb_ids_requested, fb_ids_to_request, walk_stop_reason,
-                                    walk_start, to_enrich.media[walk_media_start:],
-                                )
+                    # crosshairs image
+                    # https://www.facebook.com/photo?fbid=1646726045764735&set=pcb.1646726145764725
+                    # fbid = 1646726045764735
+                    
+                    # printout of map image
+                    # https://www.facebook.com/photo?fbid=1646726095764730&set=pcb.1646726145764725
+                    # fbid = 1646726095764730
+                    
+                    uri = record.rec_headers.get_header('WARC-Target-URI')
+    
+                    # There are many instances of this and it is possible to get the wrong one.
+                    # DM 13th Jun 25 - we already know the most prevalent set_id that we want
+                    if "bulk-route-definitions/" in uri:
+                        content = record.content_stream().read()
+                        foo = str(content)
+    
+                        # Strategy 1 - 3 images
+                        # photo%2F%3Ffbid%3D1646726009098072%26set%3Dpcb.1646726145764725%26
+                        # writing in table image 
+                        # fbid = 1646726009098072
+                        # set = pcb.1646726145764725
+    
+                        route = self._first_fb_photo_route(foo)
 
-                                if len(fb_ids_requested) == 1:
-                                    logger.debug("Probably the wrong fb_id url here in Part 2, as only 1 fb_ids_requested")
-                                    logger.debug("so not the carousel we want")
-                                    logger.debug("continuing to next record in root url (Part 1) ")
-                                    continue # to next record
-    
-                                logger.debug(f"Part 2 END of while loop")
-                                # we can't return here as the screenshot may not have been added yet
-    
-                                full_crawl_done = True
-                                # return
+                        if route:
+                            logger.debug("Part 1 - found photo string so get the fb_id and set_id so can request it to get full res image")
+                            logger.debug("   and then the next fb_id from the carousel")
+                            fb_id, set_value, more_params = route
+                            set_id = self._fb_carousel_set_id(set_value, more_params)
+
+                            if set_id == most_prevalent_set_id: pass
                             else:
-                                # logger.debug('photo string not found in bulk-route-definitions - this is normal. 1 out of 3 have seen work... ')
-                                # logger.debug('it also could be a single image which is different')
-                                ## TODO - strategy x
+                                logger.info(f"Part 1 - skipping set_id {set_id=} as not the most prevalent set_id {most_prevalent_set_id=}")
                                 continue # to next record
     
-                        # END of if crawl_and_get_media_from_sub_page
-                        continue # onto the next record
+                            logger.info(f"  *** Part 1 - Strategy 1 {fb_id=} and {set_id=}")
+                            # bar = f'https://www.facebook.com/photo/?fbid={fb_id}&set=pcb.{set_id}'
     
-                    # if part 2 crawler has happened then we don't want to do anything else
-                    # but we do want to iterate over all records so that the screenshot is added
-                    if crawl_and_get_media_from_sub_page: continue # to next record
-                    else: pass
+                            # Part 2
+                            fb_ids_to_request = []
+                            fb_ids_requested = []
+                            walk_start = time.perf_counter()
+                            walk_media_start = len(to_enrich.media)
+                            walk_stop_reason = "queue empty"
+                            while (True):
+                                builder_url = f"https://www.facebook.com/photo?fbid={fb_id}&set=pcb.{set_id}"
     
-                    # Only part 1 - strategy 0 code below
-                    # if record.rec_type != "response": continue
-                    if record.rec_type == "response": pass
-                    else: continue
+                                fb_ids_requested.append(fb_id)
     
-                    # so response has this header!
-                    record_url = record.rec_headers.get_header("WARC-Target-URI")
-                    if UrlUtil.is_relevant_url(record_url): pass
-                    else:
-                        # logger.debug(f"Skipping irrelevant URL {record_url}")
-                        continue
+                                logger.info(f"  *** Part 2 next trying url for js page {builder_url}")
     
-                    if record_url in seen_urls:
-                        logger.debug(f"Skipping already seen URL {record_url}.")
-                        continue
+                                # next_fb_id = self.save_images_to_enrich_object_from_url_using_browsertrix(builder_url, to_enrich, fb_id)
+                                list_of_next_fb_ids = self.save_images_to_enrich_object_from_url_using_browsertrix(builder_url, to_enrich, fb_id, set_id)
     
-                    # filter by media mimetypes
-                    content_type = record.http_headers.get("Content-Type")
-                    if content_type: pass
-                    else: continue
+                                # DM 8th Oct 26 - log why the queue doesn't shrink (both lists are now checked before queueing)
+                                already_requested = [x for x in list_of_next_fb_ids if x in fb_ids_requested]
+                                already_queued = [x for x in list_of_next_fb_ids if x in fb_ids_to_request]
+                                logger.debug(
+                                    f"FB walk {set_id=} crawl {len(fb_ids_requested)} {fb_id=} returned {list_of_next_fb_ids=} "
+                                    f"{already_requested=} {already_queued=}"
+                                )
+
+                                # iterate over list_of_next_fb_ids and add to fb_ids_to_request if not already requested or queued
+                                # DM 14th Oct 26 - also check the queue, as an fb_id queued twice was crawled twice
+                                for next_fb_id in list_of_next_fb_ids:
+                                    if next_fb_id not in fb_ids_requested and next_fb_id not in fb_ids_to_request:
+                                        fb_ids_to_request.append(next_fb_id)
+                                logger.debug(f"FB walk {set_id=} queue now {fb_ids_to_request=}")
     
-                    if any(x in content_type for x in ["video", "image", "audio"]): pass
-                    else: continue
+                                logger.debug(f"Part 2 - fb_ids_to_request {len(fb_ids_to_request)}")
+                                logger.debug(f"Part 2 - fb_ids_requested {len(fb_ids_requested)}")
     
-                    # create local file and add media
-                    ext = mimetypes.guess_extension(content_type)
+                                if len(fb_ids_to_request) == 0:
+                                    logger.debug(f"Part 2 - no more fb_ids to request so end")
+                                    break # out of while
+
+                                if len(fb_ids_requested) >= FB_WALK_MAX_CRAWLS:
+                                    logger.info(f"Crawled {len(fb_ids_requested)} carousel pages so stopping crawl")
+                                    walk_stop_reason = f"crawl cap ({FB_WALK_MAX_CRAWLS})"
+                                    break # out of while
+
+                                fb_id = fb_ids_to_request.pop(0)
+                                logger.debug(f"Part 2 - total_images {len(to_enrich.media)} - includes duplicates")
+
+                            self._log_fb_walk_summary(
+                                url, set_id, fb_ids_requested, fb_ids_to_request, walk_stop_reason,
+                                walk_start, to_enrich.media[walk_media_start:],
+                            )
+
+                            if len(fb_ids_requested) == 1:
+                                logger.debug("Probably the wrong fb_id url here in Part 2, as only 1 fb_ids_requested")
+                                logger.debug("so not the carousel we want")
+                                logger.debug("continuing to next record in root url (Part 1) ")
+                                continue # to next record
     
-                    warc_fn = f"warc-file-{counter_warc_files}{ext}"
+                            logger.debug(f"Part 2 END of while loop")
+
+                            full_crawl_done = True
+                            # return
+                        else:
+                            # logger.debug('photo string not found in bulk-route-definitions - this is normal. 1 out of 3 have seen work... ')
+                            # logger.debug('it also could be a single image which is different')
+                            ## TODO - strategy x
+                            continue # to next record
     
-                    fn = os.path.join(tmp_dir, warc_fn)
-    
-                    with open(fn, "wb") as outf:
-                        outf.write(record.raw_stream.read())
-    
-                    fs = os.path.getsize(fn)
-                    if fs < 13500 and ext == ".jpg": continue
-                    if fs < 6000 and ext == ".webp": continue
-                    if fs < 37000 and ext == ".png": continue
-                    # there are files from youtube avif < 24kb which are thumbnails previews images.
-                    # todo dm 16th Sept 2026 - possibly do <24k to get rid of these
-                    if fs < 12000 and ext == ".avif": continue
-                    if ext == ".gif": continue
-                    if ext == ".ico": continue
-                    if ext == None : continue
-    
-                    logger.debug(f"Part 1 - Strategy 0 - saving the single relevant full resolution image from wacz")
-                    logger.debug(f"Part 1 - Added {fn} which is {fs} and extension {ext}")
-                    m = Media(filename=fn)
-                    m.set("src", record_url)
-    
-                    to_enrich.add_media(m, warc_fn)
-                    counter_warc_files += 1
-                    seen_urls.add(record_url)
         logger.info(
             f"Facebook WACZ extract_media/extract_screenshot finished, found {counter_warc_files + counter_screenshots} relevant media file(s)"
         )
@@ -604,6 +522,81 @@ class WaczExtractorEnricher(Enricher, Extractor):
         )
 
 
+
+    def _facebook_extract_screenshots(self, to_enrich: Metadata, warc_filename: str) -> int:
+        """The browsertrix screenshot(s) from a Facebook page's wacz. Returns the number added"""
+        counter_screenshots = 0
+        with open(warc_filename, "rb") as warc_stream:
+            for record in ArchiveIterator(warc_stream):
+                if record.rec_type == "resource" and record.content_type == "image/png":
+                    # DM 15th Oct 26 - not warc-file-<n>.png, as Strategy 0 names a png image that and overwrote the screenshot
+                    fn = os.path.join(self.tmp_dir, f"browsertrix-screenshot-{counter_screenshots}.png")
+                    with open(fn, "wb") as outf:
+                        outf.write(record.raw_stream.read())
+                    to_enrich.add_media(Media(filename=fn), f"browsertrix-screenshot-{counter_screenshots}")
+                    logger.debug(f"Part 1 - Added Screenshot")
+                    counter_screenshots += 1
+        return counter_screenshots
+
+    def _facebook_extract_single_photo(self, to_enrich: Metadata, warc_filename: str) -> int:
+        """Part 1 - Strategy 0 - the full resolution image from a /photo page's wacz. Returns the number of media added"""
+        tmp_dir = self.tmp_dir
+        counter_warc_files = 0
+        seen_urls = set()
+
+        with open(warc_filename, "rb") as warc_stream:
+            for record in ArchiveIterator(warc_stream):
+                if record.rec_type == "response": pass
+                else: continue
+
+                # so response has this header!
+                record_url = record.rec_headers.get_header("WARC-Target-URI")
+                if UrlUtil.is_relevant_url(record_url): pass
+                else: continue
+
+                if record_url in seen_urls:
+                    logger.debug(f"Skipping already seen URL {record_url}.")
+                    continue
+
+                # filter by media mimetypes
+                content_type = record.http_headers.get("Content-Type")
+                if content_type: pass
+                else: continue
+
+                if any(x in content_type for x in ["video", "image", "audio"]): pass
+                else: continue
+
+                # create local file and add media
+                ext = mimetypes.guess_extension(content_type)
+
+                warc_fn = f"warc-file-{counter_warc_files}{ext}"
+
+                fn = os.path.join(tmp_dir, warc_fn)
+
+                with open(fn, "wb") as outf:
+                    outf.write(record.raw_stream.read())
+
+                fs = os.path.getsize(fn)
+                if fs < 13500 and ext == ".jpg": continue
+                if fs < 6000 and ext == ".webp": continue
+                if fs < 37000 and ext == ".png": continue
+                # there are files from youtube avif < 24kb which are thumbnails previews images.
+                # todo dm 16th Sept 2026 - possibly do <24k to get rid of these
+                if fs < 12000 and ext == ".avif": continue
+                if ext == ".gif": continue
+                if ext == ".ico": continue
+                if ext == None : continue
+
+                logger.debug(f"Part 1 - Strategy 0 - saving the single relevant full resolution image from wacz")
+                logger.debug(f"Part 1 - Added {fn} which is {fs} and extension {ext}")
+                m = Media(filename=fn)
+                m.set("src", record_url)
+
+                to_enrich.add_media(m, warc_fn)
+                counter_warc_files += 1
+                seen_urls.add(record_url)
+
+        return counter_warc_files
 
     def _log_fb_walk_summary(self, url, set_id, fb_ids_requested, fb_ids_to_request, stop_reason, walk_start, walk_media) -> None:
         """DM 8th Oct 26 - one line per Part 2 carousel walk, to diagnose ~20 min FB posts (crawl count, time, repeated images)"""
@@ -617,6 +610,24 @@ class WaczExtractorEnricher(Enricher, Extractor):
         logger.debug(f"FB walk summary {set_id=} {fb_ids_requested=} repeated content hash:count {repeated}")
 
     @staticmethod
+    def _first_fb_photo_route(foo: str) -> tuple[str, str | None, bool] | None:
+        """fb_id, raw set value (None if the route has no set) and whether another param follows the set, for the
+        first photo route in a bulk-route-definitions body - only the first route has ever been used"""
+        pos = foo.find("photo%2F%3Ffbid%3D")
+        match = FB_PHOTO_ROUTE.match(foo, pos) if pos > 0 else None
+        if not match:
+            return None
+        fb_id, set_value, more_params = match.groups()
+        return fb_id, set_value, more_params is not None
+
+    @staticmethod
+    def _fb_carousel_set_id(set_value: str | None, more_params: bool) -> str | None:
+        """set_id of a post carousel (pcb.<id>) followed by another param - the only sets the old +13 slice parsed
+        correctly. A pcb set ending the route came out non-numeric and was skipped, so is still skipped here"""
+        match = FB_CAROUSEL_SET.fullmatch(set_value or "")
+        return match.group(1) if match and more_params else None
+
+    @staticmethod
     def _short_file_hash(filename) -> str:
         try:
             with open(filename, "rb") as f:
@@ -625,7 +636,7 @@ class WaczExtractorEnricher(Enricher, Extractor):
             return "unreadable"
 
     # only used by FB - Part 2
-    def save_images_to_enrich_object_from_url_using_browsertrix(self, url_build, to_enrich: Metadata, current_fb_id) -> list:
+    def save_images_to_enrich_object_from_url_using_browsertrix(self, url_build, to_enrich: Metadata, current_fb_id, set_id) -> list:
             # returns the carousel's next fb_ids - empty if the crawl failed, as the caller iterates over it
             logger.debug(f' Inside Part 2')
             # call browsertrix and get a warc file using a logged in facebook profile
@@ -706,20 +717,17 @@ class WaczExtractorEnricher(Enricher, Extractor):
                             # fbid = 1646726009098072
                             # set = pcb.1646726145764725
 
-                            photo_string_start_pos = foo.find(f'photo%2F%3Ffbid%3D',0)
-                            #photo_string_start_pos = foo.find(f'photo%3Ffbid%3D',0)
-  
-                            if (photo_string_start_pos > 0):
-                                fbid_start_pos = photo_string_start_pos + 18
-                                # fbid_start_pos = photo_string_start_pos + 15
+                            route = self._first_fb_photo_route(foo)
 
-                                middle_26_start_pos = foo.find(f'%26', fbid_start_pos)
-    
-                                # only need this!
-                                next_fb_id_foo = foo[fbid_start_pos:middle_26_start_pos]
+                            if route:
+                                next_fb_id_foo, set_value, _ = route
 
+                                # DM 14th Oct 26 - don't follow a photo explicitly in another set (eg the author's album).
+                                # A route with no set, or with pcb.<set_id> ending the route, is still followed as before
+                                if set_value is not None and set_value != f"pcb.{set_id}":
+                                    logger.debug(f"Part 2 - ignoring fb_id {next_fb_id_foo} in {set_value=}, not this carousel pcb.{set_id}")
                                 # check haven't found current page fb_id
-                                if next_fb_id_foo == current_fb_id:
+                                elif next_fb_id_foo == current_fb_id:
                                     logger.debug("found current fb_id so ignoring")
                                 else:
                                     # next_fb_id = next_fb_id_foo

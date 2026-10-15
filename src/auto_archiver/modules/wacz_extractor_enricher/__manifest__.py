@@ -35,6 +35,12 @@
             "help": "SOCKS proxy port for browsertrix-crawler, use in combination with socks_proxy_host. eg 1234",
         },
         "proxy_server": {"default": None, "help": "SOCKS server proxy URL, in development"},
+        # DM 15th Oct 26 - same size as the screenshot_enricher (1280x2048 in our configs), as Facebook pages don't scroll
+        # as a whole, so browsertrix's fullPage screenshot is only as tall as the window (image default 1360x1020)
+        "window_size": {
+            "default": "1280x2048",
+            "help": "browser window size for browsertrix-crawler as WIDTHxHEIGHT, passed as its GEOMETRY env var. Sets the height of the screenshot on pages that don't scroll as a whole, eg Facebook",
+        },
     },
     "description": """
     Creates .WACZ archives of web pages using the `browsertrix-crawler` tool, with options for media extraction and screenshot saving.
