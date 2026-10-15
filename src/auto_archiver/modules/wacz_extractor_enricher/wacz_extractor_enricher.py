@@ -16,6 +16,7 @@ from warcio.archiveiterator import ArchiveIterator
 from auto_archiver.core import Media, Metadata
 from auto_archiver.core import Extractor, Enricher
 from auto_archiver.utils import url as UrlUtil, random_str
+from auto_archiver.modules.screenshot_enricher.screenshot_enricher import check_screenshot_for_facebook_issues
 
 LOGIN_PAGE_TITLE = re.compile(r"\b(log ?in|sign ?in)\b", re.IGNORECASE)
 NOTIFICATION_COUNT_PREFIX = re.compile(r"^\(\d+\)\s*")
@@ -37,6 +38,8 @@ FB_POST_ID = re.compile(rb'"post_id":"(\d+)"')
 # DM 15th Oct 26 - a /photo page's html has the photo's node, eg "id":"<fbid>",...,"image":{"uri":"<full res url>"}
 FB_PHOTO_IMAGE_URI = re.compile(rb'"image":\{"uri":"([^"]+)"')
 FB_PHOTO_IMAGE_WINDOW = 3000
+# DM 15th Oct 26 - the logged in user id facebook's page sends with its requests, 0 when logged out
+FB_SESSION_USER = re.compile(rb"__user=(\d+)")
 FB_RECOMMENDED_POST_ID = re.compile(rb'top_level_post_id\\":\\"(\d+)\\"[^}]*?originated_from_recommendation\\":\\"1\\"')
 # DM 14th Oct 26 - each crawl adds ~3 files but only ~1 new photo, so cap on crawls not images
 FB_WALK_MAX_CRAWLS = 30
@@ -295,6 +298,22 @@ class WaczExtractorEnricher(Enricher, Extractor):
         Part 1 - extract images from the wacz. Only relevant for /photo (strategy 0) pages. This includes full resolution image so no need to crawl.
         Part 2 - for posts, find the carousel's pcb. set_id and crawl each photo page in it to get the full resolution images
         """
+        # DM 15th Oct 26 - one line per FB url of what was found and which strategy ran, to diagnose prod from aa_logs
+        # eg WHERE message LIKE '%FB summary%strategy=no_carousel_found%'
+        diag = {"page": "photo" if "facebook.com/photo" in url else "post"}
+        fb_start = time.perf_counter()
+        media_start = len(to_enrich.media)
+        try:
+            self._facebook_extract_media_from_wacz(to_enrich, wacz_filename, url, diag)
+        finally:
+            added = to_enrich.media[media_start:]
+            diag["media_added"] = len(added)
+            # DM 15th Oct 26 - walks add each photo more than once (deduplicated at upload), so count by content too
+            diag["unique_media"] = len({self._short_file_hash(m.filename) for m in added})
+            diag["seconds"] = round(time.perf_counter() - fb_start)
+            logger.info(f"FB summary {url} " + " ".join(f"{k}={v}" for k, v in diag.items()))
+
+    def _facebook_extract_media_from_wacz(self, to_enrich: Metadata, wacz_filename: str, url: str, diag: dict) -> None:
         logger.info(f"Facebook Part 1 - extracting media from {wacz_filename=}")
         fb_start = time.perf_counter()
 
@@ -319,6 +338,15 @@ class WaczExtractorEnricher(Enricher, Extractor):
         counter_screenshots = self._facebook_extract_screenshots(to_enrich, warc_filename) if self.extract_screenshot else 0
         counter_warc_files = 0
 
+        # DM 15th Oct 26 - a logged out crawl (eg profile.tar.gz has lost its session) gets fewer/no images
+        session_user = self._fb_session_user(warc_filename)
+        diag["session"] = "unknown" if session_user is None else ("LOGGED_OUT" if session_user == "0" else "logged_in")
+        if session_user == "0":
+            logger.warning(f"FB browsertrix crawl was logged out (__user=0) for {url} - check the browsertrix profile {self.profile}")
+
+        # DM 15th Oct 26 - login walls / blocks on the browsertrix screenshot, as the screenshot_enricher does for its own
+        diag["screenshot_ocr"] = self._fb_screenshot_problems(to_enrich, url) if counter_screenshots else "no_screenshot"
+
         # DM 15th Oct 26 - Strategy 0 - a /photo page has its single full resolution image in its own wacz, so no set_id
         # or Part 2 crawl is needed. This used to run inside the set_id loop below, so the image was lost when no pcb.
         # set_id was found, eg a photo in the author's album (set=a.<id>)
@@ -327,9 +355,14 @@ class WaczExtractorEnricher(Enricher, Extractor):
             # photo. If its image isn't found, keep every image which passes the size filters as before
             photo_path = self._fb_photo_image_path(warc_filename, url)
             counter_warc_files = self._facebook_extract_single_photo(to_enrich, warc_filename, photo_path)
+            diag["strategy"] = "photo_own_image" if counter_warc_files else "photo_size_filter_fallback"
             if photo_path and counter_warc_files == 0:
                 logger.info(f"FB photo image {photo_path=} not in the wacz, so keeping every image which passes the size filters")
                 counter_warc_files = self._facebook_extract_single_photo(to_enrich, warc_filename)
+            elif not photo_path:
+                logger.info(f"FB photo's node not found in the page's html for {url}, so keeping every image which passes the size filters")
+        elif not self.extract_media:
+            diag["strategy"] = "extract_media_off"
 
         if not self.extract_media or "facebook.com/photo" in url:
             logger.info(
@@ -379,8 +412,9 @@ class WaczExtractorEnricher(Enricher, Extractor):
 
         if list_of_set_ids: pass
         else:
-            logger.debug("No set_ids found in bulk-route-definitions in any record. Have seen this if content is not available ie page has been taken down")
+            logger.info(f"FB no carousel set_ids found in bulk-route-definitions for {url}. Have seen this if content is not available ie page has been taken down")
             logger.debug("Have also seen this if there is a video on the FB page")
+            diag["strategy"] = "no_carousel_found"
             return
 
         # get the most prevalent set_id
@@ -399,6 +433,9 @@ class WaczExtractorEnricher(Enricher, Extractor):
         # DM 15th Oct 26 - only crawl the post's own carousel, not ones on recommended posts further down the page.
         # If the post's own one wasn't found, crawl them all as before
         own_post_id = self._fb_own_post_id(warc_filename, url)
+        diag["carousels_found"] = dict(Counter(list_of_set_ids))
+        diag["own_post_id"] = own_post_id
+        diag["strategy"] = "own_carousel" if own_post_id in unique_set_ids else "all_carousels_fallback"
         if own_post_id in unique_set_ids:
             if len(unique_set_ids) > 1:
                 logger.info(f"FB only crawling the post's own carousel {own_post_id=}, ignoring {sorted(set(unique_set_ids) - {own_post_id})}")
@@ -461,9 +498,12 @@ class WaczExtractorEnricher(Enricher, Extractor):
                             fb_id, set_value, more_params = route
                             set_id = self._fb_carousel_set_id(set_value, more_params)
 
+                            if set_id is None:
+                                logger.debug(f"Part 1 - skipping {set_value=} {fb_id=} - not a post carousel (pcb.) route")
+                                continue # to next record
                             if set_id == most_prevalent_set_id: pass
                             else:
-                                logger.info(f"Part 1 - skipping set_id {set_id=} as not the most prevalent set_id {most_prevalent_set_id=}")
+                                logger.info(f"Part 1 - skipping set_id {set_id=} as not the set_id being walked {most_prevalent_set_id=}")
                                 continue # to next record
     
                             logger.info(f"  *** Part 1 - Strategy 1 {fb_id=} and {set_id=}")
@@ -519,6 +559,7 @@ class WaczExtractorEnricher(Enricher, Extractor):
                                 url, set_id, fb_ids_requested, fb_ids_to_request, walk_stop_reason,
                                 walk_start, to_enrich.media[walk_media_start:],
                             )
+                            diag.setdefault("walks", []).append(f"{set_id}:{len(fb_ids_requested)}:{walk_stop_reason}")
 
                             if len(fb_ids_requested) == 1:
                                 logger.debug("Probably the wrong fb_id url here in Part 2, as only 1 fb_ids_requested")
@@ -535,16 +576,41 @@ class WaczExtractorEnricher(Enricher, Extractor):
                             # logger.debug('it also could be a single image which is different')
                             ## TODO - strategy x
                             continue # to next record
-    
-        logger.info(
-            f"Facebook WACZ extract_media/extract_screenshot finished, found {counter_warc_files + counter_screenshots} relevant media file(s)"
-        )
+
+        # DM 15th Oct 26 - no "found N relevant media file(s)" line here, as it only counted the screenshot, not the walks'
+        # images - the FB summary line has media_added and unique_media
         logger.info(
             f"FB timing - facebook_extract_media_from_wacz took {time.perf_counter() - fb_start:.0f}s for {url} "
             f"({len(unique_set_ids)} set_id(s), {len(to_enrich.media)} media on item incl duplicates)"
         )
 
 
+
+    @staticmethod
+    def _fb_session_user(warc_filename: str) -> str | None:
+        """the facebook user id the crawl's requests were sent as - "0" when logged out, None if there were none"""
+        with open(warc_filename, "rb") as warc_stream:
+            for record in ArchiveIterator(warc_stream):
+                if record.rec_type != "request" or "facebook.com/" not in (record.rec_headers.get_header("WARC-Target-URI") or ""):
+                    continue
+                match = FB_SESSION_USER.search(record.content_stream().read())
+                if match:
+                    return match.group(1).decode()
+        return None
+
+    @staticmethod
+    def _fb_screenshot_problems(to_enrich: Metadata, url: str) -> str:
+        """facebook login wall / block phrases OCR finds on the browsertrix screenshot, comma separated, or ok"""
+        screenshot = to_enrich.get_media_by_id("browsertrix-screenshot-0")
+        try:
+            phrases = check_screenshot_for_facebook_issues(screenshot.filename)
+        except Exception as e:
+            logger.warning(f"FB OCR of browsertrix screenshot failed for {url}: {e}")
+            return "ocr_failed"
+        if phrases:
+            logger.warning(f"Facebook browsertrix screenshot contains warning/login phrases {phrases} for {url}")
+            return ",".join(p.replace(" ", "_") for p in phrases)
+        return "ok"
 
     @staticmethod
     def _fb_own_post_id(warc_filename: str, url: str) -> str | None:

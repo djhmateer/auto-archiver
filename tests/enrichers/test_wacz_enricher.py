@@ -275,7 +275,10 @@ def _write_fb_photo_wacz(wacz_path, photo_url: str, route: bool = True, page_htm
 
     warc = BytesIO()
     writer = WARCWriter(warc, gzip=True)
-    route_body = b"route_urls[0]=%2Fphoto%2F%3Ffbid%3D1329142910787472%26set%3Da.132433247125117&routing_namespace=fb_comet"
+    route_body = (
+        b"route_urls[0]=%2Fphoto%2F%3Ffbid%3D1329142910787472%26set%3Da.132433247125117&routing_namespace=fb_comet"
+        b"&__aaid=0&__user=0&__a=1"
+    )
     if route:
         writer.write_record(
             writer.create_warc_record(
@@ -459,3 +462,67 @@ def test_fb_own_post_id_skips_recommended_posts(tmp_path) -> None:
 
     assert WaczExtractorEnricher._fb_own_post_id(warc, FB_POST_URL) == "1646726145764725"
     assert WaczExtractorEnricher._fb_own_post_id(warc, "https://www.facebook.com/other") is None
+
+
+@pytest.mark.parametrize(
+    "route, page_html, ocr_phrases, summary",
+    [
+        # logged out crawl of a photo page showing a login wall
+        (
+            True,
+            FB_PHOTO_HTML,
+            ["log in to facebook", "create new account"],
+            "page=photo session=LOGGED_OUT screenshot_ocr=log_in_to_facebook,create_new_account strategy=photo_own_image media_added=2 unique_media=2",
+        ),
+        # a page without photo routes (eg a video) - no requests to tell the session from, and no carousel
+        (False, None, [], "page=post session=unknown screenshot_ocr=ok strategy=no_carousel_found media_added=1 unique_media=1"),
+    ],
+)
+def test_facebook_summary_line(wacz_enricher, tmp_path, mocker, route, page_html, ocr_phrases, summary) -> None:
+    """one line per FB url of the session, screenshot OCR and strategy, to diagnose prod from the logs"""
+    wacz_enricher.tmp_dir = str(tmp_path)
+    wacz_enricher.extract_media = True
+    mocker.patch("os.path.expanduser", return_value=str(tmp_path / "aatmp"))
+    ocr = mocker.patch(
+        "auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher.check_screenshot_for_facebook_issues",
+        return_value=ocr_phrases,
+    )
+    mock_info = mocker.patch("auto_archiver.utils.custom_logger.logger.info")
+    mock_warning = mocker.patch("auto_archiver.utils.custom_logger.logger.warning")
+    url = FB_PHOTO_URL if route else "https://www.facebook.com/djhmateer/videos/763070998370197"
+    wacz_file = tmp_path / "fb.wacz"
+    _write_fb_photo_wacz(wacz_file, FB_PHOTO_IMAGE_URL, route=route, page_html=page_html)
+
+    wacz_enricher.facebook_extract_media_from_wacz(Metadata().set_url(url), str(wacz_file), url)
+
+    assert ocr.call_args[0][0].endswith("browsertrix-screenshot-0.png")
+    summaries = [c[0][0] for c in mock_info.call_args_list if c[0][0].startswith("FB summary")]
+    assert len(summaries) == 1
+    assert summaries[0].startswith(f"FB summary {url} {summary} seconds=")
+    warnings = " ".join(c[0][0] for c in mock_warning.call_args_list)
+    assert ("logged out" in warnings) == route
+    assert ("login phrases" in warnings) == bool(ocr_phrases)
+
+
+def test_facebook_summary_counts_unique_media(wacz_enricher, tmp_path, mocker) -> None:
+    """a walk adds the same photo from more than one photo page, so the summary counts unique content too"""
+    wacz_enricher.tmp_dir = str(tmp_path)
+    wacz_enricher.extract_media = True
+    mocker.patch("os.path.expanduser", return_value=str(tmp_path / "aatmp"))
+
+    def crawl(url_build, to_enrich, current_fb_id, set_id):
+        for name in ["a.jpg", "b.jpg"]:
+            (tmp_path / name).write_bytes(b"same photo")
+            to_enrich.add_media(Media(filename=str(tmp_path / name)), name)
+        return []
+
+    mocker.patch.object(wacz_enricher, "save_images_to_enrich_object_from_url_using_browsertrix", side_effect=crawl)
+    mock_info = mocker.patch("auto_archiver.utils.custom_logger.logger.info")
+    wacz_file = tmp_path / "fb.wacz"
+    _write_fb_post_wacz(wacz_file, FB_POST_HTML)
+
+    wacz_enricher.facebook_extract_media_from_wacz(Metadata().set_url(FB_POST_URL), str(wacz_file), FB_POST_URL)
+
+    summary = next(c[0][0] for c in mock_info.call_args_list if c[0][0].startswith("FB summary"))
+    assert "strategy=own_carousel" in summary
+    assert "media_added=2 unique_media=1" in summary
