@@ -90,9 +90,13 @@ class TwitterApiExtractor(Extractor):
             if "Too Many Requests" in str(e): 
                 logger.info(f"PyTwitter API: Too Many Requests: {e}")
                 logger.info(f"This is normal behaviour if we've called the API in the last 15 minutes as we don't pay for it anymore. Should failover to the wacz_extractor_enricher as an extractor so we get a good success result.")
+            # DM 16th Oct 26 - 402 means our X API account is out of credits, not that the tweet is missing
+            elif "credits depleted" in str(e):
+                logger.warning(f"PyTwitter API: X API credits depleted (402) - top up the X developer account. {url=}")
+                logger.warning("If fxtwitter also returned 404 the tweet has most likely been deleted (x.com shows \"Hmm...this page doesn't exist\")")
             else:
                 logger.error(f"PyTwitter API: Could not get tweet: {e}")
-                logger.error(f"Has the tweet been deleted?")
+                logger.error("Has the tweet been deleted? x.com shows \"Hmm...this page doesn't exist. Try searching for something else.\"")
             return False
         except Exception as e:
             logger.error(f"Could not get tweet: {e}")

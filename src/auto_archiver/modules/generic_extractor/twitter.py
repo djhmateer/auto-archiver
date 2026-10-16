@@ -50,6 +50,12 @@ class Twitter(GenericDropin):
         def fetch_fxtwitter_data(url):
             headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/112.0"}
             resp = requests.get(url, headers=headers, timeout=15)
+            # DM 16th Oct 26 - a 404 here means the tweet is gone; x.com shows "Hmm...this page doesn't exist"
+            if resp.status_code == 404:
+                raise ValueError(
+                    "Failed to retrieve tweet from fxtwitter API: 404 - tweet not found, most likely deleted "
+                    "(or the account is suspended/protected). x.com shows \"Hmm...this page doesn't exist. Try searching for something else.\""
+                )
             if resp.status_code != 200:
                 raise ValueError(f"Failed to retrieve tweet from fxtwitter API: {resp.status_code}")
             data = resp.json()
