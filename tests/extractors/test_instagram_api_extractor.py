@@ -129,6 +129,21 @@ class TestInstagramAPIExtractor(TestExtractorBase):
         mock_highlights.assert_called_once_with(item, "18027368656896544")
         mock_profile.assert_not_called()
 
+    @pytest.mark.parametrize(
+        "url,code,context",
+        [
+            ("https://www.instagram.com/andry_boxer_volunteer/reel/DehV8tuOOAv/", "DehV8tuOOAv", "reel"),
+            ("https://www.instagram.com/some.user/p/C9QmUGDNOd0/?igsh=abc", "C9QmUGDNOd0", "post"),
+        ],
+    )
+    def test_username_prefixed_post_link_downloads_post(self, mocker, url, code, context):
+        mock_post = mocker.patch.object(self.extractor, "download_post")
+        mock_profile = mocker.patch.object(self.extractor, "download_profile")
+        item = Metadata().set_url(url)
+        self.extractor.download(item)
+        mock_post.assert_called_once_with(item, code, context=context)
+        mock_profile.assert_not_called()
+
     def test_unknown_share_link_is_skipped(self, mocker):
         mock_profile = mocker.patch.object(self.extractor, "download_profile")
         assert self.extractor.download(Metadata().set_url("https://www.instagram.com/s/!!notbase64")) is None

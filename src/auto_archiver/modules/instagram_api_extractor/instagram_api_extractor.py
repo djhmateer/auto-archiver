@@ -72,6 +72,19 @@ class InstagramAPIExtractor(Extractor):
         url = item.get_url()
         url = url.replace("instagr.com", "instagram.com").replace("instagr.am", "instagram.com")
 
+        # DM 17th Oct 26 - /<username>/reel/<code>/ and /<username>/p/<code>/ links were misparsed by valid_url as
+        # the profile <username>, so the whole profile was archived instead of the post. Drop the username.
+        #   eg https://www.instagram.com/andry_boxer_volunteer/reel/DehV8tuOOAv/
+        #   -> https://www.instagram.com/reel/DehV8tuOOAv/
+        # look for instagram.com/<first part>/<p or reel>/
+        username_post_match = re.search(r"instagram\.com/([^/?#]+)/(p|reel)/", url)
+        if username_post_match:
+            first_part = username_post_match.group(1)  # eg andry_boxer_volunteer
+            post_type = username_post_match.group(2)  # p or reel
+            # /stories/... and /s/... links have their own handling, so only strip real usernames
+            if first_part not in ("stories", "s"):
+                url = url.replace(f"instagram.com/{first_part}/{post_type}/", f"instagram.com/{post_type}/", 1)
+
         # DM 12th Oct 26 - /s/<base64 of "highlight:<id>">?story_media_id=<id> is a highlight share link, it was
         # misparsed by valid_url as the profile 's' so every one failed with a 400 from v2/user/by/username
         if share_match := re.search(r"instagram\.com/s/([^/?#]+)", url):
