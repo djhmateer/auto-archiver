@@ -43,6 +43,12 @@ FB_SESSION_USER = re.compile(rb"__user=(\d+)")
 FB_RECOMMENDED_POST_ID = re.compile(rb'top_level_post_id\\":\\"(\d+)\\"[^}]*?originated_from_recommendation\\":\\"1\\"')
 # DM 14th Oct 26 - each crawl adds ~3 files but only ~1 new photo, so cap on crawls not images
 FB_WALK_MAX_CRAWLS = 30
+# DM 20th Oct 26 - first path segments which are a post, photo, video etc rather than a profile or page's name
+# (as are all *.php ones eg video.php, permalink.php - only profile.php can be a profile)
+FB_NOT_PROFILE_NAMES = {
+    "posts", "videos", "photos", "photo", "watch", "reel", "reels", "share", "stories", "media", "events", "marketplace",
+    "hashtag", "search", "notes", "login",
+}
 
 
 def is_bare_site_name(title: str, url: str) -> bool:
@@ -89,6 +95,8 @@ class WaczExtractorEnricher(Enricher, Extractor):
         # DM 1st Oct 26 - remember the failure on the orchestrator's item so the enricher step doesn't
         # rerun the same crawl straight away (it fails the same way, and costs 35-70s)
         item.set_context("wacz_failed", True)
+        # result is thrown away on failure, so keep any note (eg blocked by site) for the sheet's status
+        item.set_context("status_notes", result.get_status_notes())
 
     def enrich(self, to_enrich: Metadata) -> bool:
         if to_enrich.get_media_by_id("browsertrix"):
@@ -140,6 +148,12 @@ class WaczExtractorEnricher(Enricher, Extractor):
             # Only Imperva's hard block page now counts; the 403/429/503 status checks are unaffected
             "--rateLimitOnMatch",
             "Incapsula incident ID",
+            # DM 19th Oct 26 - drop 403 from browsertrix's default (403, 429, 503), so a bot-blocked page (eg ipcinfo.org
+            # behind Imperva) is crawled once and kept (screenshot + WACZ of the block page) rather than retried and the
+            # crawl failed. The block is flagged in the status from pages.jsonl. Older images without the flag ignore it
+            "--rateLimitStatusCodes",
+            "429",
+            "503",
             # "--blockAds" # note: this has been known to cause issues on cloudflare protected sites
         ]
 
@@ -211,6 +225,16 @@ class WaczExtractorEnricher(Enricher, Extractor):
             logger.error(f"WACZ generation failed (exit status {e.returncode}) for {url}: {reason}")
             if crawler_log := self._summarise_crawler_output(e.stdout, e.stderr):
                 logger.error(f"browsertrix-crawler output:\n{crawler_log}")
+            if (status := self._crawler_rate_limited_status(e.stdout, e.stderr)) is not None:
+                # DM 20th Oct 26 - retried as rate limited (429/503, or 200 for an Imperva page) then failed. Usually
+                # temporary (idf.il's Imperva blocks lifted within hours), so ask for a requeue. Not for a 403 (an older
+                # crawler image without --rateLimitStatusCodes still retries it), as that block is usually permanent
+                if status < 400:
+                    to_enrich.add_status_note("blocked by site - please requeue")
+                elif status in (429, 503):
+                    to_enrich.add_status_note(f"blocked by site - HTTP {status} - please requeue")
+                else:
+                    to_enrich.add_status_note(f"blocked by site - HTTP {status}")
             return False
         except Exception as e:
             logger.error(f"WACZ generation failed: {e}")
@@ -252,6 +276,10 @@ class WaczExtractorEnricher(Enricher, Extractor):
                 for obj in reader:
                     if "format" in obj:
                         continue  # header line eg {"format":"json-pages-1.0","id":"pages","title":"Seed Pages"}, not a page
+                    if obj.get("seed") and (status := obj.get("status") or 0) >= 400:
+                        note = f"blocked by site - HTTP {status}" if status in (401, 403, 429) else f"site returned HTTP {status}"
+                        logger.warning(f"WACZ of {url} is of the page the site returned instead: {note}")
+                        to_enrich.add_status_note(note)
                     if "title" in obj:
                         if to_enrich.get_title() and (
                             LOGIN_PAGE_TITLE.search(obj["title"]) or is_bare_site_name(obj["title"], url)
@@ -280,6 +308,18 @@ class WaczExtractorEnricher(Enricher, Extractor):
             if message not in messages and not CRAWLER_NOISE_MESSAGE.match(str(message)):
                 messages.append(message)
         return "; ".join(messages)
+
+    @staticmethod
+    def _crawler_rate_limited_status(stdout: str | None, stderr: str | None) -> int | None:
+        """HTTP status of the page browsertrix-crawler retried as rate limited (eg 429, or 200 for a bot check page), or None."""
+        for line in f"{stdout or ''}\n{stderr or ''}".splitlines():
+            try:
+                entry = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(entry, dict) and str(entry.get("message")).startswith("Page possibly rate limited"):
+                return int((entry.get("details") or {}).get("status") or 0)
+        return None
 
     @staticmethod
     def _summarise_crawler_output(stdout: str | None, stderr: str | None, max_lines: int = 20) -> str:
@@ -440,6 +480,12 @@ class WaczExtractorEnricher(Enricher, Extractor):
             if len(unique_set_ids) > 1:
                 logger.info(f"FB only crawling the post's own carousel {own_post_id=}, ignoring {sorted(set(unique_set_ids) - {own_post_id})}")
             unique_set_ids = [own_post_id]
+        elif self._fb_is_feed_url(url):
+            # DM 20th Oct 26 - a profile, page or group url is a feed of posts, so crawling them all walked every carousel
+            # in the feed (munigaza: 7 carousels, 51 crawls, 38 min). Its top post's carousel (above) is still crawled
+            logger.info(f"FB {url} is a profile/page/group feed and its top post {own_post_id=} isn't one of its carousels, so not crawling the feed's {len(unique_set_ids)} carousel(s)")
+            diag["strategy"] = "feed_carousels_skipped"
+            unique_set_ids = []
         else:
             logger.info(f"FB post's own carousel {own_post_id=} not in found set_ids, so crawling them all")
         logger.debug(f" looping over all {unique_set_ids=}")
@@ -611,6 +657,27 @@ class WaczExtractorEnricher(Enricher, Extractor):
             logger.warning(f"Facebook browsertrix screenshot contains warning/login phrases {phrases} for {url}")
             return ",".join(p.replace(" ", "_") for p in phrases)
         return "ok"
+
+    @staticmethod
+    def _fb_is_feed_url(url: str) -> bool:
+        """True for a profile, page or group url (eg facebook.com/munigaza, profile.php?id=, groups/<id>), whose page is
+        a feed of posts, rather than a url for a single post, photo or video"""
+        parsed = urlparse(url)
+        segments = [s for s in parsed.path.split("/") if s]
+        query = parse_qs(parsed.query)
+        if not segments:
+            return False
+        if segments[0] == "profile.php":
+            return "story_fbid" not in query and "fbid" not in query
+        if segments[0] == "people":
+            return True
+        if segments[0] == "groups":
+            # groups/<id> and groups/<id>/user/<id> are feeds, groups/<id>/posts/<id>, ?multi_permalinks= and
+            # ?view=permalink are a post
+            is_post = "multi_permalinks" in query or query.get("view") == ["permalink"]
+            return (len(segments) <= 2 or segments[2] == "user") and not is_post
+        name = segments[0].lower()
+        return len(segments) == 1 and name not in FB_NOT_PROFILE_NAMES and not name.endswith(".php")
 
     @staticmethod
     def _fb_own_post_id(warc_filename: str, url: str) -> str | None:

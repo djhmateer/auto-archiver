@@ -395,7 +395,7 @@ FB_RECOMMENDED_STORY = (
 FB_POST_HTML = FB_OWN_STORY + FB_RECOMMENDED_STORY
 
 
-def _write_fb_post_wacz(wacz_path, html: bytes) -> None:
+def _write_fb_post_wacz(wacz_path, html: bytes, url: str = FB_POST_URL) -> None:
     """A wacz like a crawl of a Facebook post page: the page's html, then bulk-route-definitions requests for its own
     carousel and a recommended post's carousel"""
     from io import BytesIO
@@ -407,7 +407,7 @@ def _write_fb_post_wacz(wacz_path, html: bytes) -> None:
     writer = WARCWriter(warc, gzip=True)
     writer.write_record(
         writer.create_warc_record(
-            FB_POST_URL,
+            url,
             "response",
             payload=BytesIO(html),
             http_headers=StatusAndHeaders("200 OK", [("Content-Type", 'text/html; charset="utf-8"')], protocol="HTTP/1.1"),
@@ -448,6 +448,65 @@ def test_facebook_crawls_only_the_posts_own_carousel(wacz_enricher, tmp_path, mo
     wacz_enricher.facebook_extract_media_from_wacz(metadata, str(wacz_file), FB_POST_URL)
 
     assert sorted(c.args[3] for c in crawl.call_args_list) == crawled_set_ids
+
+
+FB_PROFILE_URL = "https://www.facebook.com/munigaza"
+# a profile's feed whose top post is text only, with carousels further down
+FB_TEXT_STORY = b'{"post_id":"1450854020483210","attachments":[]}'
+
+
+@pytest.mark.parametrize(
+    "html, crawled_set_ids",
+    [
+        # top post has no carousel - don't walk the feed's other carousels
+        (FB_TEXT_STORY + FB_OWN_STORY, []),
+        # top post's own carousel is still crawled
+        (FB_OWN_STORY + FB_TEXT_STORY, ["1646726145764725"]),
+    ],
+)
+def test_facebook_profile_doesnt_crawl_the_feeds_carousels(wacz_enricher, tmp_path, mocker, html, crawled_set_ids) -> None:
+    wacz_enricher.tmp_dir = str(tmp_path)
+    wacz_enricher.extract_media = True
+    mocker.patch("os.path.expanduser", return_value=str(tmp_path / "aatmp"))
+    crawl = mocker.patch.object(wacz_enricher, "save_images_to_enrich_object_from_url_using_browsertrix", return_value=[])
+    wacz_file = tmp_path / "fb.wacz"
+    _write_fb_post_wacz(wacz_file, html, FB_PROFILE_URL)
+
+    metadata = Metadata().set_url(FB_PROFILE_URL)
+    wacz_enricher.facebook_extract_media_from_wacz(metadata, str(wacz_file), FB_PROFILE_URL)
+
+    assert sorted(c.args[3] for c in crawl.call_args_list) == crawled_set_ids
+
+
+@pytest.mark.parametrize(
+    "url, is_feed",
+    [
+        ("https://www.facebook.com/munigaza", True),
+        ("https://www.facebook.com/am.fhmy.lwlw/", True),
+        ("https://www.facebook.com/profile.php?id=100048268067255", True),
+        ("https://www.facebook.com/people/Some-Name/100064103319193/", True),
+        ("https://www.facebook.com/groups/767140514330883/", True),
+        ("https://www.facebook.com/groups/1039164023827374/user/100041214881321", True),
+        (FB_POST_URL, False),
+        ("https://www.facebook.com/groups/767140514330883/?multi_permalinks=1165318647846399", False),
+        ("https://www.facebook.com/groups/767140514330883/posts/1165318647846399/", False),
+        ("https://www.facebook.com/permalink.php?story_fbid=pfbid02Ujkm5&id=100007752185576", False),
+        ("https://www.facebook.com/profile.php?story_fbid=123&id=100007752185576", False),
+        ("https://www.facebook.com/photo.php?fbid=10159297663446503&set=pb.575936502.-2207520000&type=3", False),
+        ("https://www.facebook.com/groups/767140514330883/?view=permalink&id=1165318647846399", False),
+        ("https://www.facebook.com/video.php?v=1024036415827926", False),
+        ("https://l.facebook.com/l.php?u=https%3A%2F%2Fexample.com", False),
+        ("https://www.facebook.com/watch/?v=1024036415827926", False),
+        ("https://www.facebook.com/reel/26490289590562050", False),
+        ("https://www.facebook.com/share/p/14mZVqfNvkG/", False),
+        ("https://www.facebook.com/100003247856309/videos/1306244920862070/", False),
+        ("https://www.facebook.com/", False),
+    ],
+)
+def test_fb_is_feed_url(url, is_feed) -> None:
+    from auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher import WaczExtractorEnricher
+
+    assert WaczExtractorEnricher._fb_is_feed_url(url) is is_feed
 
 
 def test_fb_own_post_id_skips_recommended_posts(tmp_path) -> None:
@@ -526,3 +585,70 @@ def test_facebook_summary_counts_unique_media(wacz_enricher, tmp_path, mocker) -
     summary = next(c[0][0] for c in mock_info.call_args_list if c[0][0].startswith("FB summary"))
     assert "strategy=own_carousel" in summary
     assert "media_added=2 unique_media=1" in summary
+
+
+def test_403_not_treated_as_rate_limited(wacz_enricher, mocker):
+    """a bot-blocked (403) page is kept (screenshot + WACZ) rather than retried until the crawl fails"""
+    mock_run = mocker.patch("subprocess.run")
+    wacz_enricher.enrich(Metadata().set_url("https://example.com"))
+    cmd = mock_run.call_args[0][0]
+    i = cmd.index("--rateLimitStatusCodes")
+    assert cmd[i + 1 : i + 3] == ["429", "503"]
+
+
+def _write_crawl_output(tmp_path, collection, pages):
+    import json
+
+    pages_dir = tmp_path / "collections" / collection / "pages"
+    pages_dir.mkdir(parents=True)
+    (tmp_path / "collections" / collection / f"{collection}.wacz").write_bytes(b"wacz")
+    lines = [{"format": "json-pages-1.0", "id": "pages", "title": "Seed Pages"}, *pages]
+    (pages_dir / "pages.jsonl").write_text("\n".join(json.dumps(p) for p in lines))
+
+
+@pytest.mark.parametrize(
+    "status,notes",
+    [
+        (403, ["blocked by site - HTTP 403"]),
+        (404, ["site returned HTTP 404"]),
+        (200, []),
+    ],
+)
+def test_blocked_seed_page_noted_in_status(wacz_enricher, mocker, tmp_path, status, notes) -> None:
+    wacz_enricher.tmp_dir = str(tmp_path)
+    wacz_enricher.use_docker = True
+    wacz_enricher.extract_media = wacz_enricher.extract_screenshot = False
+    _write_crawl_output(tmp_path, wacz_enricher.crawl_id, [{"url": "https://example.com/", "seed": True, "status": status}])
+    mocker.patch("subprocess.run")
+    metadata = Metadata().set_url("https://example.com/")
+
+    assert wacz_enricher.enrich(metadata) is True
+    assert metadata.get_media_by_id("browsertrix")
+    assert metadata.get_status_notes() == notes
+
+
+@pytest.mark.parametrize(
+    "status,notes",
+    [
+        (429, ["blocked by site - HTTP 429 - please requeue"]),
+        (503, ["blocked by site - HTTP 503 - please requeue"]),
+        (200, ["blocked by site - please requeue"]),  # eg an Imperva page matched by --rateLimitOnMatch
+        (403, ["blocked by site - HTTP 403"]),  # an older crawler image still retries 403s
+        (None, []),
+    ],
+)
+def test_download_failure_keeps_blocked_note(wacz_enricher, mocker, tmp_path, status, notes) -> None:
+    import json
+    import subprocess
+
+    wacz_enricher.tmp_dir = str(tmp_path)
+    lines = ['{"logLevel":"error","message":"Crawl failed, no pages crawled successfully","details":{}}']
+    if status:
+        rate_limited = {"logLevel": "warn", "message": "Page possibly rate limited, retrying", "details": {"status": status}}
+        lines.insert(0, json.dumps(rate_limited))
+    stdout = "\n".join(lines)
+    mocker.patch("subprocess.run", side_effect=subprocess.CalledProcessError(9, ["docker"], output=stdout, stderr=""))
+    metadata = Metadata().set_url("https://example.com")
+
+    assert wacz_enricher.download(metadata) is None
+    assert metadata.get_status_notes() == notes
