@@ -61,6 +61,29 @@ class TestTiktokTikwmExtractor(TestExtractorBase):
     def test_is_suitable(self, url, is_suitable, tiktok_dropin):
         assert tiktok_dropin.suitable(url, TikTokIE()) == is_suitable
 
+    @pytest.mark.parametrize(
+        "url, expected",
+        [
+            (VALID_EXAMPLE_URL, VALID_EXAMPLE_URL),
+            (
+                "https://www.tiktok.com/@ljinahu/video/7687606243665415445?_r=1&_t=ZS-9A6fAc8oJRC",
+                "https://www.tiktok.com/@ljinahu/video/7687606243665415445",
+            ),
+            (
+                "https://www.tiktok.com/@zareyaqob/video/7690530398052601096?q=zareyaqob&t=1790601774512",
+                "https://www.tiktok.com/@zareyaqob/video/7690530398052601096",
+            ),
+            ("https://vt.tiktok.com/ZSMTJeqRP/", "https://vt.tiktok.com/ZSMTJeqRP/"),
+        ],
+    )
+    def test_query_string_stripped_for_tikwm(self, mock_get, make_item, url, expected):
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.json.return_value = {"msg": "failure"}
+        self.extractor.download(make_item(url))
+        mock_get.assert_called_once()
+        assert mock_get.call_args.args == (Tiktok.TIKWM_ENDPOINT,)
+        assert mock_get.call_args.kwargs["params"] == {"url": expected}
+
     def test_invalid_json_responses(self, mock_get, make_item, caplog):
         mock_get.return_value.status_code = 200
         mock_get.return_value.json.side_effect = ValueError

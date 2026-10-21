@@ -1,5 +1,6 @@
 import re
 import requests
+from urllib.parse import urlsplit, urlunsplit
 from auto_archiver.utils.custom_logger import logger
 
 from yt_dlp.extractor.tiktok import TikTokIE, TikTokLiveIE, TikTokVMIE, TikTokUserIE
@@ -17,7 +18,7 @@ class Tiktok(GenericDropin):
 
     # Regex pattern to match TikTok photo post URLs
     PHOTO_URL_REGEX = r"https?://(?:www\.)?tiktok\.com/@[\w\.-]+/photo/\d+"
-    TIKWM_ENDPOINT = "https://www.tikwm.com/api/?url={url}"
+    TIKWM_ENDPOINT = "https://www.tikwm.com/api/"
 
     def suitable(self, url, info_extractor) -> bool:
         """This dropin (which uses Tikvm) is suitable for *all* Tiktok type URLs - videos, lives, VMs, and users.
@@ -29,9 +30,10 @@ class Tiktok(GenericDropin):
     def extract_post(self, url: str, ie_instance):
         logger.debug("Using Tikwm API to attempt to download tiktok video")
 
-        endpoint = self.TIKWM_ENDPOINT.format(url=url)
-
-        r = requests.get(endpoint, timeout=30)
+        # tikwm rejects URLs with share/search params like ?_r=1&_t=... or ?q=...&t=... ("Url parsing is failed!"),
+        # and an unencoded & would be split off as a tikwm param anyway, so send the bare post URL, encoded
+        scheme, netloc, path, _, _ = urlsplit(url)
+        r = requests.get(self.TIKWM_ENDPOINT, params={"url": urlunsplit((scheme, netloc, path, "", ""))}, timeout=30)
         if r.status_code != 200:
             raise ValueError(f"Unexpected status code '{r.status_code}' from tikwm.com")
 
