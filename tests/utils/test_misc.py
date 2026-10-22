@@ -179,6 +179,34 @@ class TestYdlEntryToFilename:
         ydl = self._make_mock_ydl(str(tmp_path / "video.mp4"))
         assert ydl_entry_to_filename(ydl, {}) is False
 
+    def test_skips_subtitle_sidecar_returns_video(self, tmp_path):
+        """Unprocessed playlist entries (eg BBC article pages) have no ext, so prepare_filename gives 'id.NA'
+        and the folder is scanned - the subtitle file must not be picked over the video."""
+        (tmp_path / "p0lvq50h.en.ttml").write_bytes(b"subs")
+        (tmp_path / "p0lvq50h.info.json").write_bytes(b"{}")
+        video = tmp_path / "p0lvq50h.mp4"
+        video.write_bytes(b"video")
+
+        ydl = self._make_mock_ydl(str(tmp_path / "p0lvq50h.NA"))
+        assert ydl_entry_to_filename(ydl, {"id": "p0lvq50h"}) == str(video)
+
+    def test_only_subtitle_sidecar_returns_false(self, tmp_path):
+        (tmp_path / "p0lvq50h.en.ttml").write_bytes(b"subs")
+
+        ydl = self._make_mock_ydl(str(tmp_path / "p0lvq50h.NA"))
+        assert ydl_entry_to_filename(ydl, {}) is False
+
+    def test_accepts_audio_and_ts_files(self, tmp_path):
+        audio = tmp_path / "abc.m4a"
+        audio.write_bytes(b"audio")
+        ydl = self._make_mock_ydl(str(tmp_path / "abc.NA"))
+        assert ydl_entry_to_filename(ydl, {}) == str(audio)
+
+        audio.unlink()
+        ts = tmp_path / "abc.ts"
+        ts.write_bytes(b"video")
+        assert ydl_entry_to_filename(ydl, {}) == str(ts)
+
     def test_returns_false_when_no_files_match(self, tmp_path):
         (tmp_path / "unrelated.txt").write_bytes(b"data")
 

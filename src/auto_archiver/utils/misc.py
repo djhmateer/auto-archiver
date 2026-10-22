@@ -123,10 +123,11 @@ def ydl_entry_to_filename(ydl, entry: dict) -> str:
         # skip incomplete downloads left behind by yt-dlp
         if f.endswith(".part"):
             continue
-        if (
-            f.startswith(basename)
-            or (entry_url and os.path.splitext(f)[0] in entry_url)
-            and "video/" in (mimetypes.guess_type(f)[0] or "")
-        ):
+        # only accept video/audio so sidecar files (eg subtitles 'id.en.ttml', 'id.info.json') aren't picked
+        # .ts (MPEG-TS) is guessed as a Qt translation file, so allow it explicitly
+        mimetype = mimetypes.guess_type(f)[0] or ""
+        if not mimetype.startswith(("video/", "audio/")) and not f.endswith(".ts"):
+            continue
+        if f.startswith(basename) or (entry_url and os.path.splitext(f)[0] in entry_url):
             return os.path.join(directory, f)
     return False

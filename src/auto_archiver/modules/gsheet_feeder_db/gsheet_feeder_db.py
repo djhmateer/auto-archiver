@@ -135,7 +135,17 @@ class GsheetsFeederDB(Feeder, Database):
     def started(self, item: Metadata) -> None:
         logger.info("STARTED")
         gw, row = self._retrieve_gsheet(item)
-        gw.set_cell(row, "status", "Archive in progress")
+
+        # DM 22nd Oct 26 - a transient Sheets error (eg APIError [409] The operation was aborted) here
+        # failed the whole row before archiving even started
+        @retry(
+            wait_exponential_multiplier=1,
+            stop_max_attempt_number=5,
+        )
+        def set_status_with_retry():
+            gw.set_cell(row, "status", "Archive in progress")
+
+        set_status_with_retry()
         logger.info(f" row: {row} on {gw.wks.spreadsheet.title} : {gw.wks.title}")
 
     def failed(self, item: Metadata, reason: str) -> None:

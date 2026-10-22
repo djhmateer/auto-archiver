@@ -4,6 +4,7 @@ import shutil
 import sys
 import datetime
 import os
+import re
 import importlib
 import subprocess
 import traceback
@@ -71,6 +72,23 @@ def _parse_ytdlp_options(args: list[str]) -> dict:
                 logger.debug(f"yt-dlp: {line}")
     options["logger"] = _YtdlpLogger()
     return options
+
+
+def _requested_subtitles_by_id(data: dict) -> dict:
+    """
+    Maps video id -> yt-dlp requested_subtitles, for a single video or each entry of a playlist
+    (for a playlist, eg a BBC article page, the subtitles are on the entries, not the playlist itself)
+    """
+    subtitles = {data.get("id"): data.get("requested_subtitles")}
+    for entry in data.get("entries") or []:
+        if entry:
+            subtitles[entry.get("id")] = entry.get("requested_subtitles")
+    return subtitles
+
+
+# BBC share/embed links eg https://www.bbc.com/ws/av-embeds/articles/c8ryekj1m1do/p0lvq50h/en-GB aren't supported by
+# yt-dlp, but the article page they belong to is
+BBC_AV_EMBED_REGEX = re.compile(r"^https?://(?:www\.)?bbc\.(com|co\.uk)/ws/av-embeds/articles/([a-z0-9]+)/", re.I)
 
 
 class SkipYtdlp(Exception):
@@ -466,13 +484,17 @@ class GenericExtractor(Extractor):
                         arg_str = str(args)
                     subtitle_ydl_options.extend(["--extractor-args", f"{key}:{arg_str}"])
 
-            subtitle_ydl = yt_dlp.YoutubeDL(_parse_ytdlp_options(subtitle_ydl_options))
+            subtitle_params = _parse_ytdlp_options(subtitle_ydl_options)
+            # keep the processed playlist entries (default 'discard_in_playlist' returns the raw ones), otherwise
+            # requested_subtitles of eg a BBC article's video is lost
+            subtitle_params["extract_flat"] = False
+            subtitle_ydl = yt_dlp.YoutubeDL(subtitle_params)
 
             # Try to download subtitles only
             subtitle_data = subtitle_ydl.extract_info(url, ie_key=info_extractor.ie_key(), download=True)
 
             # Check if subtitles were actually downloaded (yt-dlp doesn't always throw exceptions)
-            if subtitle_data and subtitle_data.get("requested_subtitles"):
+            if subtitle_data and any(_requested_subtitles_by_id(subtitle_data).values()):
                 logger.debug(f"Subtitles downloaded successfully for {video_id}")
                 return subtitle_data
             else:
@@ -516,6 +538,7 @@ class GenericExtractor(Extractor):
             else:
                 result.set("subtitles_status", "available")
                 logger.info(f"Video {video_id} archived with subtitles")
+        subtitles_by_id = _requested_subtitles_by_id(subtitle_data) if subtitle_data else {}
 
         for entry in entries:
             try:
@@ -533,14 +556,13 @@ class GenericExtractor(Extractor):
                         new_media.set(x, entry[x])
 
                 # read text from subtitles if enabled and successfully downloaded
-                if self.subtitles and subtitle_data:
-                    for lang, val in (subtitle_data.get("requested_subtitles") or {}).items():
-                        try:
-                            subs = pysubs2.load(val.get("filepath"), encoding="utf-8")
-                            text = " ".join([line.text for line in subs])
-                            new_media.set(f"subtitles_{lang}", text)
-                        except Exception as e:
-                            logger.error(f"Error loading subtitle file {val.get('filepath')}: {e}")
+                for lang, val in (subtitles_by_id.get(entry.get("id")) or {}).items():
+                    try:
+                        subs = pysubs2.load(val.get("filepath"), encoding="utf-8")
+                        text = " ".join([line.text for line in subs])
+                        new_media.set(f"subtitles_{lang}", text)
+                    except Exception as e:
+                        logger.error(f"Error loading subtitle file {val.get('filepath')}: {e}")
                 result.add_media(new_media)
             except Exception as e:
                 logger.error(f"Error processing entry {entry}: {e}")
@@ -686,6 +708,12 @@ class GenericExtractor(Extractor):
         # TODO: this is a temporary hack until this issue is closed: https://github.com/yt-dlp/yt-dlp/issues/11025
         if url.startswith("https://ya.ru"):
             url = url.replace("https://ya.ru", "https://yandex.ru")
+            item.set("replaced_url", url)
+
+        if bbc_embed := BBC_AV_EMBED_REGEX.match(url):
+            domain, article_id = bbc_embed.groups()
+            url = f"https://www.bbc.{domain.lower()}/news/articles/{article_id}"
+            logger.debug(f"Replacing BBC av-embeds url with the article url {url}")
             item.set("replaced_url", url)
 
         # proxy_on_failure_only logic

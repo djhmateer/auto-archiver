@@ -652,3 +652,240 @@ def test_download_failure_keeps_blocked_note(wacz_enricher, mocker, tmp_path, st
 
     assert wacz_enricher.download(metadata) is None
     assert metadata.get_status_notes() == notes
+
+
+BBC_ARTICLE_URL = "https://www.bbc.co.uk/news/articles/c8ryekj1m1do"
+BBC_ARTICLE_IMAGE = "7acf2e90-73d2-11f0-8b59-b1bcdd5e637e"
+BBC_OTHER_STORY_IMAGE = "dcf8e630-cd16-11f1-bc2e-018d645d8d21"
+
+
+def _bbc_image_url(image_id: str, width: int) -> str:
+    return f"https://ichef.bbci.co.uk/ace/standard/{width}/cpsprodpb/db61/live/{image_id}.jpg.webp"
+
+
+BBC_ARTICLE_HTML = f"""<html><body>
+<header><a href="/news">News</a></header>
+<article><h1>Israel approves plan to take control of Gaza City</h1>
+<img src="https://ichef.bbci.co.uk/news/480/cpsprodpb/db61/live/{BBC_ARTICLE_IMAGE}.jpg.webp"
+ srcset="https://ichef.bbci.co.uk/news/976/cpsprodpb/db61/live/{BBC_ARTICLE_IMAGE}.jpg.webp 976w">
+</article>
+<section><h2>Top stories</h2><img src="{_bbc_image_url(BBC_OTHER_STORY_IMAGE, 480)}"></section>
+</body></html>""".encode()
+
+
+def _write_bbc_wacz(wacz_path, html: bytes = None) -> None:
+    """A wacz like a crawl of a BBC article: the page's html, the article's image at 2 widths, a top stories
+    thumbnail, the video's poster and a site graphic png - all big enough to pass the size filters"""
+    from io import BytesIO
+
+    from warcio.statusandheaders import StatusAndHeaders
+    from warcio.warcwriter import WARCWriter
+
+    warc = BytesIO()
+    writer = WARCWriter(warc, gzip=True)
+
+    def response(url, content_type, payload):
+        writer.write_record(
+            writer.create_warc_record(
+                url,
+                "response",
+                payload=BytesIO(payload),
+                http_headers=StatusAndHeaders("200 OK", [("Content-Type", content_type)], protocol="HTTP/1.1"),
+            )
+        )
+
+    if html is not None:
+        response(BBC_ARTICLE_URL, "text/html; charset=utf-8", html)
+    response(_bbc_image_url(BBC_ARTICLE_IMAGE, 480), "image/webp", b"RIFF" + b"0" * 10000)
+    response(_bbc_image_url(BBC_ARTICLE_IMAGE, 976), "image/webp", b"RIFF" + b"0" * 30000)
+    response(_bbc_image_url(BBC_ARTICLE_IMAGE, 240), "image/webp", b"RIFF" + b"0" * 7000)
+    response(_bbc_image_url(BBC_OTHER_STORY_IMAGE, 480), "image/webp", b"RIFF" + b"0" * 20000)
+    response("https://ichef.bbci.co.uk/images/ic/1024x576/p0lvsmf0.jpg", "image/jpeg", b"\xff\xd8" + b"0" * 40000)
+    response(
+        "https://static.files.bbci.co.uk/core/website/assets/static/idcta/news_desktop_context_image.png",
+        "image/png",
+        b"\x89PNG" + b"0" * 60000,
+    )
+    with ZipFile(wacz_path, "w") as zf:
+        zf.writestr("archive/data.warc.gz", warc.getvalue())
+
+
+@pytest.mark.parametrize(
+    "url, is_bbc",
+    [
+        (BBC_ARTICLE_URL, True),
+        ("https://www.bbc.com/news/articles/c8ryekj1m1do", True),
+        ("https://bbc.co.uk/news", True),
+        ("https://www.notbbc.com/news", False),
+        ("https://www.bbc.co.uk.example.com/news", False),
+    ],
+)
+def test_is_bbc_url(url, is_bbc) -> None:
+    from auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher import WaczExtractorEnricher
+
+    assert WaczExtractorEnricher._is_bbc_url(url) is is_bbc
+
+
+@pytest.mark.parametrize(
+    "url, key",
+    [
+        (_bbc_image_url(BBC_ARTICLE_IMAGE, 240), BBC_ARTICLE_IMAGE),
+        (_bbc_image_url(BBC_ARTICLE_IMAGE, 1280), BBC_ARTICLE_IMAGE),
+        ("https://ichef.bbci.co.uk/images/ic/1024x576/p0lvsmf0.jpg", "p0lvsmf0"),
+        ("https://static.files.bbci.co.uk/core/website/assets/static/idcta/news_desktop_context_image.png", None),
+    ],
+)
+def test_bbc_image_key(url, key) -> None:
+    from auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher import WaczExtractorEnricher
+
+    assert WaczExtractorEnricher._bbc_image_key(url) == key
+
+
+def test_bbc_keeps_only_the_articles_image_at_its_largest(wacz_enricher, tmp_path) -> None:
+    """Top stories thumbnails, the video poster and site graphics are dropped, and the article's image is kept once"""
+    wacz_enricher.tmp_dir = str(tmp_path)
+    wacz_enricher.extract_media = True
+    wacz_enricher.extract_screenshot = False
+    wacz_file = tmp_path / "bbc.wacz"
+    _write_bbc_wacz(wacz_file, BBC_ARTICLE_HTML)
+    metadata = Metadata().set_url(BBC_ARTICLE_URL)
+
+    wacz_enricher.extract_media_from_wacz(metadata, str(wacz_file))
+
+    assert [m.get("src") for m in metadata.media] == [_bbc_image_url(BBC_ARTICLE_IMAGE, 976)]
+    assert os.path.getsize(metadata.media[0].filename) == 30004
+    # the 240 width record after it didn't overwrite the kept file
+    assert len({m.filename for m in metadata.media}) == 1
+
+
+def test_bbc_dot_com_url_matches_redirected_co_uk_page(wacz_enricher, tmp_path) -> None:
+    wacz_enricher.tmp_dir = str(tmp_path)
+    wacz_enricher.extract_media = True
+    wacz_enricher.extract_screenshot = False
+    wacz_file = tmp_path / "bbc.wacz"
+    _write_bbc_wacz(wacz_file, BBC_ARTICLE_HTML)
+    metadata = Metadata().set_url("https://www.bbc.com/news/articles/c8ryekj1m1do")
+
+    wacz_enricher.extract_media_from_wacz(metadata, str(wacz_file))
+
+    assert [m.get("src") for m in metadata.media] == [_bbc_image_url(BBC_ARTICLE_IMAGE, 976)]
+
+
+@pytest.mark.parametrize(
+    "html",
+    [None, b"<html><body><img src='x'></body></html>", b"<html><article></article><article></article></html>"],
+)
+def test_bbc_without_a_single_article_keeps_all_images(wacz_enricher, tmp_path, html) -> None:
+    """No page html in the warc, or no single <article>, falls back to keeping every image passing the size filters"""
+    wacz_enricher.tmp_dir = str(tmp_path)
+    wacz_enricher.extract_media = True
+    wacz_enricher.extract_screenshot = False
+    wacz_file = tmp_path / "bbc.wacz"
+    _write_bbc_wacz(wacz_file, html)
+    metadata = Metadata().set_url(BBC_ARTICLE_URL)
+
+    wacz_enricher.extract_media_from_wacz(metadata, str(wacz_file))
+
+    assert len(metadata.media) == 6
+
+
+YOUTUBE_VIDEO_URL = "https://www.youtube.com/watch?v=7NWN3wivxhA"
+YOUTUBE_OWN_THUMBNAIL = "https://i.ytimg.com/vi/7NWN3wivxhA/hqdefault.jpg"
+YOUTUBE_SIDEBAR_THUMBNAILS = [
+    "https://i.ytimg.com/vi/cAYOrquq2XI/hqdefault.jpg?sqp=-oaymwEnCNACELwBSFryq4qpAxkIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB&rs=AOn4CLBBPsiJ9YMMfs-6QaA6Z_CHGx5qBQ",
+    "https://i.ytimg.com/vi/wKg71lcs5Nw/hqdefault.jpg?v=652bca0d&sqp=-oaymwEnCNACELwBSFryq4qpAxkIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB&rs=AOn4CLA-RglmV5zf7l4AegTFNaeJXaI-Mw",
+]
+YOUTUBE_CHANNEL_AVATAR = "https://yt3.ggpht.com/ytc/AIdro_kX4Lz1c2Z0mR0l5w=s176-c-k-c0x00ffffff-no-rj"
+
+
+def _write_youtube_wacz(wacz_path) -> None:
+    """A wacz like a crawl of a YouTube video page: the video's own thumbnail, recommended videos' thumbnails from the
+    sidebar and a channel avatar - all big enough to pass the size filters"""
+    from io import BytesIO
+
+    from warcio.statusandheaders import StatusAndHeaders
+    from warcio.warcwriter import WARCWriter
+
+    warc = BytesIO()
+    writer = WARCWriter(warc, gzip=True)
+
+    def response(url, content_type, payload):
+        writer.write_record(
+            writer.create_warc_record(
+                url,
+                "response",
+                payload=BytesIO(payload),
+                http_headers=StatusAndHeaders("200 OK", [("Content-Type", content_type)], protocol="HTTP/1.1"),
+            )
+        )
+
+    response(YOUTUBE_OWN_THUMBNAIL, "image/jpeg", b"\xff\xd8" + b"0" * 25000)
+    for thumbnail in YOUTUBE_SIDEBAR_THUMBNAILS:
+        response(thumbnail, "image/avif", b"0" * 30000)
+    response(YOUTUBE_CHANNEL_AVATAR, "image/jpeg", b"\xff\xd8" + b"0" * 20000)
+    with ZipFile(wacz_path, "w") as zf:
+        zf.writestr("archive/data.warc.gz", warc.getvalue())
+
+
+@pytest.mark.parametrize(
+    "url, video_id",
+    [
+        (YOUTUBE_VIDEO_URL, "7NWN3wivxhA"),
+        ("https://youtube.com/watch?feature=share&v=7NWN3wivxhA", "7NWN3wivxhA"),
+        ("https://m.youtube.com/watch?v=7NWN3wivxhA&t=10s", "7NWN3wivxhA"),
+        ("https://youtu.be/7NWN3wivxhA?si=abc", "7NWN3wivxhA"),
+        ("https://www.youtube.com/shorts/7NWN3wivxhA", "7NWN3wivxhA"),
+        ("https://www.youtube.com/live/7NWN3wivxhA?feature=shared", "7NWN3wivxhA"),
+        ("https://www.youtube.com/@bellingcat", None),
+        ("https://www.youtube.com/watch", None),
+        ("https://www.notyoutube.com/watch?v=7NWN3wivxhA", None),
+    ],
+)
+def test_youtube_video_id(url, video_id) -> None:
+    from auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher import WaczExtractorEnricher
+
+    assert WaczExtractorEnricher._youtube_video_id(url) == video_id
+
+
+@pytest.mark.parametrize(
+    "url, video_id",
+    [
+        (YOUTUBE_OWN_THUMBNAIL, "7NWN3wivxhA"),
+        (YOUTUBE_SIDEBAR_THUMBNAILS[0], "cAYOrquq2XI"),
+        ("https://i.ytimg.com/vi_webp/7NWN3wivxhA/maxresdefault.webp", "7NWN3wivxhA"),
+        ("https://i9.ytimg.com/an_webp/7NWN3wivxhA/mqdefault_6s.webp", "7NWN3wivxhA"),
+        (YOUTUBE_CHANNEL_AVATAR, None),
+        ("https://i.ytimg.com/generate_204", None),
+    ],
+)
+def test_ytimg_video_id(url, video_id) -> None:
+    from auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher import WaczExtractorEnricher
+
+    assert WaczExtractorEnricher._ytimg_video_id(url) == video_id
+
+
+def test_youtube_video_skips_other_videos_thumbnails(wacz_enricher, tmp_path) -> None:
+    wacz_enricher.tmp_dir = str(tmp_path)
+    wacz_enricher.extract_media = True
+    wacz_enricher.extract_screenshot = False
+    wacz_file = tmp_path / "youtube.wacz"
+    _write_youtube_wacz(wacz_file)
+    metadata = Metadata().set_url(YOUTUBE_VIDEO_URL)
+
+    wacz_enricher.extract_media_from_wacz(metadata, str(wacz_file))
+
+    assert [m.get("src") for m in metadata.media] == [YOUTUBE_OWN_THUMBNAIL, YOUTUBE_CHANNEL_AVATAR]
+
+
+def test_youtube_page_without_a_video_keeps_all_thumbnails(wacz_enricher, tmp_path) -> None:
+    """eg a channel page, where the thumbnails are the content"""
+    wacz_enricher.tmp_dir = str(tmp_path)
+    wacz_enricher.extract_media = True
+    wacz_enricher.extract_screenshot = False
+    wacz_file = tmp_path / "youtube.wacz"
+    _write_youtube_wacz(wacz_file)
+    metadata = Metadata().set_url("https://www.youtube.com/@bellingcat/videos")
+
+    wacz_enricher.extract_media_from_wacz(metadata, str(wacz_file))
+
+    assert len(metadata.media) == 4

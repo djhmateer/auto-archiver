@@ -125,6 +125,13 @@ def test_started(gsheets_db, mock_metadata, mock_gworksheet):
     mock_gworksheet.set_cell.assert_called_once_with(1, "status", "Archive in progress")
 
 
+def test_started_retries_transient_sheets_error(gsheets_db, mock_metadata, mock_gworksheet):
+    mock_gworksheet.set_cell.side_effect = [Exception("APIError: [409]: The operation was aborted."), None]
+    gsheets_db.started(mock_metadata)
+    assert mock_gworksheet.set_cell.call_count == 2
+    mock_gworksheet.set_cell.assert_called_with(1, "status", "Archive in progress")
+
+
 def test_failed(gsheets_db, mock_metadata, mock_gworksheet):
     reason = "Test failure"
     gsheets_db.failed(mock_metadata, reason)

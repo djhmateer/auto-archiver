@@ -326,6 +326,49 @@ class TestGenericExtractorNoneResults:
         error_log.assert_not_called()
 
 
+class TestGenericExtractorPlaylistEntries:
+    """eg a BBC article page: yt-dlp returns a playlist whose entries are unprocessed (no ext/filepath)"""
+
+    @pytest.fixture
+    def extractor(self):
+        extractor = GenericExtractor()
+        extractor.comments = False
+        extractor.subtitles = True
+        return extractor
+
+    @pytest.fixture
+    def bbc_ie(self):
+        from yt_dlp.extractor import get_info_extractor
+
+        return get_info_extractor("BBC")
+
+    def test_video_used_not_subtitle_and_subtitle_text_read(self, extractor, bbc_ie, tmp_path, mocker):
+        video = tmp_path / "p0lvq50h.mp4"
+        video.write_bytes(b"video")
+        subs = tmp_path / "p0lvq50h.en.vtt"
+        subs.write_text("WEBVTT\n\n00:00:00.000 --> 00:00:01.000\nhello gaza\n", encoding="utf-8")
+
+        ydl = mocker.Mock(params={})
+        ydl.extract_info.return_value = {"id": "c8ryekj1m1do", "entries": [{"id": "p0lvq50h"}]}
+        ydl.prepare_filename.return_value = str(tmp_path / "p0lvq50h.NA")
+        mocker.patch.object(
+            extractor,
+            "download_subtitles_separately",
+            return_value={
+                "id": "c8ryekj1m1do",
+                "entries": [{"id": "p0lvq50h", "requested_subtitles": {"en": {"filepath": str(subs)}}}],
+            },
+        )
+        mocker.patch.object(extractor, "add_metadata", side_effect=lambda data, ie, url, result: result)
+
+        result = extractor.get_metadata_for_video({}, bbc_ie, "https://www.bbc.co.uk/news/articles/c8ryekj1m1do", ydl)
+
+        assert len(result.media) == 1
+        assert result.media[0].filename == str(video)
+        assert result.media[0].get("subtitles_en") == "hello gaza"
+        assert result.get("subtitles_status") == "available"
+
+
 class TestGenericExtractorPoToken:
     @pytest.fixture
     def extractor(self, mocker):
@@ -410,6 +453,40 @@ class TestGenericExtractorYtdlpOptions:
         options = self._options(youtube_dl)
         assert options["socket_timeout"] == YTDLP_SOCKET_TIMEOUT
         assert isinstance(options["logger"], _YtdlpLogger)
+
+    def test_subtitle_download_keeps_playlist_entries(self, extractor, youtube_dl, mocker):
+        playlist = {"id": "article", "entries": [{"id": "vid", "requested_subtitles": {"en": {"filepath": "x"}}}]}
+        youtube_dl.return_value.extract_info.return_value = playlist
+
+        assert extractor.download_subtitles_separately("https://example.com/video", mocker.Mock(), "article") == playlist
+        assert self._options(youtube_dl)["extract_flat"] is False
+
+    def test_subtitle_download_returns_none_without_subtitles(self, extractor, youtube_dl, mocker):
+        youtube_dl.return_value.extract_info.return_value = {"id": "article", "entries": [{"id": "vid"}]}
+
+        assert extractor.download_subtitles_separately("https://example.com/video", mocker.Mock(), "article") is None
+
+    @pytest.mark.parametrize(
+        "url, expected",
+        [
+            (
+                "https://www.bbc.com/ws/av-embeds/articles/c8ryekj1m1do/p0lvq50h/en-GB",
+                "https://www.bbc.com/news/articles/c8ryekj1m1do",
+            ),
+            (
+                "https://www.bbc.co.uk/ws/av-embeds/articles/c8ryekj1m1do/p0lvq50h/en-GB",
+                "https://www.bbc.co.uk/news/articles/c8ryekj1m1do",
+            ),
+            ("https://www.bbc.co.uk/news/articles/c8ryekj1m1do", "https://www.bbc.co.uk/news/articles/c8ryekj1m1do"),
+        ],
+    )
+    def test_bbc_av_embed_url_replaced_with_article(self, extractor, youtube_dl, make_item, url, expected):
+        item = make_item(url)
+
+        extractor.download(item)
+
+        extractor.suitable_extractors.assert_called_once_with(expected)
+        assert item.get("replaced_url") == (expected if expected != url else None)
 
     @pytest.mark.parametrize(
         "level, message, expected",

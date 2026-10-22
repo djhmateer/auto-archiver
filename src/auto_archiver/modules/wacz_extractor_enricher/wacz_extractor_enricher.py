@@ -10,6 +10,7 @@ import shutil
 import subprocess
 from zipfile import ZipFile
 from urllib.parse import parse_qs, urlparse
+from bs4 import BeautifulSoup
 from auto_archiver.utils.custom_logger import logger
 from warcio.archiveiterator import ArchiveIterator
 
@@ -38,6 +39,15 @@ FB_POST_ID = re.compile(rb'"post_id":"(\d+)"')
 # DM 15th Oct 26 - a /photo page's html has the photo's node, eg "id":"<fbid>",...,"image":{"uri":"<full res url>"}
 FB_PHOTO_IMAGE_URI = re.compile(rb'"image":\{"uri":"([^"]+)"')
 FB_PHOTO_IMAGE_WINDOW = 3000
+# DM 21st Oct 26 - a BBC image's id, the same at every width it is served at, eg
+#   https://ichef.bbci.co.uk/ace/standard/480/cpsprodpb/db61/live/7acf2e90-73d2-11f0-8b59-b1bcdd5e637e.jpg.webp
+#   https://ichef.bbci.co.uk/images/ic/1024x576/p0lvsmf0.jpg  - video poster
+BBC_IMAGE_KEY = re.compile(r"/ic/[^/]+/(p0[a-z0-9]+)|([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})")
+# DM 22nd Oct 26 - a YouTube video's id in its page url and in its thumbnail url, eg
+#   https://www.youtube.com/watch?v=7NWN3wivxhA, https://youtu.be/7NWN3wivxhA, https://www.youtube.com/shorts/7NWN3wivxhA
+#   https://i.ytimg.com/vi/7NWN3wivxhA/hqdefault.jpg, https://i.ytimg.com/vi_webp/7NWN3wivxhA/maxresdefault.webp
+YOUTUBE_PATH_VIDEO_ID = re.compile(r"^/(?:shorts|live|embed|v)/([A-Za-z0-9_-]{11})(?:/|$)")
+YTIMG_VIDEO_ID = re.compile(r"^/(?:vi|vi_webp|an|an_webp)/([A-Za-z0-9_-]{11})/")
 # DM 15th Oct 26 - the logged in user id facebook's page sends with its requests, 0 when logged out
 FB_SESSION_USER = re.compile(rb"__user=(\d+)")
 FB_RECOMMENDED_POST_ID = re.compile(rb'top_level_post_id\\":\\"(\d+)\\"[^}]*?originated_from_recommendation\\":\\"1\\"')
@@ -680,6 +690,67 @@ class WaczExtractorEnricher(Enricher, Extractor):
         return len(segments) == 1 and name not in FB_NOT_PROFILE_NAMES and not name.endswith(".php")
 
     @staticmethod
+    def _is_bbc_url(url: str) -> bool:
+        host = (urlparse(url).hostname or "").lower()
+        return any(host == d or host.endswith(f".{d}") for d in ("bbc.co.uk", "bbc.com"))
+
+    @staticmethod
+    def _bbc_image_key(url: str) -> str | None:
+        """id of a BBC image, the same at every width, eg the uuid in .../cpsprodpb/db61/live/<uuid>.jpg.webp.
+        None if the url isn't a BBC image (eg site graphics on static.files.bbci.co.uk)"""
+        m = BBC_IMAGE_KEY.search(url)
+        return (m.group(1) or m.group(2)) if m else None
+
+    @staticmethod
+    def _youtube_video_id(url: str) -> str | None:
+        """id of the video a YouTube page url is for, None for other pages (eg a channel) or other sites"""
+        parsed = urlparse(url)
+        host = (parsed.hostname or "").lower()
+        if host == "youtu.be":
+            video_id = parsed.path.strip("/")
+            return video_id if re.fullmatch(r"[A-Za-z0-9_-]{11}", video_id) else None
+        if host != "youtube.com" and not host.endswith(".youtube.com"):
+            return None
+        if parsed.path == "/watch":
+            video_id = parse_qs(parsed.query).get("v", [""])[0]
+            return video_id if re.fullmatch(r"[A-Za-z0-9_-]{11}", video_id) else None
+        m = YOUTUBE_PATH_VIDEO_ID.match(parsed.path)
+        return m.group(1) if m else None
+
+    @staticmethod
+    def _ytimg_video_id(url: str) -> str | None:
+        """id of the video a YouTube thumbnail url is for, None if the url isn't a video thumbnail"""
+        parsed = urlparse(url)
+        host = (parsed.hostname or "").lower()
+        if host != "ytimg.com" and not host.endswith(".ytimg.com"):
+            return None
+        m = YTIMG_VIDEO_ID.match(parsed.path)
+        return m.group(1) if m else None
+
+    @staticmethod
+    def _bbc_article_image_keys(warc_filename: str, url: str) -> set | None:
+        """ids of the images in a BBC page's <article> (the story itself, not top stories/most read etc).
+        Matched on path as bbc.com may have redirected to bbc.co.uk.
+        None if the page's html isn't in the warc or has no single <article>, so every image is kept as before"""
+        path = urlparse(url).path.rstrip("/")
+        with open(warc_filename, "rb") as warc_stream:
+            for record in ArchiveIterator(warc_stream):
+                if record.rec_type != "response":
+                    continue
+                record_url = record.rec_headers.get_header("WARC-Target-URI") or ""
+                if urlparse(record_url).path.rstrip("/") != path or not WaczExtractorEnricher._is_bbc_url(record_url):
+                    continue
+                if "text/html" not in (record.http_headers.get_header("Content-Type") or ""):
+                    continue
+                articles = BeautifulSoup(record.content_stream().read(), "html.parser").find_all("article")
+                if len(articles) != 1:
+                    logger.debug(f"BBC page has {len(articles)} <article> elements, keeping all images")
+                    return None
+                return {m.group(1) or m.group(2) for m in BBC_IMAGE_KEY.finditer(str(articles[0]))}
+        logger.debug(f"BBC page html for {url} not found in the WACZ, keeping all images")
+        return None
+
+    @staticmethod
     def _fb_own_post_id(warc_filename: str, url: str) -> str | None:
         """post_id of the post the url is for - the first story in the page's html which isn't a recommended post.
         None if the page's html isn't in the warc or has no stories"""
@@ -1044,6 +1115,18 @@ class WaczExtractorEnricher(Enricher, Extractor):
         counter_screenshots = 0
         seen_urls = set()
 
+        # DM 21st Oct 26 - a BBC article page has ~40 thumbnails of other stories (top stories, most read) each at
+        # many widths, so only keep the images in the page's <article>, once each at the largest size
+        url = to_enrich.get_url()
+        bbc_article_keys = self._bbc_article_image_keys(warc_filename, url) if url and self._is_bbc_url(url) else None
+        bbc_media = {}
+        bbc_skipped = 0
+
+        # DM 22nd Oct 26 - a YouTube video page also loads the thumbnails of the recommended videos in its sidebar,
+        # so only keep the thumbnails of the video being archived
+        youtube_video_id = self._youtube_video_id(url) if url else None
+        youtube_skipped = 0
+
         # DM 10th Nov 25 - turn off vpn if active to see if fixes issue with download_from_url
         # that gets best images from twitter
         # only attempt if an x.com link - seems hard so just take the 3s hit for now
@@ -1134,6 +1217,27 @@ class WaczExtractorEnricher(Enricher, Extractor):
                 if ext == ".ico": continue
                 if ext == None : continue
 
+                if youtube_video_id:
+                    thumbnail_video_id = self._ytimg_video_id(record_url)
+                    if thumbnail_video_id and thumbnail_video_id != youtube_video_id:
+                        youtube_skipped += 1
+                        continue
+
+                bbc_key = None
+                if bbc_article_keys is not None and "image" in content_type:
+                    bbc_key = self._bbc_image_key(record_url)
+                    if bbc_key not in bbc_article_keys:
+                        bbc_skipped += 1
+                        continue
+                    if bbc_key in bbc_media:
+                        # another width of an image already added - keep whichever is larger
+                        kept = bbc_media[bbc_key]
+                        if fs > os.path.getsize(kept.filename):
+                            os.replace(fn, kept.filename)
+                            kept.set("src", record_url)
+                        seen_urls.add(record_url)
+                        continue
+
                 logger.debug(f"Adding media from WACZ: {fn} which is {fs} bytes and extension {ext}")
 
                 m = Media(filename=fn)
@@ -1164,10 +1268,19 @@ class WaczExtractorEnricher(Enricher, Extractor):
                     # filesize2 = m.get_filesize()
                     logger.info(f"Adding media from WACZ: {m}" )
                     to_enrich.add_media(m, warc_fn)
+                    if bbc_key:
+                        bbc_media[bbc_key] = m
                 except Exception as e:
                     logger.warning(f"Unable to add media got error {e}")
                 counter_warc_files += 1
                 seen_urls.add(record_url)
+        if bbc_article_keys is not None:
+            logger.info(
+                f"BBC article: kept {len(bbc_media)} of {len(bbc_article_keys)} image(s) in the <article>, "
+                f"skipped {bbc_skipped} image(s) from the rest of the page"
+            )
+        if youtube_skipped:
+            logger.info(f"YouTube video {youtube_video_id}: skipped {youtube_skipped} thumbnail(s) of other videos")
         logger.info(
             f"WACZ extract_media/extract_screenshot finished, found {counter_warc_files + counter_screenshots} relevant media file(s)"
         )
