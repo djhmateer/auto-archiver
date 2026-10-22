@@ -647,6 +647,10 @@ class GenericExtractor(Extractor):
 
             # don't download since it can be a live stream
             data = ydl.extract_info(url, ie_key=info_extractor.ie_key(), download=False)
+            if not data:
+                # DM 22nd Oct 26 - yt-dlp returns None when extraction fails (eg facebook's "Cannot parse data"), which
+                # was reported as AttributeError("'NoneType' object has no attribute 'get'") before trying the dropin
+                raise yt_dlp.utils.ExtractorError(f"yt-dlp's {info_extractor.IE_NAME} extractor returned nothing for {url}")
 
             # Check for deletion indicators in video data
             deletion_info = detect_deletion(video_data=data, url=url)
