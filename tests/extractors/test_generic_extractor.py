@@ -555,3 +555,35 @@ class TestGenericExtractorYtdlpOptions:
         assert isinstance(options["logger"], _YtdlpLogger)
         out = capsys.readouterr()
         assert out.out == "" and out.err == ""
+
+
+class TestThumbnailFilename:
+    """the cover image is named after the video, as eg every Brightcove thumbnail url ends in /image.jpg"""
+
+    @pytest.fixture
+    def extractor(self, mocker):
+        extractor = GenericExtractor()
+        mocker.patch.object(extractor, "dropin_for_name", return_value=None)
+        mocker.patch.object(extractor, "download_from_url", side_effect=lambda url, to_filename=None: to_filename)
+        return extractor
+
+    @pytest.mark.parametrize(
+        "video_id, thumbnail, filename",
+        [
+            (
+                "6377863811112",
+                "https://cf-images.eu-west-1.prod.boltdns.net/v1/static/665003303001/5d2c/5727/1920x1080/match/image.jpg",
+                "6377863811112_thumbnail.jpg",
+            ),
+            ("7NWN3wivxhA", "https://i.ytimg.com/vi_webp/7NWN3wivxhA/maxresdefault.webp", "7NWN3wivxhA_thumbnail.webp"),
+            ("abc", "https://example.com/thumb?size=large", "abc_thumbnail.jpg"),
+            ("a/b c", "https://example.com/t.png?x=1", "a_b_c_thumbnail.png"),
+            (None, "https://example.com/t.png", None),
+        ],
+    )
+    def test_thumbnail_named_after_video(self, extractor, mocker, video_id, thumbnail, filename):
+        from auto_archiver.core import Metadata
+
+        extractor.download_additional_media({"id": video_id, "thumbnail": thumbnail}, mocker.Mock(), Metadata())
+
+        extractor.download_from_url.assert_called_once_with(thumbnail, filename)

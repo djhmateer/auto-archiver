@@ -1,3 +1,4 @@
+import pytest
 from selenium.common import exceptions as selenium_exceptions
 
 from auto_archiver.utils.webdriver import COOKIE_BUTTON_XPATHS, CookieSettingDriver
@@ -97,3 +98,81 @@ def test_selenium_timeout_is_not_retried(mocker):
 
     assert wd.Webdriver(1280, 1024, 60).__enter__() is None
     assert mock_cls.call_count == 1
+
+
+class ClickableElement(FakeElement):
+    clicked = False
+
+    def click(self):
+        self.clicked = True
+
+
+class FakeBbcDriver(FakeDriver):
+    """a page with the BBC's sign in prompt, whose "Maybe later" link closes it"""
+
+    def __init__(self, maybe_later):
+        from auto_archiver.utils.webdriver import BBC_SIGN_IN_PROMPT_CLOSE_XPATHS
+
+        self.elements_by_xpath = {BBC_SIGN_IN_PROMPT_CLOSE_XPATHS[0]: maybe_later}
+        self._find_clickable_bbc_sign_in_prompt_close = CookieSettingDriver._find_clickable_bbc_sign_in_prompt_close
+
+
+@pytest.mark.parametrize(
+    "url, is_bbc",
+    [
+        ("https://www.bbc.co.uk/news/articles/c8ryekj1m1do", True),
+        ("https://www.bbc.com/news/articles/c8ryekj1m1do", True),
+        ("https://www.notbbc.com/news", False),
+        ("https://www.aljazeera.com/news", False),
+    ],
+)
+def test_is_bbc_url(url, is_bbc):
+    assert CookieSettingDriver._is_bbc_url(url) is is_bbc
+
+
+def test_closes_bbc_sign_in_prompt(mocker):
+    mocker.patch("time.sleep")
+    maybe_later = ClickableElement("maybe later")
+    driver = FakeBbcDriver([ClickableElement("hidden", displayed=False), maybe_later])
+
+    CookieSettingDriver._close_bbc_sign_in_prompt(driver)
+
+    assert maybe_later.clicked
+
+
+def test_no_bbc_sign_in_prompt_is_fine(mocker):
+    mocker.patch("time.sleep")
+    mocker.patch(
+        "auto_archiver.utils.webdriver.WebDriverWait"
+    ).return_value.until.side_effect = selenium_exceptions.TimeoutException()
+
+    CookieSettingDriver._close_bbc_sign_in_prompt(FakeBbcDriver([]))
+
+
+def test_cookie_button_is_not_the_bbc_sign_in_prompt_close():
+    driver = FakeBbcDriver([ClickableElement("maybe later")])
+    assert CookieSettingDriver._find_clickable_cookie_button(driver) is False
+
+
+@pytest.mark.parametrize(
+    "url, conditions",
+    [
+        # the sign in prompt is closed, and the cookie banner was already rejected, so no generic search
+        (
+            "https://www.bbc.co.uk/news/articles/c8ryekj1m1do",
+            [CookieSettingDriver._find_clickable_bbc_sign_in_prompt_close],
+        ),
+        ("https://example.com/article", [CookieSettingDriver._find_clickable_cookie_button]),
+    ],
+)
+def test_bbc_skips_generic_cookie_banner_search(mocker, url, conditions):
+    mocker.patch("time.sleep")
+    mocker.patch("selenium.webdriver.Firefox.get")
+    mocker.patch.object(CookieSettingDriver, "find_element", side_effect=selenium_exceptions.NoSuchElementException())
+    wait = mocker.patch("auto_archiver.utils.webdriver.WebDriverWait")
+    driver = object.__new__(CookieSettingDriver)
+    driver.cookie, driver.cookie_jar, driver.facebook_accept_cookies = None, None, False
+
+    driver.get(url)
+
+    assert [c.args[0] for c in wait.return_value.until.call_args_list] == conditions

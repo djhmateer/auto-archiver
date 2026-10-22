@@ -87,7 +87,9 @@ def test_download_failure_skips_later_enrich(wacz_enricher, mocker, tmp_path) ->
     import subprocess
 
     wacz_enricher.tmp_dir = str(tmp_path)
-    mock_run = mocker.patch("subprocess.run", side_effect=subprocess.CalledProcessError(9, ["docker"], output="", stderr=""))
+    mock_run = mocker.patch(
+        "subprocess.run", side_effect=subprocess.CalledProcessError(9, ["docker"], output="", stderr="")
+    )
     metadata = Metadata().set_url("https://example.com")
     assert wacz_enricher.download(metadata) is None
     assert wacz_enricher.enrich(metadata) is False
@@ -207,7 +209,6 @@ def test_enrich_failure_first_log_line_has_reason(wacz_enricher, mocker, tmp_pat
     )
 
 
-
 @pytest.mark.parametrize(
     "body, route, carousel_set_id",
     [
@@ -235,7 +236,11 @@ def test_enrich_failure_first_log_line_has_reason(wacz_enricher, mocker, tmp_pat
             None,
         ),
         # no set on the route
-        ("b'route_urls[0]=%2Fphoto%2F%3Ffbid%3D2439550876400757&routing_namespace'", ("2439550876400757", None, False), None),
+        (
+            "b'route_urls[0]=%2Fphoto%2F%3Ffbid%3D2439550876400757&routing_namespace'",
+            ("2439550876400757", None, False),
+            None,
+        ),
         # only the first photo route is used, as before - a later carousel route doesn't override an album one
         (
             "b'x=%2Fphoto%2F%3Ffbid%3D1%26set%3Da.107969117699290%26y=%2Fphoto%2F%3Ffbid%3D2%26set%3Dpcb.3%26'",
@@ -254,8 +259,12 @@ def test_fb_photo_route(body, route, carousel_set_id) -> None:
 
 
 FB_PHOTO_URL = "https://www.facebook.com/photo/?fbid=1329142910787472&set=a.132433247125117"
-FB_PHOTO_IMAGE_URL = "https://scontent.xx.fbcdn.net/v/t1.6435-9/153394039_1329142914120805_n.jpg?stp=dst-jpg_tt6&_nc_cat=111"
-FB_STICKER_URL = "https://scontent.xx.fbcdn.net/v/t39.1997-6/12057124_787824104676675_170142219_n.png?stp=dst-png_p240x240"
+FB_PHOTO_IMAGE_URL = (
+    "https://scontent.xx.fbcdn.net/v/t1.6435-9/153394039_1329142914120805_n.jpg?stp=dst-jpg_tt6&_nc_cat=111"
+)
+FB_STICKER_URL = (
+    "https://scontent.xx.fbcdn.net/v/t39.1997-6/12057124_787824104676675_170142219_n.png?stp=dst-png_p240x240"
+)
 # shaped like a /photo page's html - the photo's node with its full res image, the url's slashes escaped
 FB_PHOTO_HTML = (
     b'{"__isNode":"Photo","id":"1329142910787472","owner":{"__typename":"User","id":"100010753278573"},'
@@ -294,7 +303,9 @@ def _write_fb_photo_wacz(wacz_path, photo_url: str, route: bool = True, page_htm
                 FB_PHOTO_URL,
                 "response",
                 payload=BytesIO(page_html),
-                http_headers=StatusAndHeaders("200 OK", [("Content-Type", 'text/html; charset="utf-8"')], protocol="HTTP/1.1"),
+                http_headers=StatusAndHeaders(
+                    "200 OK", [("Content-Type", 'text/html; charset="utf-8"')], protocol="HTTP/1.1"
+                ),
             )
         )
         writer.write_record(
@@ -410,7 +421,9 @@ def _write_fb_post_wacz(wacz_path, html: bytes, url: str = FB_POST_URL) -> None:
             url,
             "response",
             payload=BytesIO(html),
-            http_headers=StatusAndHeaders("200 OK", [("Content-Type", 'text/html; charset="utf-8"')], protocol="HTTP/1.1"),
+            http_headers=StatusAndHeaders(
+                "200 OK", [("Content-Type", 'text/html; charset="utf-8"')], protocol="HTTP/1.1"
+            ),
         )
     )
     for fb_id, set_id in [("1646726095764730", "1646726145764725"), ("2172007990360001", "1424364323199649")]:
@@ -440,7 +453,9 @@ def test_facebook_crawls_only_the_posts_own_carousel(wacz_enricher, tmp_path, mo
     wacz_enricher.tmp_dir = str(tmp_path)
     wacz_enricher.extract_media = True
     mocker.patch("os.path.expanduser", return_value=str(tmp_path / "aatmp"))
-    crawl = mocker.patch.object(wacz_enricher, "save_images_to_enrich_object_from_url_using_browsertrix", return_value=[])
+    crawl = mocker.patch.object(
+        wacz_enricher, "save_images_to_enrich_object_from_url_using_browsertrix", return_value=[]
+    )
     wacz_file = tmp_path / "fb.wacz"
     _write_fb_post_wacz(wacz_file, html)
 
@@ -464,11 +479,15 @@ FB_TEXT_STORY = b'{"post_id":"1450854020483210","attachments":[]}'
         (FB_OWN_STORY + FB_TEXT_STORY, ["1646726145764725"]),
     ],
 )
-def test_facebook_profile_doesnt_crawl_the_feeds_carousels(wacz_enricher, tmp_path, mocker, html, crawled_set_ids) -> None:
+def test_facebook_profile_doesnt_crawl_the_feeds_carousels(
+    wacz_enricher, tmp_path, mocker, html, crawled_set_ids
+) -> None:
     wacz_enricher.tmp_dir = str(tmp_path)
     wacz_enricher.extract_media = True
     mocker.patch("os.path.expanduser", return_value=str(tmp_path / "aatmp"))
-    crawl = mocker.patch.object(wacz_enricher, "save_images_to_enrich_object_from_url_using_browsertrix", return_value=[])
+    crawl = mocker.patch.object(
+        wacz_enricher, "save_images_to_enrich_object_from_url_using_browsertrix", return_value=[]
+    )
     wacz_file = tmp_path / "fb.wacz"
     _write_fb_post_wacz(wacz_file, html, FB_PROFILE_URL)
 
@@ -534,7 +553,12 @@ def test_fb_own_post_id_skips_recommended_posts(tmp_path) -> None:
             "page=photo session=LOGGED_OUT screenshot_ocr=log_in_to_facebook,create_new_account strategy=photo_own_image media_added=2 unique_media=2",
         ),
         # a page without photo routes (eg a video) - no requests to tell the session from, and no carousel
-        (False, None, [], "page=post session=unknown screenshot_ocr=ok strategy=no_carousel_found media_added=1 unique_media=1"),
+        (
+            False,
+            None,
+            [],
+            "page=post session=unknown screenshot_ocr=ok strategy=no_carousel_found media_added=1 unique_media=1",
+        ),
     ],
 )
 def test_facebook_summary_line(wacz_enricher, tmp_path, mocker, route, page_html, ocr_phrases, summary) -> None:
@@ -618,7 +642,9 @@ def test_blocked_seed_page_noted_in_status(wacz_enricher, mocker, tmp_path, stat
     wacz_enricher.tmp_dir = str(tmp_path)
     wacz_enricher.use_docker = True
     wacz_enricher.extract_media = wacz_enricher.extract_screenshot = False
-    _write_crawl_output(tmp_path, wacz_enricher.crawl_id, [{"url": "https://example.com/", "seed": True, "status": status}])
+    _write_crawl_output(
+        tmp_path, wacz_enricher.crawl_id, [{"url": "https://example.com/", "seed": True, "status": status}]
+    )
     mocker.patch("subprocess.run")
     metadata = Metadata().set_url("https://example.com/")
 
@@ -644,7 +670,11 @@ def test_download_failure_keeps_blocked_note(wacz_enricher, mocker, tmp_path, st
     wacz_enricher.tmp_dir = str(tmp_path)
     lines = ['{"logLevel":"error","message":"Crawl failed, no pages crawled successfully","details":{}}']
     if status:
-        rate_limited = {"logLevel": "warn", "message": "Page possibly rate limited, retrying", "details": {"status": status}}
+        rate_limited = {
+            "logLevel": "warn",
+            "message": "Page possibly rate limited, retrying",
+            "details": {"status": status},
+        }
         lines.insert(0, json.dumps(rate_limited))
     stdout = "\n".join(lines)
     mocker.patch("subprocess.run", side_effect=subprocess.CalledProcessError(9, ["docker"], output=stdout, stderr=""))
@@ -889,3 +919,352 @@ def test_youtube_page_without_a_video_keeps_all_thumbnails(wacz_enricher, tmp_pa
     wacz_enricher.extract_media_from_wacz(metadata, str(wacz_file))
 
     assert len(metadata.media) == 4
+
+
+AJ_ARTICLE_URL = (
+    "https://www.aljazeera.com/news/2025/8/31/israel-is-reducing-gaza-city-to-fields-of-rubble-kills-78-across-enclave"
+)
+AJ_ARTICLE_IMAGE = "/wp-content/uploads/2025/08/reuters_68b342d4-1756578516.jpg"
+AJ_OTHER_STORY_IMAGE = "/wp-content/uploads/2026/10/epa_6ad9235a412e-1792615258.jpg"
+AJ_VIDEO_THUMBNAIL = (
+    "https://cf-images.eu-west-1.prod.boltdns.net/v1/static/665003303001/f1427a5e-3520-425e-a827-e45458f80bcc/"
+    "0b29ef9a-8816-4f5f-9019-e854a4222f5a/1920x1080/match/image.jpg"
+)
+
+
+def _aj_image_url(path: str, width: int, height: int) -> str:
+    return f"https://www.aljazeera.com{path}?resize={width}%2C{height}&quality=80"
+
+
+def _aj_html(state: dict | None) -> bytes:
+    """the page's html, with its apollo state base64 encoded as on aljazeera.com"""
+    import base64
+    import json
+
+    script = ""
+    if state is not None:
+        script = f'<script>window.__APOLLO_STATE__="{base64.b64encode(json.dumps(state).encode()).decode()}";</script>'
+    return f"<html><body><main><img src='{_aj_image_url(AJ_ARTICLE_IMAGE, 770, 513)}'></main>{script}</body></html>".encode()
+
+
+# the page's post, and another story's post as in its most read list
+AJ_APOLLO_STATE = {
+    "Post:3918307": {
+        "__typename": "Post",
+        "link": "/news/2025/8/31/israel-is-reducing-gaza-city-to-fields-of-rubble-kills-78-across-enclave",
+        "content": '<p>Israel has stepped up</p><video-js data-video-id="6377863811112"></video-js>',
+        "featuredImage": {"__ref": f"Media_{AJ_ARTICLE_IMAGE}"},
+    },
+    "Post:3917235": {
+        "__typename": "Post",
+        "link": "/news/2026/10/21/another-story",
+        "featuredImage": {"__ref": f"Media_{AJ_OTHER_STORY_IMAGE}"},
+    },
+}
+
+
+def _write_aj_wacz(wacz_path, html: bytes = None) -> None:
+    """A wacz like a crawl of an Al Jazeera article: the page's html, the article's image at 3 sizes, a most read
+    story's image, a video's Brightcove thumbnail and the site logo - all big enough to pass the size filters"""
+    from io import BytesIO
+
+    from warcio.statusandheaders import StatusAndHeaders
+    from warcio.warcwriter import WARCWriter
+
+    warc = BytesIO()
+    writer = WARCWriter(warc, gzip=True)
+
+    def response(url, content_type, payload):
+        writer.write_record(
+            writer.create_warc_record(
+                url,
+                "response",
+                payload=BytesIO(payload),
+                http_headers=StatusAndHeaders("200 OK", [("Content-Type", content_type)], protocol="HTTP/1.1"),
+            )
+        )
+
+    if html is not None:
+        response(AJ_ARTICLE_URL, "text/html; charset=utf-8", html)
+    response(_aj_image_url(AJ_ARTICLE_IMAGE, 570, 380), "image/jpeg", b"\xff\xd8" + b"0" * 50000)
+    response(_aj_image_url(AJ_ARTICLE_IMAGE, 770, 513), "image/webp", b"RIFF" + b"0" * 68000)
+    response(_aj_image_url(AJ_ARTICLE_IMAGE, 270, 180), "image/jpeg", b"\xff\xd8" + b"0" * 16000)
+    response(_aj_image_url(AJ_OTHER_STORY_IMAGE, 270, 180), "image/jpeg", b"\xff\xd8" + b"0" * 27000)
+    response(AJ_VIDEO_THUMBNAIL, "image/jpeg", b"\xff\xd8" + b"0" * 300000)
+    response("https://www.aljazeera.com/images/logo_aje.png", "image/png", b"\x89PNG" + b"0" * 60000)
+    with ZipFile(wacz_path, "w") as zf:
+        zf.writestr("archive/data.warc.gz", warc.getvalue())
+
+
+@pytest.mark.parametrize(
+    "url, is_aljazeera",
+    [
+        (AJ_ARTICLE_URL, True),
+        ("https://balkans.aljazeera.net/videos/2021/11/6/some-video", True),
+        ("https://aljazeera.com/news", True),
+        ("https://www.notaljazeera.com/news", False),
+        ("https://www.aljazeera.com.example.com/news", False),
+    ],
+)
+def test_is_aljazeera_url(url, is_aljazeera) -> None:
+    from auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher import WaczExtractorEnricher
+
+    assert WaczExtractorEnricher._is_aljazeera_url(url) is is_aljazeera
+
+
+@pytest.mark.parametrize(
+    "url, key",
+    [
+        (_aj_image_url(AJ_ARTICLE_IMAGE, 770, 513), AJ_ARTICLE_IMAGE),
+        (f"https://www.aljazeera.com{AJ_ARTICLE_IMAGE}", AJ_ARTICLE_IMAGE),
+        (AJ_VIDEO_THUMBNAIL, None),
+        ("https://www.aljazeera.com/images/logo_aje.png", None),
+    ],
+)
+def test_aljazeera_image_key(url, key) -> None:
+    from auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher import WaczExtractorEnricher
+
+    assert WaczExtractorEnricher._aljazeera_image_key(url) == key
+
+
+def test_aljazeera_keeps_only_the_posts_image_at_its_largest(wacz_enricher, tmp_path) -> None:
+    """Other stories' images, the videos' Brightcove thumbnails and site graphics are dropped, and the article's
+    image is kept once"""
+    wacz_enricher.tmp_dir = str(tmp_path)
+    wacz_enricher.extract_media = True
+    wacz_enricher.extract_screenshot = False
+    wacz_file = tmp_path / "aj.wacz"
+    _write_aj_wacz(wacz_file, _aj_html(AJ_APOLLO_STATE))
+    metadata = Metadata().set_url(AJ_ARTICLE_URL)
+
+    wacz_enricher.extract_media_from_wacz(metadata, str(wacz_file))
+
+    assert [m.get("src") for m in metadata.media] == [_aj_image_url(AJ_ARTICLE_IMAGE, 770, 513)]
+    assert os.path.getsize(metadata.media[0].filename) == 68004
+
+
+@pytest.mark.parametrize("html", [None, _aj_html(None), _aj_html({"Post:1": {"link": "/news/2026/10/21/other"}})])
+def test_aljazeera_without_its_post_keeps_all_images(wacz_enricher, tmp_path, html) -> None:
+    """No page html in the warc, no apollo state, or no post for the page, falls back to keeping every image"""
+    wacz_enricher.tmp_dir = str(tmp_path)
+    wacz_enricher.extract_media = True
+    wacz_enricher.extract_screenshot = False
+    wacz_file = tmp_path / "aj.wacz"
+    _write_aj_wacz(wacz_file, html)
+    metadata = Metadata().set_url(AJ_ARTICLE_URL)
+
+    wacz_enricher.extract_media_from_wacz(metadata, str(wacz_file))
+
+    assert len(metadata.media) == 6
+
+
+IPC_URL = "https://www.ipcinfo.org/ipc-country-analysis/details-map/en/c/1159696/"
+
+
+def _write_cloudflare_wacz(wacz_path, responses) -> None:
+    """A wacz like a crawl of a page behind Cloudflare: responses are (url, status, cf_mitigated) in crawl order"""
+    from io import BytesIO
+
+    from warcio.statusandheaders import StatusAndHeaders
+    from warcio.warcwriter import WARCWriter
+
+    warc = BytesIO()
+    writer = WARCWriter(warc, gzip=True)
+    for url, status, cf_mitigated in responses:
+        headers = [("Content-Type", "text/html; charset=UTF-8"), ("server", "cloudflare")]
+        if cf_mitigated:
+            headers.append(("cf-mitigated", cf_mitigated))
+        writer.write_record(
+            writer.create_warc_record(
+                url,
+                "response",
+                payload=BytesIO(b"<html><title>Just a moment...</title></html>"),
+                http_headers=StatusAndHeaders(f"{status} OK", headers, protocol="HTTP/1.1"),
+            )
+        )
+    with ZipFile(wacz_path, "w") as zf:
+        zf.writestr("archive/rec-0.warc.gz", warc.getvalue())
+
+
+@pytest.mark.parametrize(
+    "responses, url, challenged",
+    [
+        ([(IPC_URL, 403, "challenge")], IPC_URL, True),
+        # without the trailing slash, or the www
+        ([(IPC_URL, 403, "challenge")], "https://ipcinfo.org/ipc-country-analysis/details-map/en/c/1159696", True),
+        # the challenge passed and the crawler got the page
+        ([(IPC_URL, 403, "challenge"), (IPC_URL, 200, None)], IPC_URL, False),
+        # a plain 403, not Cloudflare's challenge
+        ([(IPC_URL, 403, None)], IPC_URL, False),
+        # a challenge for another of the page's requests
+        ([(IPC_URL, 200, None), ("https://www.ipcinfo.org/api/data", 403, "challenge")], IPC_URL, False),
+    ],
+)
+def test_is_cloudflare_challenge(tmp_path, responses, url, challenged) -> None:
+    from auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher import WaczExtractorEnricher
+
+    wacz_file = tmp_path / "cf.wacz"
+    _write_cloudflare_wacz(wacz_file, responses)
+
+    assert WaczExtractorEnricher._is_cloudflare_challenge(str(wacz_file), url) is challenged
+
+
+def test_is_cloudflare_challenge_not_a_wacz(tmp_path) -> None:
+    from auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher import WaczExtractorEnricher
+
+    (tmp_path / "x.wacz").write_bytes(b"wacz")
+    assert WaczExtractorEnricher._is_cloudflare_challenge(str(tmp_path / "x.wacz"), IPC_URL) is False
+
+
+def _crawl_a_cloudflare_challenge(wacz_enricher, mocker, tmp_path) -> None:
+    wacz_enricher.tmp_dir = str(tmp_path)
+    wacz_enricher.use_docker = True
+    wacz_enricher.extract_media = wacz_enricher.extract_screenshot = False
+    collection = wacz_enricher.crawl_id
+    _write_crawl_output(
+        tmp_path, collection, [{"url": IPC_URL, "seed": True, "status": 403, "title": "Just a moment..."}]
+    )
+    _write_cloudflare_wacz(tmp_path / "collections" / collection / f"{collection}.wacz", [(IPC_URL, 403, "challenge")])
+    mocker.patch("subprocess.run")
+
+
+def test_cloudflare_challenge_fails_the_enricher(wacz_enricher, mocker, tmp_path) -> None:
+    _crawl_a_cloudflare_challenge(wacz_enricher, mocker, tmp_path)
+    metadata = Metadata().set_url(IPC_URL)
+
+    assert wacz_enricher.enrich(metadata) is False
+    assert metadata.get_media_by_id("browsertrix") is None
+    assert metadata.get_title() is None
+    assert metadata.get_status_notes() == ["blocked by Cloudflare challenge"]
+
+
+def test_cloudflare_challenge_fails_the_extractor_keeping_the_note(wacz_enricher, mocker, tmp_path) -> None:
+    _crawl_a_cloudflare_challenge(wacz_enricher, mocker, tmp_path)
+    item = Metadata().set_url(IPC_URL)
+
+    assert wacz_enricher.download(item) is None
+    assert item.get_status_notes() == ["blocked by Cloudflare challenge"]
+    assert item.get_context("wacz_failed")
+
+
+IDF_URL = (
+    "https://www.idf.il/en/mini-sites/idf-press-releases-israel-at-war/march-25-pr/"
+    "the-36th-division-began-preparing-for-operations-in-the-southern-command/"
+)
+
+# as in the page, plus a second embed, a repeat, a nocookie one and a mention of an embed url outside an iframe
+IDF_HTML = b"""<html><body><h1>The 36th Division Began Preparing for Operations in the Southern Command</h1>
+<p style="text-align: center;"><iframe width="640" height="320" src="https://www.youtube.com/embed/UkI8V8_4OGk"
+ title="Preparations of the 36th Division for Operations in the Gaza Strip" frameborder="0"></iframe></p>
+<iframe src="//www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0"></iframe>
+<iframe src='https://www.youtube.com/embed/UkI8V8_4OGk'></iframe>
+<script>var x = "https://www.youtube.com/embed/aaaaaaaaaaa";</script>
+</body></html>"""
+
+
+def _write_page_wacz(wacz_path, url, html: bytes, content_type="text/html; charset=utf-8") -> None:
+    from io import BytesIO
+
+    from warcio.statusandheaders import StatusAndHeaders
+    from warcio.warcwriter import WARCWriter
+
+    warc = BytesIO()
+    writer = WARCWriter(warc, gzip=True)
+    writer.write_record(
+        writer.create_warc_record(
+            url,
+            "response",
+            payload=BytesIO(html),
+            http_headers=StatusAndHeaders("200 OK", [("Content-Type", content_type)], protocol="HTTP/1.1"),
+        )
+    )
+    with ZipFile(wacz_path, "w") as zf:
+        zf.writestr("archive/rec-0.warc.gz", warc.getvalue())
+
+
+def test_youtube_embed_ids(tmp_path) -> None:
+    from auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher import WaczExtractorEnricher
+
+    wacz_file = tmp_path / "idf.wacz"
+    _write_page_wacz(wacz_file, IDF_URL, IDF_HTML)
+
+    assert WaczExtractorEnricher._youtube_embed_ids(str(wacz_file), IDF_URL) == ["UkI8V8_4OGk", "dQw4w9WgXcQ"]
+
+
+def test_youtube_embed_ids_not_html(tmp_path) -> None:
+    from auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher import WaczExtractorEnricher
+
+    wacz_file = tmp_path / "idf.wacz"
+    _write_page_wacz(wacz_file, IDF_URL, IDF_HTML, content_type="application/json")
+
+    assert WaczExtractorEnricher._youtube_embed_ids(str(wacz_file), IDF_URL) == []
+
+
+def _mock_generic_extractor(wacz_enricher, mocker, tmp_path, fail_ids=()):
+    """a generic extractor whose download gives a video named after its id, eg UkI8V8_4OGk.mp4"""
+
+    def download(item):
+        video_id = item.get_url().split("v=")[1]
+        if video_id in fail_ids:
+            raise Exception("Sign in to confirm you're not a bot")
+        video = Metadata()
+        video.add_media(Media(str(tmp_path / f"{video_id}.mp4")))
+        return video
+
+    generic_extractor = mocker.MagicMock()
+    generic_extractor.download.side_effect = download
+    mocker.patch.object(wacz_enricher, "module_factory").get_module.return_value = generic_extractor
+    return generic_extractor
+
+
+def test_downloads_youtube_embeds(wacz_enricher, mocker, tmp_path) -> None:
+    generic_extractor = _mock_generic_extractor(wacz_enricher, mocker, tmp_path)
+    wacz_file = tmp_path / "idf.wacz"
+    _write_page_wacz(wacz_file, IDF_URL, IDF_HTML)
+    metadata = Metadata().set_url(IDF_URL)
+
+    wacz_enricher._download_youtube_embeds(metadata, str(wacz_file), IDF_URL)
+
+    assert [c.args[0].get_url() for c in generic_extractor.download.call_args_list] == [
+        "https://www.youtube.com/watch?v=UkI8V8_4OGk",
+        "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    ]
+    assert [os.path.basename(m.filename) for m in metadata.media] == ["UkI8V8_4OGk.mp4", "dQw4w9WgXcQ.mp4"]
+
+
+def test_youtube_embeds_skips_videos_already_downloaded_and_failures(wacz_enricher, mocker, tmp_path) -> None:
+    generic_extractor = _mock_generic_extractor(wacz_enricher, mocker, tmp_path, fail_ids=("dQw4w9WgXcQ",))
+    wacz_file = tmp_path / "idf.wacz"
+    _write_page_wacz(wacz_file, IDF_URL, IDF_HTML)
+    # eg the generic extractor got the page and its embed
+    metadata = Metadata().set_url(IDF_URL)
+    metadata.add_media(Media(str(tmp_path / "UkI8V8_4OGk.mp4")))
+
+    wacz_enricher._download_youtube_embeds(metadata, str(wacz_file), IDF_URL)
+
+    assert generic_extractor.download.call_count == 1
+    assert [os.path.basename(m.filename) for m in metadata.media] == ["UkI8V8_4OGk.mp4"]
+
+
+def test_youtube_embeds_capped(wacz_enricher, mocker, tmp_path) -> None:
+    from auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher import MAX_EMBEDDED_YOUTUBE_VIDEOS
+
+    generic_extractor = _mock_generic_extractor(wacz_enricher, mocker, tmp_path)
+    html = b"".join(b'<iframe src="https://www.youtube.com/embed/video%06d"></iframe>' % i for i in range(8))
+    wacz_file = tmp_path / "many.wacz"
+    _write_page_wacz(wacz_file, IDF_URL, html)
+
+    wacz_enricher._download_youtube_embeds(Metadata().set_url(IDF_URL), str(wacz_file), IDF_URL)
+
+    assert generic_extractor.download.call_count == MAX_EMBEDDED_YOUTUBE_VIDEOS
+
+
+def test_youtube_embeds_not_for_a_youtube_page(wacz_enricher, mocker, tmp_path) -> None:
+    generic_extractor = _mock_generic_extractor(wacz_enricher, mocker, tmp_path)
+    url = "https://www.youtube.com/watch?v=7NWN3wivxhA"
+    wacz_file = tmp_path / "yt.wacz"
+    _write_page_wacz(wacz_file, url, IDF_HTML)
+
+    wacz_enricher._download_youtube_embeds(Metadata().set_url(url), str(wacz_file), url)
+
+    generic_extractor.download.assert_not_called()

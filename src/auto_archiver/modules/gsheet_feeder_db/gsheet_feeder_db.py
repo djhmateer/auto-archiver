@@ -28,8 +28,8 @@ from auto_archiver.utils.misc import get_current_timestamp
 
 
 # sheet "screenshot" column source, in order of preference: facebook_story_extractor, screenshot_enricher,
-# antibot_extractor_enricher
-SCREENSHOT_MEDIA_IDS = ("screenshot", "webdriverscreenshot", "antibot_screenshot")
+# antibot_extractor_enricher, then the crawler's (DM 22nd Oct 26 - eg when the screenshot enricher's was a block page)
+SCREENSHOT_MEDIA_IDS = ("screenshot", "webdriverscreenshot", "antibot_screenshot", "browsertrix-screenshot-0")
 
 
 class GsheetsFeederDB(Feeder, Database):

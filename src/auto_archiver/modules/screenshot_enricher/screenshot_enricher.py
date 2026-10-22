@@ -3,7 +3,9 @@ from auto_archiver.utils.custom_logger import logger
 import time
 import os
 import base64
+import io
 import re
+from urllib.parse import urlparse
 
 import pytesseract
 from PIL import Image
@@ -31,6 +33,79 @@ FACEBOOK_WARNING_PHRASES = [
 ]
 
 FACEBOOK_STORY_URL_REGEX = re.compile(r"facebook\.com/stories/", re.IGNORECASE)
+
+# DM 22nd Oct 26 - Imperva's block page, eg idf.il's "Access denied - Error 15 - This request was blocked by our security
+# service ... Powered by Imperva", or the older "Request unsuccessful. Incapsula incident ID: ..."
+IMPERVA_BLOCK_TEXT = re.compile(r"blocked by our security service|incapsula incident id", re.IGNORECASE)
+IMPERVA_NAME = re.compile(r"imperva|incapsula", re.IGNORECASE)
+
+
+def is_imperva_block_page(driver) -> bool:
+    """True if the browser was given Imperva's block page instead of the page"""
+    try:
+        page_source = driver.page_source
+    except Exception as e:
+        logger.debug(f"Couldn't read the page source to check for an Imperva block page: {e}")
+        return False
+    return isinstance(page_source, str) and bool(IMPERVA_BLOCK_TEXT.search(page_source) and IMPERVA_NAME.search(page_source))
+
+
+# DM 22nd Oct 26 - save_screenshot only captures the window (eg 1280x1911 of a 2048 high one), so take the whole page.
+# Capped as a long page or an endless feed can be tens of thousands of px, and Firefox fails over ~32k
+FULL_PAGE_MAX_HEIGHT = 15000
+
+
+# DM 22nd Oct 26 - social media, whose pages scroll forever (eg youtube's comments and recommended videos filled a
+# screenshot to the 15000px cap), so a full page screenshot isn't useful. They get the top of the page instead
+INFINITE_SCROLL_DOMAINS = (
+    "facebook.com", "instagram.com", "x.com", "twitter.com", "tiktok.com", "t.me", "telegram.me", "telegram.org",
+    "vk.com", "vk.ru", "youtube.com", "youtu.be",
+)
+# how many windows high the screenshot of an infinite scrolling site is
+INFINITE_SCROLL_SCREENSHOT_WINDOWS = 2
+
+
+def is_infinite_scroll_site(url: str) -> bool:
+    host = (urlparse(url).hostname or "").lower()
+    return any(host == d or host.endswith(f".{d}") for d in INFINITE_SCROLL_DOMAINS)
+# DM 22nd Oct 26 - time for lazy loaded content to appear at each step when scrolling through the page
+SCROLL_PAUSE_SECONDS = 0.5
+
+
+def scroll_through_page(driver) -> None:
+    """scrolls down the page a window at a time, then back to the top, so content which only loads when scrolled to
+    (eg an Al Jazeera article's video players, lazy loaded images) is in the full page screenshot"""
+    try:
+        step = driver.execute_script("return window.innerHeight") or 1000
+        position = 0
+        while position < FULL_PAGE_MAX_HEIGHT:
+            position += step
+            driver.execute_script("window.scrollTo(0, arguments[0]);", position)
+            time.sleep(SCROLL_PAUSE_SECONDS)
+            # the page can grow as it loads, so check its height at each step
+            if position >= (driver.execute_script("return document.documentElement.scrollHeight") or 0):
+                break
+        driver.execute_script("window.scrollTo(0, 0);")
+        time.sleep(SCROLL_PAUSE_SECONDS)
+    except Exception as e:
+        logger.warning(f"Scrolling through the page before the screenshot failed: {e}")
+
+
+def save_full_page_screenshot(driver, filename: str, max_height: int = FULL_PAGE_MAX_HEIGHT) -> bool:
+    """saves the whole page, cut off at max_height. False if Firefox couldn't take it"""
+    try:
+        png = driver.get_full_page_screenshot_as_png()
+        image = Image.open(io.BytesIO(png))
+        if image.height > max_height:
+            logger.debug(f"Full page screenshot is {image.height}px high, cutting it off at {max_height}px")
+            image.crop((0, 0, image.width, max_height)).save(filename)
+        else:
+            with open(filename, "wb") as f:
+                f.write(png)
+        return True
+    except Exception as e:
+        logger.warning(f"Full page screenshot failed, taking the window only: {e}")
+        return False
 
 
 def check_screenshot_for_facebook_issues(screenshot_file: str) -> list[str]:
@@ -96,9 +171,24 @@ class ScreenshotEnricher(Enricher):
                 time.sleep(int(self.sleep_before_screenshot))
 
                 screenshot_file = os.path.join(self.tmp_dir, f"screenshot_{random_str(8)}.png")
-                driver.save_screenshot(screenshot_file)
+                if is_infinite_scroll_site(url):
+                    # the top of the page, without scrolling, which would only load more of the feed
+                    max_height = INFINITE_SCROLL_SCREENSHOT_WINDOWS * int(self.height)
+                    if not save_full_page_screenshot(driver, screenshot_file, max_height):
+                        driver.save_screenshot(screenshot_file)
+                else:
+                    scroll_through_page(driver)
+                    if not save_full_page_screenshot(driver, screenshot_file):
+                        driver.save_screenshot(screenshot_file)
                 logger.debug(f"Saved screenshot to {screenshot_file} and about to add to metadata")
-                to_enrich.add_media(Media(filename=screenshot_file), id="webdriverscreenshot")
+                if is_imperva_block_page(driver):
+                    # DM 22nd Oct 26 - kept as evidence, but under another id so it isn't the sheet's screenshot (the
+                    # crawler's is used instead, as it often gets through eg with its browser profile)
+                    logger.warning(f"Screenshot of {url} is Imperva's 'Access denied' block page, not the page")
+                    to_enrich.add_media(Media(filename=screenshot_file), id="webdriverscreenshot_blocked")
+                    to_enrich.add_status_note("screenshot blocked by site")
+                else:
+                    to_enrich.add_media(Media(filename=screenshot_file), id="webdriverscreenshot")
 
                 if "facebook.com" in url:
                     logger.debug(f"Facebook URL detected - about to run image recognition on screenshot {screenshot_file} to check for a login prompt")

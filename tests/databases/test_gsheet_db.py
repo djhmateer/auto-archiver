@@ -162,6 +162,12 @@ def test_done(gsheets_db, metadata, mock_gworksheet, expected_calls, mocker):
         (["antibot_screenshot"], "http://example.com/antibot_screenshot.png"),
         (["antibot_screenshot", "webdriverscreenshot"], "http://example.com/webdriverscreenshot.png"),
         (["webdriverscreenshot", "screenshot"], "http://example.com/screenshot.png"),
+        # the screenshot enricher's was a block page (kept under another id), so the crawler's
+        (
+            ["webdriverscreenshot_blocked", "browsertrix-screenshot-0"],
+            "http://example.com/browsertrix-screenshot-0.png",
+        ),
+        (["browsertrix-screenshot-0", "webdriverscreenshot"], "http://example.com/webdriverscreenshot.png"),
     ],
 )
 def test_done_fills_screenshot_column_from_preferred_screenshot(

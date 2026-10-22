@@ -270,8 +270,14 @@ class GenericExtractor(Extractor):
         # video_data['thumbnails'] should they be required
         thumbnail_url = video_data.get("thumbnail")
         if thumbnail_url:
+            # DM 22nd Oct 26 - name it after the video, as eg every Brightcove thumbnail url ends in /image.jpg, so the
+            # thumbnails of an Al Jazeera article's videos overwrote each other
+            to_filename = None
+            if video_id := re.sub(r"[^\w-]", "_", str(video_data.get("id") or "")):
+                ext = os.path.splitext(thumbnail_url.split("?")[0])[1]
+                to_filename = f"{video_id}_thumbnail{ext if re.fullmatch(r'\.\w{1,5}', ext) else '.jpg'}"
             try:
-                cover_image_path = self.download_from_url(thumbnail_url)
+                cover_image_path = self.download_from_url(thumbnail_url, to_filename)
                 if cover_image_path:
                     media = Media(cover_image_path)
                     metadata.add_media(media, id="cover")

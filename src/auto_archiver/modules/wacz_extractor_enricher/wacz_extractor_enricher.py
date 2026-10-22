@@ -1,4 +1,5 @@
 import time
+import base64
 import hashlib
 import json
 from collections import Counter
@@ -48,6 +49,17 @@ BBC_IMAGE_KEY = re.compile(r"/ic/[^/]+/(p0[a-z0-9]+)|([0-9a-f]{8}-[0-9a-f]{4}-[0
 #   https://i.ytimg.com/vi/7NWN3wivxhA/hqdefault.jpg, https://i.ytimg.com/vi_webp/7NWN3wivxhA/maxresdefault.webp
 YOUTUBE_PATH_VIDEO_ID = re.compile(r"^/(?:shorts|live|embed|v)/([A-Za-z0-9_-]{11})(?:/|$)")
 YTIMG_VIDEO_ID = re.compile(r"^/(?:vi|vi_webp|an|an_webp)/([A-Za-z0-9_-]{11})/")
+# DM 22nd Oct 26 - an Al Jazeera image's path, the same at every size it is served at, eg
+#   https://www.aljazeera.com/wp-content/uploads/2025/08/reuters_68b342d4-1756578516.jpg?resize=770%2C513&quality=80
+AJ_IMAGE_PATH = re.compile(r"/wp-content/uploads/[^?#\"'\s\\]+")
+AJ_APOLLO_STATE = re.compile(r'window\.__APOLLO_STATE__\s*=\s*"([^"]+)"')
+# DM 22nd Oct 26 - a YouTube video embedded in a page, eg <iframe src="https://www.youtube.com/embed/UkI8V8_4OGk">
+YOUTUBE_EMBED_IFRAME = re.compile(
+    rb"""<iframe\b[^>]*?\bsrc=["'](?:https?:)?//(?:www\.)?youtube(?:-nocookie)?\.com/embed/([A-Za-z0-9_-]{11})""",
+    re.IGNORECASE,
+)
+# most YouTube videos embedded in a page to download, as each is a full yt-dlp download
+MAX_EMBEDDED_YOUTUBE_VIDEOS = 5
 # DM 15th Oct 26 - the logged in user id facebook's page sends with its requests, 0 when logged out
 FB_SESSION_USER = re.compile(rb"__user=(\d+)")
 FB_RECOMMENDED_POST_ID = re.compile(rb'top_level_post_id\\":\\"(\d+)\\"[^}]*?originated_from_recommendation\\":\\"1\\"')
@@ -261,7 +273,15 @@ class WaczExtractorEnricher(Enricher, Extractor):
             logger.warning(f"Unable to locate and upload WACZ  {wacz_fn=}")
             return False
 
+        # DM 22nd Oct 26 - eg ipcinfo.org, whose every crawl was only of Cloudflare's "Performing security
+        # verification" page, yet was recorded as a success. So fail, keeping the reason for the sheet's status
+        if self._is_cloudflare_challenge(wacz_fn, url):
+            logger.warning(f"WACZ of {url} is only Cloudflare's 'Verify you are human' challenge, not the page - not keeping it")
+            to_enrich.add_status_note("blocked by Cloudflare challenge")
+            return False
+
         to_enrich.add_media(Media(wacz_fn), "browsertrix")
+        self._download_youtube_embeds(to_enrich, wacz_fn, url)
 
         # DM 11th Jun 25 - the call to extract_media_from_wacz
         # special case here for facebook.com
@@ -690,6 +710,81 @@ class WaczExtractorEnricher(Enricher, Extractor):
         return len(segments) == 1 and name not in FB_NOT_PROFILE_NAMES and not name.endswith(".php")
 
     @staticmethod
+    def _last_page_response(wacz_filename: str, url: str) -> tuple | None:
+        """(http headers, body) of the crawler's last response for the page itself, matched ignoring www. and a trailing
+        slash. The last one, as eg a Cloudflare challenge which passes is followed by the page. None if there isn't one"""
+        host = (urlparse(url).hostname or "").removeprefix("www.")
+        path = urlparse(url).path.rstrip("/")
+        last = None
+        try:
+            with ZipFile(wacz_filename) as wacz:
+                for name in sorted(n for n in wacz.namelist() if n.startswith("archive/") and n.endswith(".warc.gz")):
+                    with wacz.open(name) as warc_stream:
+                        for record in ArchiveIterator(warc_stream):
+                            if record.rec_type != "response" or not record.http_headers:
+                                continue
+                            record_url = urlparse(record.rec_headers.get_header("WARC-Target-URI") or "")
+                            if (record_url.hostname or "").removeprefix("www.") != host or record_url.path.rstrip("/") != path:
+                                continue
+                            last = (record.http_headers, record.content_stream().read())
+        except Exception as e:
+            logger.debug(f"Couldn't read the page's response for {url} from {wacz_filename}: {e}")
+            return None
+        return last
+
+    @staticmethod
+    def _is_cloudflare_challenge(wacz_filename: str, url: str) -> bool:
+        """True if the crawler's last response for the page was Cloudflare's challenge (it sends cf-mitigated: challenge)
+        rather than the page itself"""
+        response = WaczExtractorEnricher._last_page_response(wacz_filename, url)
+        return bool(response) and (response[0].get_header("cf-mitigated") or "").lower() == "challenge"
+
+    @staticmethod
+    def _youtube_embed_ids(wacz_filename: str, url: str) -> list[str]:
+        """ids of the YouTube videos embedded (as iframes) in the crawled page, in page order, once each"""
+        response = WaczExtractorEnricher._last_page_response(wacz_filename, url)
+        if not response or "html" not in (response[0].get_header("Content-Type") or ""):
+            return []
+        return list(dict.fromkeys(m.decode() for m in YOUTUBE_EMBED_IFRAME.findall(response[1])))
+
+    def _download_youtube_embeds(self, to_enrich: Metadata, wacz_filename: str, url: str) -> None:
+        """downloads the YouTube videos embedded in the crawled page, with the generic extractor. Eg idf.il's bot protection
+        gives yt-dlp a block page, so the generic extractor never sees the embeds, yet the crawl gets the page"""
+        host = (urlparse(url).hostname or "").lower()
+        if host == "youtu.be" or host == "youtube.com" or host.endswith(".youtube.com"):
+            return
+        video_ids = self._youtube_embed_ids(wacz_filename, url)
+        # the generic extractor names a video's file after its id, eg UkI8V8_4OGk.mp4, so skip any it already has
+        already = {os.path.basename(m.filename).split(".")[0] for m in to_enrich.media}
+        to_download = [v for v in video_ids if v not in already][:MAX_EMBEDDED_YOUTUBE_VIDEOS]
+        if not to_download:
+            return
+        try:
+            generic_extractor = self.module_factory.get_module("generic_extractor", self.config)
+        except Exception as e:
+            logger.warning(f"Couldn't load the generic extractor to download the page's YouTube embeds {to_download}: {e}")
+            return
+        downloaded = 0
+        for video_id in to_download:
+            video_url = f"https://www.youtube.com/watch?v={video_id}"
+            try:
+                video = generic_extractor.download(Metadata().set_url(video_url))
+            except Exception as e:
+                logger.warning(f"Failed to download YouTube video {video_url} embedded in {url}: {e}")
+                continue
+            if not video:
+                logger.warning(f"No media found for YouTube video {video_url} embedded in {url}")
+                continue
+            downloaded += 1
+            # the video and its thumbnail
+            for media in video.media:
+                to_enrich.add_media(media)
+        logger.info(
+            f"Downloaded {downloaded} of {len(to_download)} YouTube video(s) embedded in the page "
+            f"({len(video_ids)} found, at most {MAX_EMBEDDED_YOUTUBE_VIDEOS})"
+        )
+
+    @staticmethod
     def _is_bbc_url(url: str) -> bool:
         host = (urlparse(url).hostname or "").lower()
         return any(host == d or host.endswith(f".{d}") for d in ("bbc.co.uk", "bbc.com"))
@@ -700,6 +795,50 @@ class WaczExtractorEnricher(Enricher, Extractor):
         None if the url isn't a BBC image (eg site graphics on static.files.bbci.co.uk)"""
         m = BBC_IMAGE_KEY.search(url)
         return (m.group(1) or m.group(2)) if m else None
+
+    @staticmethod
+    def _is_aljazeera_url(url: str) -> bool:
+        host = (urlparse(url).hostname or "").lower()
+        return any(host == d or host.endswith(f".{d}") for d in ("aljazeera.com", "aljazeera.net"))
+
+    @staticmethod
+    def _aljazeera_image_key(url: str) -> str | None:
+        """path of an Al Jazeera image, the same at every size. None if the url isn't one, eg a Brightcove video
+        thumbnail on boltdns.net (the generic extractor already has the page's videos' thumbnails)"""
+        if not WaczExtractorEnricher._is_aljazeera_url(url):
+            return None
+        m = AJ_IMAGE_PATH.match(urlparse(url).path)
+        return m.group(0) if m else None
+
+    @staticmethod
+    def _aljazeera_page_image_keys(warc_filename: str, url: str) -> set | None:
+        """paths of the images of the page's own post (its featured image and any in its body), from the post in the
+        page's apollo state, not the other stories (most read, more on, latest videos) the page also shows.
+        None if the page's html or post isn't in the warc, so every image is kept as before"""
+        path = urlparse(url).path.rstrip("/")
+        with open(warc_filename, "rb") as warc_stream:
+            for record in ArchiveIterator(warc_stream):
+                if record.rec_type != "response":
+                    continue
+                record_url = record.rec_headers.get_header("WARC-Target-URI") or ""
+                if urlparse(record_url).path.rstrip("/") != path or not WaczExtractorEnricher._is_aljazeera_url(record_url):
+                    continue
+                if "text/html" not in (record.http_headers.get_header("Content-Type") or ""):
+                    continue
+                m = AJ_APOLLO_STATE.search(record.content_stream().read().decode("utf-8", errors="replace"))
+                try:
+                    state = json.loads(base64.b64decode(m.group(1))) if m else {}
+                except ValueError:
+                    state = {}
+                posts = [
+                    v for v in state.values() if isinstance(v, dict) and (v.get("link") or "").rstrip("/") == path
+                ]
+                if not posts:
+                    logger.debug("Al Jazeera page's post not found in its apollo state, keeping all images")
+                    return None
+                return {key for post in posts for key in AJ_IMAGE_PATH.findall(json.dumps(post))}
+        logger.debug(f"Al Jazeera page html for {url} not found in the WACZ, keeping all images")
+        return None
 
     @staticmethod
     def _youtube_video_id(url: str) -> str | None:
@@ -1117,10 +1256,16 @@ class WaczExtractorEnricher(Enricher, Extractor):
 
         # DM 21st Oct 26 - a BBC article page has ~40 thumbnails of other stories (top stories, most read) each at
         # many widths, so only keep the images in the page's <article>, once each at the largest size
+        # DM 22nd Oct 26 - likewise Al Jazeera, keeping its post's own images. It also drops the Brightcove thumbnails
+        # of the page's videos, which the generic extractor already has
         url = to_enrich.get_url()
-        bbc_article_keys = self._bbc_article_image_keys(warc_filename, url) if url and self._is_bbc_url(url) else None
-        bbc_media = {}
-        bbc_skipped = 0
+        page_image_keys, image_key_for, site = None, None, None
+        if url and self._is_bbc_url(url):
+            page_image_keys, image_key_for, site = self._bbc_article_image_keys(warc_filename, url), self._bbc_image_key, "BBC article"
+        elif url and self._is_aljazeera_url(url):
+            page_image_keys, image_key_for, site = self._aljazeera_page_image_keys(warc_filename, url), self._aljazeera_image_key, "Al Jazeera page"
+        page_media = {}
+        page_skipped = 0
 
         # DM 22nd Oct 26 - a YouTube video page also loads the thumbnails of the recommended videos in its sidebar,
         # so only keep the thumbnails of the video being archived
@@ -1223,15 +1368,15 @@ class WaczExtractorEnricher(Enricher, Extractor):
                         youtube_skipped += 1
                         continue
 
-                bbc_key = None
-                if bbc_article_keys is not None and "image" in content_type:
-                    bbc_key = self._bbc_image_key(record_url)
-                    if bbc_key not in bbc_article_keys:
-                        bbc_skipped += 1
+                image_key = None
+                if page_image_keys is not None and "image" in content_type:
+                    image_key = image_key_for(record_url)
+                    if image_key not in page_image_keys:
+                        page_skipped += 1
                         continue
-                    if bbc_key in bbc_media:
+                    if image_key in page_media:
                         # another width of an image already added - keep whichever is larger
-                        kept = bbc_media[bbc_key]
+                        kept = page_media[image_key]
                         if fs > os.path.getsize(kept.filename):
                             os.replace(fn, kept.filename)
                             kept.set("src", record_url)
@@ -1268,16 +1413,16 @@ class WaczExtractorEnricher(Enricher, Extractor):
                     # filesize2 = m.get_filesize()
                     logger.info(f"Adding media from WACZ: {m}" )
                     to_enrich.add_media(m, warc_fn)
-                    if bbc_key:
-                        bbc_media[bbc_key] = m
+                    if image_key:
+                        page_media[image_key] = m
                 except Exception as e:
                     logger.warning(f"Unable to add media got error {e}")
                 counter_warc_files += 1
                 seen_urls.add(record_url)
-        if bbc_article_keys is not None:
+        if page_image_keys is not None:
             logger.info(
-                f"BBC article: kept {len(bbc_media)} of {len(bbc_article_keys)} image(s) in the <article>, "
-                f"skipped {bbc_skipped} image(s) from the rest of the page"
+                f"{site}: kept {len(page_media)} of {len(page_image_keys)} image(s) of its own, "
+                f"skipped {page_skipped} image(s) from the rest of the page"
             )
         if youtube_skipped:
             logger.info(f"YouTube video {youtube_video_id}: skipped {youtube_skipped} thumbnail(s) of other videos")

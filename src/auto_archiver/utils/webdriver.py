@@ -32,6 +32,10 @@ COOKIE_BUTTON_XPATHS = [
     f"//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{text.lower()}')]"
     for text in COOKIE_BUTTON_TEXTS
 ]
+# DM 22nd Oct 26 - the "Maybe later" link which closes the BBC's "Get the news, your way" sign in prompt
+BBC_SIGN_IN_PROMPT_CLOSE_XPATHS = [
+    "//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'maybe later')]"
+]
 
 # how many times to try launching Firefox, and how long to wait between attempts
 STARTUP_ATTEMPTS = 2
@@ -56,7 +60,33 @@ class CookieSettingDriver(webdriver.Firefox):
     @staticmethod
     def _find_clickable_cookie_button(driver):
         """WebDriverWait condition: the first visible, enabled cookie button in preference order, or False"""
-        for xpath in COOKIE_BUTTON_XPATHS:
+        return CookieSettingDriver._find_clickable(driver, COOKIE_BUTTON_XPATHS)
+
+    @staticmethod
+    def _find_clickable_bbc_sign_in_prompt_close(driver):
+        """WebDriverWait condition: the visible "Maybe later" link of the BBC's sign in prompt, or False"""
+        return CookieSettingDriver._find_clickable(driver, BBC_SIGN_IN_PROMPT_CLOSE_XPATHS)
+
+    @staticmethod
+    def _is_bbc_url(url: str) -> bool:
+        host = (urlparse(url).hostname or "").lower()
+        return any(host == d or host.endswith(f".{d}") for d in ("bbc.co.uk", "bbc.com"))
+
+    def _close_bbc_sign_in_prompt(self) -> None:
+        """the BBC shows a "Get the news, your way" sign in prompt over the page, whose overlay also stops its cookie
+        banner being clicked (ElementClickInterceptedException), so close it before the cookie banner"""
+        started = time.monotonic()
+        try:
+            WebDriverWait(self, 5).until(self._find_clickable_bbc_sign_in_prompt_close).click()
+            time.sleep(1)
+            logger.debug(f"CookieSettingDriver: closed BBC sign in prompt in {time.monotonic() - started:.1f}s")
+        except selenium_exceptions.WebDriverException:
+            logger.debug(f"CookieSettingDriver: no BBC sign in prompt found in {time.monotonic() - started:.1f}s")
+
+    @staticmethod
+    def _find_clickable(driver, xpaths: list[str]):
+        """the first visible, enabled element matching xpaths, in order, or False"""
+        for xpath in xpaths:
             for element in driver.find_elements(By.XPATH, xpath):
                 try:
                     if element.is_displayed() and element.is_enabled():
@@ -105,6 +135,10 @@ class CookieSettingDriver(webdriver.Firefox):
         super(CookieSettingDriver, self).get(url)
         logger.debug(f"CookieSettingDriver: fetching actual {url=} took {time.monotonic() - step_started:.1f}s")
         time.sleep(2)
+
+        # DM 22nd Oct 26 - before the cookie banner, as the prompt's overlay stops it being clicked
+        if self._is_bbc_url(url):
+            self._close_bbc_sign_in_prompt()
 
         # Try and use some common button text to reject/accept cookies
         for text in [
@@ -159,6 +193,11 @@ class CookieSettingDriver(webdriver.Firefox):
             # DM 21st Sep 26 - the only text match on tiktok is a hidden <script id="tiktok-cookie-banner-config">
             # which is never clickable, so the generic search below just burned 5 texts * 5s = 25s per url
             logger.debug("TikTok URL detected - skipping generic cookie banner search")
+
+        elif self._is_bbc_url(url):
+            # DM 22nd Oct 26 - the loop above has already clicked "Reject additional cookies" (once the sign in
+            # prompt is closed), so the generic search below only waited its full 5s for nothing
+            logger.debug("BBC URL detected - skipping generic cookie banner search")
 
         elif self.facebook_accept_cookies:
             # try and click the 'close' button on the 'login' window to close it
