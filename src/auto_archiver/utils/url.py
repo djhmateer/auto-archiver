@@ -18,7 +18,8 @@ def check_url_or_raise(url: str) -> str | ValueError:
     """
 
     if not (url.startswith("http://") or url.startswith("https://")):
-        if "://" in url:
+        # only a scheme at the start counts - a wayback URL has "https://" inside its path
+        if re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*://", url):
             raise ValueError(f"Invalid URL scheme for url {url}")
         logger.debug(f"URL {url} has no scheme, assuming https://")
         url = f"https://{url}"

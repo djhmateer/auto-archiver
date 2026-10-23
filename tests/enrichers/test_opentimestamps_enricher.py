@@ -1,6 +1,7 @@
 import pytest
 import hashlib
 import socket
+import threading
 import time
 
 from opentimestamps.core.timestamp import Timestamp, DetachedTimestampFile
@@ -325,3 +326,42 @@ def test_unresponsive_calendar_times_out(setup_module, sample_file_path, sample_
     assert elapsed < 10
     assert metadata.get("opentimestamped") is False
     assert metadata.media[0].get("opentimestamps") is False
+
+
+def test_hung_calendar_does_not_block(setup_module, sample_file_path, sample_media, mocker):
+    """A calendar thread that never returns (eg stuck in DNS, which calendar_timeout doesn't cover) is left
+    behind, and the answer from the other calendar is still used"""
+    from auto_archiver.modules.opentimestamps_enricher import opentimestamps_enricher
+
+    mocker.patch.object(opentimestamps_enricher, "CALENDAR_GRACE_SECONDS", 0)
+    alice = "https://alice.btc.calendar.opentimestamps.org"
+    bob = "https://bob.btc.calendar.opentimestamps.org"
+    release = threading.Event()
+
+    def submit(self, digest, timeout=None):
+        if self.url == alice:
+            release.wait()  # hangs until the test ends
+            raise Exception("released")
+        calendar_timestamp = Timestamp(digest)
+        calendar_timestamp.attestations.add(PendingAttestation(bob))
+        return calendar_timestamp
+
+    mocker.patch.object(RemoteCalendar, "submit", submit)
+    ots = setup_module(
+        "opentimestamps_enricher",
+        {"calendar_urls": [alice, bob], "calendar_whitelist": [alice, bob], "calendar_timeout": 1},
+    )
+
+    metadata = Metadata().set_url("https://example.com")
+    sample_media.filename = sample_file_path
+    metadata.add_media(sample_media)
+
+    try:
+        started = time.monotonic()
+        ots.enrich(metadata)
+        elapsed = time.monotonic() - started
+    finally:
+        release.set()
+
+    assert elapsed < 5
+    assert metadata.get("opentimestamped") is True

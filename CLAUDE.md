@@ -62,6 +62,9 @@ production server, e.g. `11`-`15`). Use them for anything not in the database. E
 - `1debug.log` - the current, full DEBUG-level log (large, tens of MB)
 - `3success.log` / `4warning.log` - filtered current-level logs
 - rotated/archived copies named `1debug.<rotation-start-timestamp>.log` for older periods
+- `reboot.log` - one line per daily reboot by the cron script (`FORCED` when it killed a hung run)
+- `hangs.log` - every thread's stack, written when a row runs over 30 minutes (logged as a "Row still running"
+  WARNING) or on `kill -USR1 <pid>`; read this first when a server stalls
 
 The DEBUG-level detail around a WARNING/ERROR line (e.g. surrounding requests, timings, retries) often
 gives much better context for root-causing an issue than the bare error line alone - query the surrounding

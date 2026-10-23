@@ -89,6 +89,22 @@ def test_firefox_startup_timeout_raises_after_last_attempt(mocker):
     assert mock_cls.call_count == wd.STARTUP_ATTEMPTS
 
 
+def test_exit_quits_and_kills_leftover_firefox(mocker):
+    from auto_archiver.utils import webdriver as wd
+
+    driver = mocker.MagicMock()
+    driver.capabilities = {"moz:processID": 12345}
+    mocker.patch.object(wd, "CookieSettingDriver", return_value=driver)
+    mock_kill = mocker.patch.object(wd.os, "kill", side_effect=ProcessLookupError)
+
+    with wd.Webdriver(1280, 1024, 60):
+        pass
+
+    driver.close.assert_not_called()
+    driver.quit.assert_called_once()
+    mock_kill.assert_called_once_with(12345, wd.signal.SIGKILL)
+
+
 def test_selenium_timeout_is_not_retried(mocker):
     from auto_archiver.utils import webdriver as wd
 

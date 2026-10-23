@@ -288,3 +288,35 @@ def test_check_for_updates_new_version_available(orchestrator, mocker):
     )
     # should complete without error
     orchestrator.check_for_updates()
+
+
+def _feed_one_slow_row(mocker, tmp_path, row_seconds):
+    from auto_archiver.core import orchestrator as orch
+    import time
+
+    mocker.patch.object(orch, "HANG_DUMP_SECONDS", 0.2)
+    mocker.patch.object(orch, "SLOW_ROW_SECONDS", 0.1)
+    o = ArchivingOrchestrator()
+    o.feeders = [[Metadata().set_url("https://example.com")]]
+    o.hang_log = open(tmp_path / "hangs.log", "a")
+    mocker.patch.object(o, "feed_item", side_effect=lambda item: time.sleep(row_seconds) or item)
+    mocker.patch.object(o, "cleanup")
+
+    output = list(o.feed())
+    time.sleep(0.3)  # a watchdog that wasn't cancelled would have fired by now
+    o.hang_log.close()
+    return output, (tmp_path / "hangs.log").read_text()
+
+
+def test_hung_row_dumps_thread_stacks(mocker, tmp_path):
+    output, hangs = _feed_one_slow_row(mocker, tmp_path, row_seconds=0.5)
+
+    assert output[0].get_url() == "https://example.com"
+    assert "row running for" in hangs and "https://example.com" in hangs
+    assert "(most recent call first)" in hangs  # faulthandler's stack dump follows the header
+
+
+def test_quick_row_dumps_nothing(mocker, tmp_path):
+    _, hangs = _feed_one_slow_row(mocker, tmp_path, row_seconds=0)
+
+    assert hangs == ""

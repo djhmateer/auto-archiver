@@ -5,8 +5,12 @@ formatting, database operations and clean up.
 """
 
 from __future__ import annotations
+import faulthandler
+import signal
 import subprocess
+import threading
 import time
+from datetime import datetime, timezone
 from packaging import version
 from typing import Generator, Union, List, Type, TYPE_CHECKING
 import argparse
@@ -45,6 +49,11 @@ if TYPE_CHECKING:
     from .module import LazyBaseModule
 
 
+# a normal row takes 2-5 minutes
+SLOW_ROW_SECONDS = 15 * 60
+HANG_DUMP_SECONDS = 30 * 60
+
+
 class ArchivingOrchestrator:
     # instance variables
     module_factory: ModuleFactory
@@ -63,6 +72,7 @@ class ArchivingOrchestrator:
         self.module_factory = ModuleFactory()
         self.setup_finished = False
         self.logger_id = None
+        self.hang_log = None  # logs/hangs.log, only opened when logging to logs/ (ie in production)
 
     def setup_basic_parser(self):
         parser = argparse.ArgumentParser(
@@ -394,6 +404,11 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
                 logger.add("logs/3success.log", level="SUCCESS", rotation=rotation, format="{extra[serialized]}")
                 logger.add("logs/4warning.log", level="WARNING", rotation=rotation, format="{extra[serialized]}")
                 logger.add("logs/5error.log", level="ERROR", rotation=rotation, format="{extra[serialized]}")
+
+                # DM 23rd Oct 26 - server 12 hung for 13h and we couldn't see where. Every thread's stack is
+                # written here when a row runs too long (see feed), or on demand with: kill -USR1 <pid>
+                self.hang_log = open("logs/hangs.log", "a")
+                faulthandler.register(signal.SIGUSR1, file=self.hang_log, all_threads=True)
             elif log_file:
                 logger.add(log_file, rotation=rotation, level=use_level, format="{extra[serialized]}")
 
@@ -579,11 +594,34 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
             for item in feeder:
                 with logger.contextualize(url=item.get_url(), trace=random_str(12)):
                     logger.info("Started processing")
-                    yield self.feed_item(item)
+                    started = time.monotonic()
+                    watchdog = None
+                    if self.hang_log:
+                        watchdog = threading.Timer(HANG_DUMP_SECONDS, self._dump_thread_stacks, args=(item.get_url(),))
+                        watchdog.daemon = True
+                        watchdog.start()
+                    try:
+                        result = self.feed_item(item)
+                    finally:
+                        if watchdog:
+                            watchdog.cancel()
+                    took = time.monotonic() - started
+                    if took > SLOW_ROW_SECONDS:
+                        logger.warning(f"Slow row - took {took / 60:.0f} minutes: {item.get_url()}")
+                    yield result
                     url_count += 1
 
         logger.info(f"Processed {url_count} URL(s)")
         self.cleanup()
+
+    def _dump_thread_stacks(self, url: str) -> None:
+        """Runs on the watchdog thread when a row is still going after HANG_DUMP_SECONDS"""
+        # header and dump first - faulthandler writes no time, and the logger could be what's stuck
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        self.hang_log.write(f"\n===== {now} UTC pid {os.getpid()} row running for {HANG_DUMP_SECONDS // 60} min: {url}\n")
+        self.hang_log.flush()
+        faulthandler.dump_traceback(file=self.hang_log, all_threads=True)
+        logger.warning(f"Row still running after {HANG_DUMP_SECONDS // 60} minutes, thread stacks written to logs/hangs.log: {url}")
 
     @staticmethod
     def _is_twitter_url(url: str) -> bool:

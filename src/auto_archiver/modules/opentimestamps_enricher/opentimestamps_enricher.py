@@ -15,6 +15,9 @@ from auto_archiver.core import Enricher
 from auto_archiver.core import Metadata, Media
 from auto_archiver.utils.misc import get_current_timestamp
 
+# extra seconds on top of calendar_timeout to wait for all calendars to answer
+CALENDAR_GRACE_SECONDS = 10
+
 
 class OpentimestampsEnricher(Enricher):
     def enrich(self, to_enrich: Metadata) -> None:
@@ -79,9 +82,14 @@ class OpentimestampsEnricher(Enricher):
                     )
                     return calendar_timestamp
 
-                with ThreadPoolExecutor(max_workers=len(calendars) or 1, thread_name_prefix="ots") as pool:
-                    futures = {pool.submit(submit, c): c for c in calendars}
-                    for future in as_completed(futures):
+                # DM 23rd Oct 26 - a calendar thread hung forever on server 12 (calendar_timeout doesn't cover
+                # everything, eg the DNS lookup), and waiting for it froze the whole archiver. So wait a fixed
+                # time, then carry on without the stragglers rather than waiting for their threads to finish
+                pool = ThreadPoolExecutor(max_workers=len(calendars) or 1, thread_name_prefix="ots")
+                futures = {pool.submit(submit, c): c for c in calendars}
+                wait_seconds = self.calendar_timeout + CALENDAR_GRACE_SECONDS
+                try:
+                    for future in as_completed(futures, timeout=wait_seconds):
                         calendar = futures[future]
                         try:
                             # merge on this thread only, Timestamp isn't thread-safe
@@ -90,6 +98,11 @@ class OpentimestampsEnricher(Enricher):
                             submitted_to_calendar = True
                         except Exception as e:
                             logger.warning(f"Failed to submit to calendar {calendar.url}: {e}")
+                except TimeoutError:
+                    hung = [futures[f].url for f in futures if not f.done()]
+                    logger.warning(f"No answer from calendar(s) {hung} after {wait_seconds}s, carrying on without them")
+                finally:
+                    pool.shutdown(wait=False, cancel_futures=True)
 
                 # If all calendar submissions failed, add pending attestations
                 if not submitted_to_calendar and not timestamp.attestations:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import signal
 import time
 import re
 
@@ -289,13 +290,17 @@ class Webdriver:
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.driver is None:
             return True
-        # the browser/geckodriver session can already be dead here (crash, connection drop) if
-        # something went wrong inside the `with` block, so close()/quit() failing is expected
-        # and shouldn't mask or duplicate whatever error the caller already saw
-        try:
-            self.driver.close()
-            self.driver.quit()
-        except selenium_exceptions.WebDriverException as e:
-            logger.debug(f"Error closing/quitting webdriver, session was likely already dead: {e}")
+        # DM 23rd Oct 26 - on a hung session close() spent 8 minutes retrying then raised a urllib3 error,
+        # so quit() never ran and Firefox was left running (600MB, still there the next day). quit() closes
+        # the window itself, swallows errors and always stops geckodriver. Then kill Firefox in case it
+        # outlived geckodriver
+        firefox_pid = self.driver.capabilities.get("moz:processID")
+        self.driver.quit()
+        if isinstance(firefox_pid, int) and firefox_pid > 1:
+            try:
+                os.kill(firefox_pid, signal.SIGKILL)
+                logger.warning(f"Killed Firefox (pid {firefox_pid}), it was still running after quit()")
+            except ProcessLookupError:
+                pass
         del self.driver
         return True

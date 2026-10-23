@@ -35,6 +35,8 @@ def test_is_auth_wall(url, is_auth):
         ("ftp://example.com", True),
         ("http://localhost", True),
         ("http://", True),
+        ("example.com/page", False),
+        ("web.archive.org/web/20210101120000/https://example.com/page", False),
     ],
 )
 def test_check_url_or_raise(url, raises):
