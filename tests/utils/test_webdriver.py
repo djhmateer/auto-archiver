@@ -105,6 +105,23 @@ def test_exit_quits_and_kills_leftover_firefox(mocker):
     mock_kill.assert_called_once_with(12345, wd.signal.SIGKILL)
 
 
+def test_exit_still_kills_firefox_when_geckodriver_shutdown_times_out(mocker):
+    from auto_archiver.utils import webdriver as wd
+
+    driver = mocker.MagicMock()
+    driver.capabilities = {"moz:processID": 12345}
+    driver.quit.side_effect = TimeoutError("timed out")
+    mocker.patch.object(wd, "CookieSettingDriver", return_value=driver)
+    mock_kill = mocker.patch.object(wd.os, "kill")
+    previous_timeout = wd.socket.getdefaulttimeout()
+
+    with wd.Webdriver(1280, 1024, 60):
+        pass
+
+    mock_kill.assert_called_once_with(12345, wd.signal.SIGKILL)
+    assert wd.socket.getdefaulttimeout() == previous_timeout
+
+
 def test_selenium_timeout_is_not_retried(mocker):
     from auto_archiver.utils import webdriver as wd
 

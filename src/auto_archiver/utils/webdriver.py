@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import signal
+import socket
 import time
 import re
 
@@ -295,7 +296,16 @@ class Webdriver:
         # the window itself, swallows errors and always stops geckodriver. Then kill Firefox in case it
         # outlived geckodriver
         firefox_pid = self.driver.capabilities.get("moz:processID")
-        self.driver.quit()
+        # DM 23rd Oct 26 - quit() asks geckodriver to shut down with no timeout, so a hung geckodriver blocked the
+        # run forever (server 12). With a timeout selenium still kills geckodriver, then raises TimeoutError
+        previous_timeout = socket.getdefaulttimeout()
+        socket.setdefaulttimeout(30)
+        try:
+            self.driver.quit()
+        except TimeoutError:
+            logger.warning("geckodriver didn't answer the shutdown request within 30s, so it was killed")
+        finally:
+            socket.setdefaulttimeout(previous_timeout)
         if isinstance(firefox_pid, int) and firefox_pid > 1:
             try:
                 os.kill(firefox_pid, signal.SIGKILL)
