@@ -458,6 +458,7 @@ class WaczExtractorEnricher(Enricher, Extractor):
         # DM 13th Jun 2025
         # for strategy 1 - we need the most prevalent set_id
         # so we crawl the correct set as otherwise we may get wrong images
+        album_photo = None  # (fb_id, set_value) of the first photo route in the author's album, for a single photo post
         with open(warc_filename, "rb") as warc_stream:
             list_of_set_ids = []
             for record in ArchiveIterator(warc_stream):
@@ -473,6 +474,8 @@ class WaczExtractorEnricher(Enricher, Extractor):
                         set_id = self._fb_carousel_set_id(set_value, more_params)
                         if set_id is None:
                             logger.debug(f"skipping {set_value=} {fb_id=} - not a post carousel (pcb.) set, eg the author's album or profile photos")
+                            if album_photo is None and (set_value or "").startswith("a."):
+                                album_photo = (fb_id, set_value)
                             continue
 
                         logger.info(f" found {set_id=} in bulk-route-definitions and adding to list so can calculate most prevalent")
@@ -481,6 +484,12 @@ class WaczExtractorEnricher(Enricher, Extractor):
                         list_of_set_ids.append(set_id)
 
         if list_of_set_ids: pass
+        elif album_photo and not self._fb_is_feed_url(url) and self._fb_post_has_photo(warc_filename, url, album_photo[0]):
+            # DM 23rd Oct 26 - a single photo post. Only when the photo is a story's attachment in the page's html, so
+            # not eg a cover photo, and not on a profile/page/group feed, where it could be any post's photo
+            counter_warc_files = self._facebook_extract_album_photo(to_enrich, *album_photo)
+            diag["strategy"] = "single_photo" if counter_warc_files else "single_photo_not_found"
+            return
         else:
             logger.info(f"FB no carousel set_ids found in bulk-route-definitions for {url}. Have seen this if content is not available ie page has been taken down")
             logger.debug("Have also seen this if there is a video on the FB page")
@@ -907,6 +916,20 @@ class WaczExtractorEnricher(Enricher, Extractor):
                 return None
         return None
 
+    @staticmethod
+    def _fb_post_has_photo(warc_filename: str, url: str, fb_id: str) -> bool:
+        """True if the post page's html has the photo as a story's attachment, eg
+        "attachments":[{"media":{"__typename":"Photo","__isNode":"Photo","id":"<fb_id>" - not just any node with its id"""
+        attachment = b'"media":{"__typename":"Photo","__isNode":"Photo","id":"' + fb_id.encode() + b'"'
+        with open(warc_filename, "rb") as warc_stream:
+            for record in ArchiveIterator(warc_stream):
+                if record.rec_type != "response" or record.rec_headers.get_header("WARC-Target-URI") != url:
+                    continue
+                if "text/html" not in (record.http_headers.get_header("Content-Type") or ""):
+                    continue
+                return attachment in record.content_stream().read()
+        return False
+
     def _facebook_extract_screenshots(self, to_enrich: Metadata, warc_filename: str) -> int:
         """The browsertrix screenshot(s) from a Facebook page's wacz. Returns the number added"""
         counter_screenshots = 0
@@ -1044,68 +1067,36 @@ class WaczExtractorEnricher(Enricher, Extractor):
         except (OSError, TypeError):
             return "unreadable"
 
+    def _facebook_extract_album_photo(self, to_enrich: Metadata, fb_id: str, set_value: str) -> int:
+        """DM 23rd Oct 26 - a single photo post has no carousel, and its photo's route is in the author's album
+        (set=a.<id>). Crawl that photo's /photo page once, not walking the album, for its full res image as Strategy 0
+        does. The post page only has a smaller copy (eg 526x1140 of a 1080x2340 photo). Returns the number of media added"""
+        photo_url = f"https://www.facebook.com/photo/?fbid={fb_id}&set={set_value}"
+        logger.info(f"FB single photo post, crawling its photo page {photo_url}")
+        crawl = self._fb_browsertrix_crawl(photo_url, fb_id)
+        if crawl is None:
+            return 0
+        _, warc_filename, _ = crawl
+        # only the photo's own image - every image passing the size filters would include other photos in the album
+        photo_path = self._fb_photo_image_path(warc_filename, photo_url)
+        if not photo_path:
+            logger.info(f"FB photo's node not found in the page's html for {photo_url}, so no image added")
+            return 0
+        counter_warc_files = self._facebook_extract_single_photo(to_enrich, warc_filename, photo_path)
+        if counter_warc_files == 0:
+            logger.info(f"FB photo image {photo_path=} not in the wacz, so no image added")
+        return counter_warc_files
+
     # only used by FB - Part 2
     def save_images_to_enrich_object_from_url_using_browsertrix(self, url_build, to_enrich: Metadata, current_fb_id, set_id) -> list:
             # returns the carousel's next fb_ids - empty if the crawl failed, as the caller iterates over it
             logger.debug(f' Inside Part 2')
-            # call browsertrix and get a warc file using a logged in facebook profile
-            # this will get full resolution image which we can then save as a jpg
-
-            with open('url.txt', 'w') as file:
-                file.write(url_build)
-
-            collection = random_str(8)
+            crawl = self._fb_browsertrix_crawl(url_build, current_fb_id)
+            if crawl is None:
+                return []  # no next fb_ids, so Part 2 carries on with any it already has
+            collection, warc_filename, crawl_seconds = crawl
 
             linux_tmp_dir = os.path.expanduser('~/aatmp')
-
-            browsertrix_home = linux_tmp_dir
-
-            docker_commands = ["docker", "run", "--rm", "-v", f"{browsertrix_home}:/crawls/", "webrecorder/browsertrix-crawler"]
-            cmd = docker_commands + [
-                "crawl",
-                "--url", url_build,
-                "--scopeType", "page",
-                "--generateWACZ",
-                "--text",
-                "--screenshot", "fullPage",
-                "--collection", collection,
-                "--behaviors", "autoscroll,autoplay,autofetch,siteSpecific",
-                "--behaviorTimeout", str(self.timeout),
-                "--timeout", str(self.timeout),
-                "--combineWarc"
-            ]
-
-            if self.profile:
-                profile_fn = os.path.join(browsertrix_home, "profile.tar.gz")
-                logger.debug(f"copying {self.profile} to {profile_fn}")
-                shutil.copyfile(self.profile, profile_fn)
-                cmd.extend(["--profile", os.path.join("/crawls", "profile.tar.gz")])
-
-            crawl_start = time.perf_counter()
-            try:
-                logger.info(f"Running browsertrix-crawler: {' '.join(cmd)}")
-                subprocess.run(cmd, check=True, capture_output=True, text=True)
-            except subprocess.CalledProcessError as e:
-                logger.error(f"WACZ generation failed: {e}")
-                if crawler_log := self._summarise_crawler_output(e.stdout, e.stderr):
-                    logger.error(f"browsertrix-crawler output:\n{crawler_log}")
-                logger.debug(f"FB crawl {current_fb_id=} failed after {time.perf_counter() - crawl_start:.0f}s")
-                return []  # no next fb_ids, so Part 2 carries on with any it already has
-            except Exception as e:
-                logger.error(f"WACZ generation failed: {e}")
-                return []  # no next fb_ids, so Part 2 carries on with any it already has
-            crawl_seconds = time.perf_counter() - crawl_start
-
-            if os.getenv('RUNNING_IN_DOCKER'):
-                filename = os.path.join("collections", collection, f"{collection}.wacz")
-            else:
-                filename = os.path.join(browsertrix_home, "collections", collection, f"{collection}_0.warc.gz")
-
-            if not os.path.exists(filename):
-                logger.warning(f"Unable to locate and upload WACZ  {filename=}")
-                return []  # no next fb_ids, so Part 2 carries on with any it already has
-
-            warc_filename = filename
             counter = 100
             seen_urls = set()
             # next_fb_id = 0
@@ -1224,6 +1215,68 @@ class WaczExtractorEnricher(Enricher, Extractor):
             logger.debug(f"FB crawl {current_fb_id=} added size:hash:path {added_this_crawl}")
             # is normally a list of 2 id's for a carousel
             return list_of_next_fb_ids
+
+    def _fb_browsertrix_crawl(self, url_build: str, current_fb_id: str) -> tuple[str, str, float] | None:
+            """crawl one FB page into ~/aatmp with the logged in profile. Returns the collection, warc filename and
+            crawl seconds, or None if the crawl failed"""
+            # call browsertrix and get a warc file using a logged in facebook profile
+            # this will get full resolution image which we can then save as a jpg
+
+            with open('url.txt', 'w') as file:
+                file.write(url_build)
+
+            collection = random_str(8)
+
+            linux_tmp_dir = os.path.expanduser('~/aatmp')
+
+            browsertrix_home = linux_tmp_dir
+
+            docker_commands = ["docker", "run", "--rm", "-v", f"{browsertrix_home}:/crawls/", "webrecorder/browsertrix-crawler"]
+            cmd = docker_commands + [
+                "crawl",
+                "--url", url_build,
+                "--scopeType", "page",
+                "--generateWACZ",
+                "--text",
+                "--screenshot", "fullPage",
+                "--collection", collection,
+                "--behaviors", "autoscroll,autoplay,autofetch,siteSpecific",
+                "--behaviorTimeout", str(self.timeout),
+                "--timeout", str(self.timeout),
+                "--combineWarc"
+            ]
+
+            if self.profile:
+                profile_fn = os.path.join(browsertrix_home, "profile.tar.gz")
+                logger.debug(f"copying {self.profile} to {profile_fn}")
+                shutil.copyfile(self.profile, profile_fn)
+                cmd.extend(["--profile", os.path.join("/crawls", "profile.tar.gz")])
+
+            crawl_start = time.perf_counter()
+            try:
+                logger.info(f"Running browsertrix-crawler: {' '.join(cmd)}")
+                subprocess.run(cmd, check=True, capture_output=True, text=True)
+            except subprocess.CalledProcessError as e:
+                logger.error(f"WACZ generation failed: {e}")
+                if crawler_log := self._summarise_crawler_output(e.stdout, e.stderr):
+                    logger.error(f"browsertrix-crawler output:\n{crawler_log}")
+                logger.debug(f"FB crawl {current_fb_id=} failed after {time.perf_counter() - crawl_start:.0f}s")
+                return None
+            except Exception as e:
+                logger.error(f"WACZ generation failed: {e}")
+                return None
+            crawl_seconds = time.perf_counter() - crawl_start
+
+            if os.getenv('RUNNING_IN_DOCKER'):
+                filename = os.path.join("collections", collection, f"{collection}.wacz")
+            else:
+                filename = os.path.join(browsertrix_home, "collections", collection, f"{collection}_0.warc.gz")
+
+            if not os.path.exists(filename):
+                logger.warning(f"Unable to locate and upload WACZ  {filename=}")
+                return None
+
+            return collection, filename, crawl_seconds
 
 
     # Extract media for non FB link

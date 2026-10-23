@@ -406,7 +406,10 @@ FB_RECOMMENDED_STORY = (
 FB_POST_HTML = FB_OWN_STORY + FB_RECOMMENDED_STORY
 
 
-def _write_fb_post_wacz(wacz_path, html: bytes, url: str = FB_POST_URL) -> None:
+FB_POST_ROUTES = [("1646726095764730", "pcb.1646726145764725"), ("2172007990360001", "pcb.1424364323199649")]
+
+
+def _write_fb_post_wacz(wacz_path, html: bytes, url: str = FB_POST_URL, routes=FB_POST_ROUTES) -> None:
     """A wacz like a crawl of a Facebook post page: the page's html, then bulk-route-definitions requests for its own
     carousel and a recommended post's carousel"""
     from io import BytesIO
@@ -426,8 +429,8 @@ def _write_fb_post_wacz(wacz_path, html: bytes, url: str = FB_POST_URL) -> None:
             ),
         )
     )
-    for fb_id, set_id in [("1646726095764730", "1646726145764725"), ("2172007990360001", "1424364323199649")]:
-        body = f"route_urls[0]=%2Fphoto%2F%3Ffbid%3D{fb_id}%26set%3Dpcb.{set_id}%26__tn__%3DEH-R".encode()
+    for fb_id, set_value in routes:
+        body = f"route_urls[0]=%2Fphoto%2F%3Ffbid%3D{fb_id}%26set%3D{set_value}%26__tn__%3DEH-R".encode()
         writer.write_record(
             writer.create_warc_record(
                 "https://www.facebook.com/ajax/bulk-route-definitions/",
@@ -463,6 +466,73 @@ def test_facebook_crawls_only_the_posts_own_carousel(wacz_enricher, tmp_path, mo
     wacz_enricher.facebook_extract_media_from_wacz(metadata, str(wacz_file), FB_POST_URL)
 
     assert sorted(c.args[3] for c in crawl.call_args_list) == crawled_set_ids
+
+
+FB_SINGLE_PHOTO_ATTACHMENT = b'"attachments":[{"media":{"__typename":"Photo","__isNode":"Photo","id":"1329142910787472"}}]'
+
+
+@pytest.mark.parametrize(
+    "url, html, crawled, srcs, strategy",
+    [
+        # single photo post - its photo's route is in the author's album, so crawl that photo page once
+        (FB_POST_URL, FB_SINGLE_PHOTO_ATTACHMENT, True, [FB_PHOTO_IMAGE_URL], "single_photo"),
+        # the album photo is in the post's html but not as its attachment (eg a cover photo) - not crawled
+        (FB_POST_URL, b'{"cover_photo":{"photo":{"id":"1329142910787472"}}}', False, [], "no_carousel_found"),
+        # the album photo isn't in the post's html - not crawled
+        (FB_POST_URL, b"<html></html>", False, [], "no_carousel_found"),
+        # a profile's feed - the photo could be any post's, so not crawled
+        ("https://www.facebook.com/munigaza", FB_SINGLE_PHOTO_ATTACHMENT, False, [], "no_carousel_found"),
+    ],
+)
+def test_facebook_single_photo_post_crawls_its_photo_page(
+    wacz_enricher, tmp_path, mocker, url, html, crawled, srcs, strategy
+) -> None:
+    wacz_enricher.tmp_dir = str(tmp_path)
+    wacz_enricher.extract_media = True
+    mocker.patch("os.path.expanduser", return_value=str(tmp_path / "aatmp"))
+    photo_wacz = tmp_path / "photo.wacz"
+    _write_fb_photo_wacz(photo_wacz, FB_PHOTO_IMAGE_URL, page_html=FB_PHOTO_HTML)
+    with ZipFile(photo_wacz) as zf:
+        zf.extract("archive/data.warc.gz", tmp_path / "photo")
+    crawl = mocker.patch.object(
+        wacz_enricher, "_fb_browsertrix_crawl", return_value=("c", str(tmp_path / "photo/archive/data.warc.gz"), 1.0)
+    )
+    mock_info = mocker.patch("auto_archiver.utils.custom_logger.logger.info")
+    wacz_file = tmp_path / "fb.wacz"
+    _write_fb_post_wacz(wacz_file, html, url, routes=[("1329142910787472", "a.132433247125117")])
+
+    metadata = Metadata().set_url(url)
+    wacz_enricher.facebook_extract_media_from_wacz(metadata, str(wacz_file), url)
+
+    assert [c.args[0] for c in crawl.call_args_list] == ([FB_PHOTO_URL] if crawled else [])
+    assert [m.get("src") for m in metadata.media if m.get("src")] == srcs
+    summary = next(c[0][0] for c in mock_info.call_args_list if c[0][0].startswith("FB summary"))
+    assert f"strategy={strategy}" in summary
+
+
+def test_facebook_single_photo_post_without_photo_node_adds_no_image(wacz_enricher, tmp_path, mocker) -> None:
+    """the crawled photo page's html has no photo node - nothing added, not every image passing the size filters
+    (the album's other photos)"""
+    wacz_enricher.tmp_dir = str(tmp_path)
+    wacz_enricher.extract_media = True
+    mocker.patch("os.path.expanduser", return_value=str(tmp_path / "aatmp"))
+    photo_wacz = tmp_path / "photo.wacz"
+    _write_fb_photo_wacz(photo_wacz, FB_PHOTO_IMAGE_URL, page_html=b"<html></html>")
+    with ZipFile(photo_wacz) as zf:
+        zf.extract("archive/data.warc.gz", tmp_path / "photo")
+    mocker.patch.object(
+        wacz_enricher, "_fb_browsertrix_crawl", return_value=("c", str(tmp_path / "photo/archive/data.warc.gz"), 1.0)
+    )
+    mock_info = mocker.patch("auto_archiver.utils.custom_logger.logger.info")
+    wacz_file = tmp_path / "fb.wacz"
+    _write_fb_post_wacz(wacz_file, FB_SINGLE_PHOTO_ATTACHMENT, routes=[("1329142910787472", "a.132433247125117")])
+
+    metadata = Metadata().set_url(FB_POST_URL)
+    wacz_enricher.facebook_extract_media_from_wacz(metadata, str(wacz_file), FB_POST_URL)
+
+    assert [m.get("src") for m in metadata.media if m.get("src")] == []
+    summary = next(c[0][0] for c in mock_info.call_args_list if c[0][0].startswith("FB summary"))
+    assert "strategy=single_photo_not_found" in summary
 
 
 FB_PROFILE_URL = "https://www.facebook.com/munigaza"
