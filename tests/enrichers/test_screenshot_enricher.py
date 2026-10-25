@@ -238,7 +238,7 @@ def test_takes_full_page_screenshot(screenshot_enricher, metadata_with_video, mo
     from PIL import Image
 
     mock_driver, _, _ = mock_selenium_env
-    mock_driver.get_full_page_screenshot_as_png.return_value = _png(4000)
+    mock_driver.get_full_page_screenshot_as_png.return_value = _png(6000)
     mocker.patch("auto_archiver.utils.url.is_auth_wall", return_value=False)
     mocker.patch("time.sleep")
     screenshot_enricher.tmp_dir = str(tmp_path)
@@ -246,7 +246,7 @@ def test_takes_full_page_screenshot(screenshot_enricher, metadata_with_video, mo
     screenshot_enricher.enrich(metadata_with_video)
 
     mock_driver.save_screenshot.assert_not_called()
-    assert Image.open(metadata_with_video.media[1].filename).size == (1280, 4000)
+    assert Image.open(metadata_with_video.media[1].filename).size == (1280, 6000)
 
 
 def test_full_page_screenshot_is_cut_off_at_max_height(tmp_path, mocker):
@@ -303,12 +303,12 @@ def test_scroll_through_page_scrolls_to_the_bottom_and_back(mocker):
     from auto_archiver.modules.screenshot_enricher.screenshot_enricher import scroll_through_page
 
     mocker.patch("time.sleep")
-    # the page grows from 1500 to 2900 as it loads
-    driver = _scrolling_driver(mocker, 1000, [1500, 2900, 2900, 2900])
+    # the page grows from 5000 to 6900 as it loads
+    driver = _scrolling_driver(mocker, 1911, [5000, 6900, 6900, 6900])
 
     scroll_through_page(driver)
 
-    assert _scrolled_to(driver) == [1000, 2000, 3000, 0]
+    assert _scrolled_to(driver) == [1911, 3822, 5733, 7644, 0]
 
 
 def test_scroll_through_page_stops_at_max_height(mocker):

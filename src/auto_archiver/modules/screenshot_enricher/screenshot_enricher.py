@@ -52,8 +52,7 @@ def is_imperva_block_page(driver) -> bool:
 
 # DM 22nd Oct 26 - save_screenshot only captures the window (eg 1280x1911 of a 2048 high one), so take the whole page.
 # Capped as a long page or an endless feed can be tens of thousands of px, and Firefox fails over ~32k
-# DM 23rd Oct 26 - was 15000, but scrolling/capturing that much of heavy pages (eg Russian news sites) hung geckodriver
-FULL_PAGE_MAX_HEIGHT = 5000
+FULL_PAGE_MAX_HEIGHT = 15000
 
 
 # DM 22nd Oct 26 - social media, whose pages scroll forever (eg youtube's comments and recommended videos filled a

@@ -587,3 +587,49 @@ class TestThumbnailFilename:
         extractor.download_additional_media({"id": video_id, "thumbnail": thumbnail}, mocker.Mock(), Metadata())
 
         extractor.download_from_url.assert_called_once_with(thumbnail, filename)
+
+
+class TestLogEndlessDownload:
+    """yt-dlp progress hook that logs (doesn't yet stop) downloads with no known size running too long, eg live radio"""
+
+    @pytest.fixture(autouse=True)
+    def clear_logged(self):
+        from auto_archiver.modules.generic_extractor import generic_extractor
+
+        generic_extractor._logged_endless_downloads.clear()
+
+    def _progress(self, **kwargs):
+        d = {
+            "status": "downloading",
+            "filename": "/tmp/abc.unknown_video",
+            "elapsed": 21 * 60,
+            "downloaded_bytes": 5 * 1024 * 1024,
+            "info_dict": {"url": "https://example.com/stream"},
+        }
+        d.update(kwargs)
+        return d
+
+    def test_logs_once_when_unknown_size_runs_too_long(self, mocker):
+        from auto_archiver.modules.generic_extractor.generic_extractor import _log_endless_download
+
+        warning = mocker.patch("auto_archiver.utils.custom_logger.logger.warning")
+        _log_endless_download(self._progress())
+        _log_endless_download(self._progress(elapsed=22 * 60))
+        warning.assert_called_once()
+        assert "https://example.com/stream" in warning.call_args[0][0]
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {"elapsed": 19 * 60},
+            {"total_bytes": 1000},
+            {"total_bytes_estimate": 1000},
+            {"status": "finished"},
+        ],
+    )
+    def test_not_logged(self, mocker, kwargs):
+        from auto_archiver.modules.generic_extractor.generic_extractor import _log_endless_download
+
+        warning = mocker.patch("auto_archiver.utils.custom_logger.logger.warning")
+        _log_endless_download(self._progress(**kwargs))
+        warning.assert_not_called()
