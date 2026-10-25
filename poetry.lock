@@ -410,14 +410,14 @@ beautifulsoup4 = "*"
 
 [[package]]
 name = "certifi"
-version = "2026.10.19"
+version = "2026.10.23"
 description = "Python package for providing Mozilla's CA Bundle."
 optional = false
 python-versions = ">=3.7"
 groups = ["main", "docs"]
 files = [
-    {file = "certifi-2026.10.19-py3-none-any.whl", hash = "sha256:42d35340cc5b9ba78e818ddbff0c5b1c2b779de448a340fd1b989f5fa8670e1b"},
-    {file = "certifi-2026.10.19.tar.gz", hash = "sha256:035c1e85572b141bf1c3a3eff0e33a8eb74917522f2559075ff8d2fea780a1ae"},
+    {file = "certifi-2026.10.23-py3-none-any.whl", hash = "sha256:e9b54de76e530bb6cf0ccd036787103acb58fd42ba930ea8bf948ddbaa2f61d1"},
+    {file = "certifi-2026.10.23.tar.gz", hash = "sha256:a9895e6e2758b371e0545e321a3a8fd1fcfd9829ada8824a936dfb16aaaf36cd"},
 ]
 
 [[package]]
@@ -1282,14 +1282,14 @@ files = [
 
 [[package]]
 name = "instaloader"
-version = "4.15.4"
+version = "4.15.5"
 description = "Download pictures (or videos) along with their captions and other metadata from Instagram."
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "instaloader-4.15.4-py3-none-any.whl", hash = "sha256:3a859736f34f9d0bd284c50333d0f33b16bc63dd948b1efecdfdc9ebd6257713"},
-    {file = "instaloader-4.15.4.tar.gz", hash = "sha256:3fde2f5e9421449344d7e05a41d1ea853ef17efead5a272e4af2728b0eaf38b9"},
+    {file = "instaloader-4.15.5-py3-none-any.whl", hash = "sha256:34f59fb28d9cf4377a9c20d2f63ea31d25c480a64dc2ca97cc227f0cc93f1269"},
+    {file = "instaloader-4.15.5.tar.gz", hash = "sha256:fedf65149ab559c1d8cc105929f15695b0e9f54b83a3b8f09f5693d3a13590f8"},
 ]
 
 [package.dependencies]
@@ -4118,15 +4118,15 @@ full = ["httpx (>=0.27.0,<0.29.0)", "httpx2 (>=2.0.0)", "itsdangerous", "jinja2"
 
 [[package]]
 name = "starlette"
-version = "1.9.0"
+version = "1.10.0"
 description = "The little ASGI library that shines."
 optional = false
 python-versions = ">=3.11"
 groups = ["docs"]
 markers = "python_version >= \"3.11\""
 files = [
-    {file = "starlette-1.9.0-py3-none-any.whl", hash = "sha256:fd3f159936e882d06c1108f84688f7cda2cf85fc6a592a50edbd175e882c2ddc"},
-    {file = "starlette-1.9.0.tar.gz", hash = "sha256:3d931de246ed870e35ce605974440816ef895e592f255d1396cfdf191d4c4318"},
+    {file = "starlette-1.10.0-py3-none-any.whl", hash = "sha256:478c0ab3b4ced6e82719849c118fa406f0278a3499c1a898cd15cd31bdc38ce4"},
+    {file = "starlette-1.10.0.tar.gz", hash = "sha256:b8399098d4c1e3522734f7235dc79b1fc967f96cf139c81e0fa30479e0685f9b"},
 ]
 
 [package.dependencies]

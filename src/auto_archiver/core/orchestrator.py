@@ -6,7 +6,10 @@ formatting, database operations and clean up.
 
 from __future__ import annotations
 import faulthandler
+import glob
+import shutil
 import signal
+import socket
 import subprocess
 import threading
 import time
@@ -17,6 +20,7 @@ import argparse
 import os
 import sys
 from tempfile import TemporaryDirectory
+from urllib.parse import urlparse
 import traceback
 from copy import copy
 
@@ -52,6 +56,42 @@ if TYPE_CHECKING:
 # a normal row takes 2-5 minutes
 SLOW_ROW_SECONDS = 15 * 60
 HANG_DUMP_SECONDS = 30 * 60
+# DM 25th Oct 26 - each new kind of hang was found only after it had blocked a server for hours (a live radio
+# stream: 10h), so a row still going after this is killed, whatever is stuck. Longest genuine row seen: 134 min
+ROW_KILL_SECONDS = 3 * 60 * 60
+# how long the kill waits for the log line and the sheet's status, either of which could be what's stuck
+KILL_REPORT_SECONDS = 60
+
+# DM 25th Oct 26 - these sites time out connecting from our servers' IPs, so a row took ~18 min and only Wayback worked
+IP_BLOCKED_SITES = ["vk.com", "vk.ru", "vkvideo.ru"]
+# modules that fetch the site themselves - skipped while it's blocked; Wayback etc. go via a third party so still run
+SKIP_WHEN_IP_BLOCKED = [
+    "generic_extractor",
+    "antibot_extractor_enricher",
+    "screenshot_enricher",
+    "wacz_extractor_enricher",
+    "mhtml_enricher",
+    "ssl_enricher",
+]
+
+
+def _descendant_pids(pid: int) -> list[int]:
+    """pids of all the processes started by pid, their children and so on (Linux)"""
+    children = {}
+    for stat_file in glob.glob("/proc/[0-9]*/stat"):
+        try:
+            with open(stat_file) as f:
+                # the field after the "(name)" is the state, then the parent pid
+                parent = int(f.read().rsplit(")", 1)[1].split()[1])
+        except (OSError, IndexError, ValueError):
+            continue  # the process has gone
+        children.setdefault(parent, []).append(int(stat_file.split("/")[2]))
+    found, to_visit = [], [pid]
+    while to_visit:
+        for child in children.get(to_visit.pop(), []):
+            found.append(child)
+            to_visit.append(child)
+    return found
 
 
 class ArchivingOrchestrator:
@@ -73,6 +113,7 @@ class ArchivingOrchestrator:
         self.setup_finished = False
         self.logger_id = None
         self.hang_log = None  # logs/hangs.log, only opened when logging to logs/ (ie in production)
+        self.running_item = None  # the row being archived, so a late kill timer can't kill the next row
 
     def setup_basic_parser(self):
         parser = argparse.ArgumentParser(
@@ -595,15 +636,21 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
                 with logger.contextualize(url=item.get_url(), trace=random_str(12)):
                     logger.info("Started processing")
                     started = time.monotonic()
-                    watchdog = None
+                    watchdogs = []
                     if self.hang_log:
-                        watchdog = threading.Timer(HANG_DUMP_SECONDS, self._dump_thread_stacks, args=(item.get_url(),))
-                        watchdog.daemon = True
-                        watchdog.start()
+                        watchdogs = [
+                            threading.Timer(HANG_DUMP_SECONDS, self._dump_thread_stacks, args=(item.get_url(),)),
+                            threading.Timer(ROW_KILL_SECONDS, self._kill_hung_row, args=(item,)),
+                        ]
+                        for watchdog in watchdogs:
+                            watchdog.daemon = True
+                            watchdog.start()
+                    self.running_item = item
                     try:
                         result = self.feed_item(item)
                     finally:
-                        if watchdog:
+                        self.running_item = None
+                        for watchdog in watchdogs:
                             watchdog.cancel()
                     took = time.monotonic() - started
                     if took > SLOW_ROW_SECONDS:
@@ -623,6 +670,40 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
         faulthandler.dump_traceback(file=self.hang_log, all_threads=True)
         logger.warning(f"Row still running after {HANG_DUMP_SECONDS // 60} minutes, thread stacks written to logs/hangs.log: {url}")
 
+    def _kill_hung_row(self, item: Metadata) -> None:
+        """
+        Runs on a watchdog thread when a row is still going after ROW_KILL_SECONDS. Kills our child processes
+        (ffmpeg, geckodriver, Firefox, docker run) and exits; the cron script carries on, and the next run skips
+        this row as it has a status
+        """
+        if self.running_item is not item:
+            return  # the row finished just as the timer fired
+        report = threading.Thread(target=self._report_killed_row, args=(item,), daemon=True)
+        report.start()
+        report.join(KILL_REPORT_SECONDS)
+        if self.running_item is not item:
+            return  # the row finished while it was being reported
+        try:
+            for pid in _descendant_pids(os.getpid()):
+                try:
+                    os.kill(pid, signal.SIGKILL)
+                except OSError:
+                    pass  # already gone, or not ours to kill
+            # os._exit skips feed_item's cleanup, and the row's tmp dir (can be GBs) is in ./, not /tmp
+            if tmp_dir := next((m.tmp_dir for m in self.all_modules if m.tmp_dir), None):
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+        finally:
+            os._exit(1)
+
+    def _report_killed_row(self, item: Metadata) -> None:
+        hours = ROW_KILL_SECONDS / 3600
+        logger.error(f"Row still running after {hours:g} hours, killing the run: {item.get_url()}")
+        for d in self.databases:
+            try:
+                d.failed(item, f"- still running after {hours:g}h, killed")
+            except Exception as e:
+                logger.error(f"Database {d.name}: {e}")
+
     @staticmethod
     def _is_twitter_url(url: str) -> bool:
         """
@@ -631,6 +712,23 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
         """
         domain = domain_for_url(url).removeprefix("www.")
         return domain in ("x.com", "twitter.com")
+
+    @staticmethod
+    def _is_ip_blocked(url: str) -> bool:
+        """
+        True if url is on an IP_BLOCKED_SITES site and we still can't connect to it - checked each time
+        so we notice when the block is lifted
+        """
+        # hostname, not netloc: lowercased and without any port or user
+        domain = (urlparse(url).hostname or "").removeprefix("www.")
+        if not any(domain == site or domain.endswith(f".{site}") for site in IP_BLOCKED_SITES):
+            return False
+        try:
+            socket.create_connection((domain, 443), timeout=5).close()
+        except OSError:
+            return True
+        logger.warning(f"{domain} is reachable again, archiving normally - remove it from IP_BLOCKED_SITES")
+        return False
 
     def connect_vpn(self) -> None:
         """
@@ -801,8 +899,15 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
         if needs_vpn:
             self.connect_vpn()
 
+        extractors, enrichers = self.extractors, self.enrichers
+        if self._is_ip_blocked(url):
+            logger.info(f"{url} is on a site blocking our IP, skipping {', '.join(SKIP_WHEN_IP_BLOCKED)}")
+            result.add_status_note("aa IP blocked")
+            extractors = [a for a in extractors if a.name not in SKIP_WHEN_IP_BLOCKED]
+            enrichers = [e for e in enrichers if e.name not in SKIP_WHEN_IP_BLOCKED]
+
         # 3 - call extractors until one succeeds
-        for a in self.extractors:
+        for a in extractors:
             logger.info(f"Trying extractor {a.name}")
             try:
                 result.merge(a.download(result))
@@ -812,11 +917,11 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
                 logger.error(f"Extractor {a.name}: {e}: {traceback.format_exc()}")
 
         if not result.is_success():
-            tried = ", ".join(a.name for a in self.extractors)
+            tried = ", ".join(a.name for a in extractors)
             logger.warning(f"No extractor succeeded for {url} (tried: {tried}), status={result.status!r}")
 
         # 4 - call enrichers to work with archived content
-        for e in self.enrichers:
+        for e in enrichers:
             try:
                 e.enrich(result)
             except Exception as exc:

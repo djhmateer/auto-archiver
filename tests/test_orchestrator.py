@@ -1,3 +1,4 @@
+import os
 import pytest
 from argparse import ArgumentParser, ArgumentTypeError
 from requests.exceptions import SSLError
@@ -290,13 +291,13 @@ def test_check_for_updates_new_version_available(orchestrator, mocker):
     orchestrator.check_for_updates()
 
 
-def _feed_one_slow_row(mocker, tmp_path, row_seconds):
+def _feed_one_slow_row(mocker, tmp_path, row_seconds, orchestrator=None):
     from auto_archiver.core import orchestrator as orch
     import time
 
     mocker.patch.object(orch, "HANG_DUMP_SECONDS", 0.2)
     mocker.patch.object(orch, "SLOW_ROW_SECONDS", 0.1)
-    o = ArchivingOrchestrator()
+    o = orchestrator or ArchivingOrchestrator()
     o.feeders = [[Metadata().set_url("https://example.com")]]
     o.hang_log = open(tmp_path / "hangs.log", "a")
     mocker.patch.object(o, "feed_item", side_effect=lambda item: time.sleep(row_seconds) or item)
@@ -320,3 +321,171 @@ def test_quick_row_dumps_nothing(mocker, tmp_path):
     _, hangs = _feed_one_slow_row(mocker, tmp_path, row_seconds=0)
 
     assert hangs == ""
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://vk.ru/id123",
+        "https://m.vk.com/wall-1_2",
+        "https://vkvideo.ru/video-1_2",
+        "https://www.vk.com/id123",
+        "https://VK.ru/id123",
+        "https://vk.ru:443/id123",
+    ],
+)
+def test_ip_blocked_site_that_still_times_out(mocker, url):
+    connect = mocker.patch("socket.create_connection", side_effect=TimeoutError)
+    assert ArchivingOrchestrator._is_ip_blocked(url) is True
+    host = connect.call_args[0][0][0]
+    assert host in ("vk.ru", "m.vk.com", "vkvideo.ru", "vk.com")
+
+
+def test_ip_blocked_site_reachable_again(mocker):
+    mocker.patch("socket.create_connection")
+    warning = mocker.patch("auto_archiver.utils.custom_logger.logger.warning")
+    assert ArchivingOrchestrator._is_ip_blocked("https://vk.ru/id123") is False
+    warning.assert_called_once()
+
+
+@pytest.mark.parametrize("url", ["https://example.com/page", "https://notvk.ru/page"])
+def test_other_sites_never_checked(mocker, url):
+    connect = mocker.patch("socket.create_connection")
+    assert ArchivingOrchestrator._is_ip_blocked(url) is False
+    connect.assert_not_called()
+
+
+def test_row_still_running_after_kill_limit_is_marked_failed_and_killed(mocker, tmp_path):
+    from auto_archiver.core import orchestrator as orch
+
+    mocker.patch.object(orch, "ROW_KILL_SECONDS", 0.3)
+    mocker.patch.object(orch, "_descendant_pids", return_value=[111, 222])
+    kill = mocker.patch("os.kill")
+    exit_ = mocker.patch("os._exit")
+    tmp_dir = tmp_path / "row_tmp"
+    tmp_dir.mkdir()
+    module = mocker.Mock(tmp_dir=str(tmp_dir))
+    mocker.patch.object(ArchivingOrchestrator, "all_modules", new_callable=mocker.PropertyMock, return_value=[module])
+    db = mocker.Mock()
+    o = ArchivingOrchestrator()
+    o.databases = [db]
+
+    _feed_one_slow_row(mocker, tmp_path, row_seconds=0.5, orchestrator=o)
+
+    db.failed.assert_called_once()
+    assert "killed" in db.failed.call_args[0][1]
+    assert [c.args[0] for c in kill.call_args_list] == [111, 222]
+    exit_.assert_called_once_with(1)
+    assert not tmp_dir.exists()
+
+
+def test_kill_timer_firing_after_the_row_finished_does_nothing(mocker):
+    exit_ = mocker.patch("os._exit")
+    db = mocker.Mock()
+    o = ArchivingOrchestrator()
+    o.databases = [db]
+    o.running_item = Metadata().set_url("https://example.com/next-row")
+
+    o._kill_hung_row(Metadata().set_url("https://example.com/finished-row"))
+
+    db.failed.assert_not_called()
+    exit_.assert_not_called()
+
+
+def test_stuck_sheet_does_not_stop_the_kill(mocker):
+    import threading
+    from auto_archiver.core import orchestrator as orch
+
+    mocker.patch.object(orch, "KILL_REPORT_SECONDS", 0.1)
+    mocker.patch.object(orch, "_descendant_pids", return_value=[])
+    mocker.patch.object(ArchivingOrchestrator, "all_modules", new_callable=mocker.PropertyMock, return_value=[])
+    exit_ = mocker.patch("os._exit")
+    never = threading.Event()
+    db = mocker.Mock()
+    db.failed.side_effect = lambda *args: never.wait(2)
+    o = ArchivingOrchestrator()
+    o.databases = [db]
+    o.running_item = item = Metadata().set_url("https://example.com")
+
+    o._kill_hung_row(item)
+
+    exit_.assert_called_once_with(1)
+    never.set()
+
+
+def _archive_with_named_modules(mocker, url):
+    """runs archive() with mock extractors/enrichers named like the real ones, returning the result and the names run"""
+    ran = []
+
+    def module(name):
+        m = mocker.Mock()
+        m.name = name
+        m.sanitize_url.side_effect = lambda u: u
+        m.download.side_effect = lambda item: ran.append(name) or False
+        m.enrich.side_effect = lambda item: ran.append(name)
+        return m
+
+    o = ArchivingOrchestrator()
+    o.config = {}
+    o.disconnect_vpn = mocker.Mock()
+    o.extractors = [module("generic_extractor"), module("wayback_extractor_enricher")]
+    o.enrichers = [module("screenshot_enricher"), module("hash_enricher")]
+    o.databases, o.storages = [], []
+    o.formatters = [mocker.Mock(format=mocker.Mock(return_value=None))]
+    return o.archive(Metadata().set_url(url)), ran
+
+
+def test_ip_blocked_site_only_runs_modules_that_dont_fetch_it(mocker):
+    mocker.patch("socket.create_connection", side_effect=TimeoutError)
+    result, ran = _archive_with_named_modules(mocker, "https://vk.ru/id123")
+    assert ran == ["wayback_extractor_enricher", "hash_enricher"]
+    assert "aa IP blocked" in result.get_status_notes()
+
+
+def test_reachable_site_runs_all_modules(mocker):
+    connect = mocker.patch("socket.create_connection")
+    result, ran = _archive_with_named_modules(mocker, "https://example.com/page")
+    assert ran == ["generic_extractor", "wayback_extractor_enricher", "screenshot_enricher", "hash_enricher"]
+    assert result.get_status_notes() == []
+    connect.assert_not_called()
+
+
+def test_kill_still_exits_when_a_process_cant_be_killed(mocker):
+    from auto_archiver.core import orchestrator as orch
+
+    mocker.patch.object(orch, "_descendant_pids", return_value=[111, 222])
+    kill = mocker.patch("os.kill", side_effect=PermissionError)
+    exit_ = mocker.patch("os._exit")
+    mocker.patch.object(ArchivingOrchestrator, "all_modules", new_callable=mocker.PropertyMock, return_value=[])
+    o = ArchivingOrchestrator()
+    o.databases = []
+    o.running_item = item = Metadata().set_url("https://example.com")
+
+    o._kill_hung_row(item)
+
+    assert kill.call_count == 2
+    exit_.assert_called_once_with(1)
+
+
+def test_quick_row_is_not_killed(mocker, tmp_path):
+    exit_ = mocker.patch("os._exit")
+    _feed_one_slow_row(mocker, tmp_path, row_seconds=0)
+    exit_.assert_not_called()
+
+
+def test_descendant_pids_finds_grandchildren():
+    import subprocess
+    from auto_archiver.core.orchestrator import _descendant_pids
+
+    # a shell (child) that starts sleep (grandchild), like geckodriver starting Firefox
+    import time
+
+    shell = subprocess.Popen(["sh", "-c", "sleep 5 & wait"])
+    time.sleep(0.2)
+    pids = _descendant_pids(shell.pid)
+    shell.kill()
+    shell.wait()
+    for pid in pids:
+        os.kill(pid, 9)
+
+    assert len(pids) == 1  # the sleep
