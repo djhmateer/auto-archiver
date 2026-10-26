@@ -1338,3 +1338,102 @@ def test_youtube_embeds_not_for_a_youtube_page(wacz_enricher, mocker, tmp_path) 
     wacz_enricher._download_youtube_embeds(Metadata().set_url(url), str(wacz_file), url)
 
     generic_extractor.download.assert_not_called()
+
+
+ARTICLE_URL = "https://news.example.com/2026/10/article-1"
+ARTICLE_HTML = b"""<html><head><meta property="og:image" content="https://cdn.example.com/lead.jpg"></head><body>
+<article><h1>Headline</h1><img src="/img/body.jpg" alt="The article's photo"></article>
+<aside><img data-src="https://cdn.example.com/related.jpg"></aside>
+</body></html>"""
+
+
+def _jpeg(width: int, height: int, seed: int) -> bytes:
+    """a real jpeg header (so its size can be read) padded past the 13500 byte size filter"""
+    from io import BytesIO
+
+    from PIL import Image
+
+    buf = BytesIO()
+    Image.new("RGB", (width, height)).save(buf, "JPEG")
+    return buf.getvalue() + bytes([seed % 256]) * 20000
+
+
+def _write_article_wacz(wacz_path, html: bytes = None, images: dict = None) -> None:
+    from io import BytesIO
+
+    from warcio.statusandheaders import StatusAndHeaders
+    from warcio.warcwriter import WARCWriter
+
+    warc = BytesIO()
+    writer = WARCWriter(warc, gzip=True)
+
+    def response(url, content_type, payload):
+        writer.write_record(
+            writer.create_warc_record(
+                url,
+                "response",
+                payload=BytesIO(payload),
+                http_headers=StatusAndHeaders("200 OK", [("Content-Type", content_type)], protocol="HTTP/1.1"),
+            )
+        )
+
+    if html is not None:
+        response(ARTICLE_URL, "text/html; charset=utf-8", html)
+    for url, payload in (images or {}).items():
+        response(url, "image/jpeg", payload)
+    with ZipFile(wacz_path, "w") as zf:
+        zf.writestr("archive/data.warc.gz", warc.getvalue())
+
+
+def test_wacz_media_capped(wacz_enricher, tmp_path, mocker) -> None:
+    from auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher import WACZ_MAX_MEDIA
+
+    wacz_enricher.tmp_dir = str(tmp_path)
+    wacz_enricher.extract_media = True
+    wacz_enricher.extract_screenshot = False
+    mock_warning = mocker.patch("auto_archiver.utils.custom_logger.logger.warning")
+    images = {f"https://cdn.example.com/thumb-{i}.jpg": _jpeg(10, 10, i) for i in range(WACZ_MAX_MEDIA + 5)}
+    wacz_file = tmp_path / "page.wacz"
+    _write_article_wacz(wacz_file, ARTICLE_HTML, images)
+    metadata = Metadata().set_url(ARTICLE_URL)
+
+    wacz_enricher.extract_media_from_wacz(metadata, str(wacz_file))
+
+    assert [m.get("src") for m in metadata.media] == list(images)[:WACZ_MAX_MEDIA]
+    warnings = [c[0][0] for c in mock_warning.call_args_list]
+    assert warnings == [f"WACZ of {ARTICLE_URL} kept the first {WACZ_MAX_MEDIA} media, skipped 5 more"]
+
+
+@pytest.mark.parametrize(
+    "html, where",
+    [
+        (ARTICLE_HTML, ["og", "article", "html", "none"]),
+        (None, ["?", "?", "?", "?"]),
+    ],
+)
+def test_wacz_image_logs_where_the_page_puts_it(wacz_enricher, tmp_path, mocker, html, where) -> None:
+    """logging only - every image passing the size filters is still kept"""
+    wacz_enricher.tmp_dir = str(tmp_path)
+    wacz_enricher.extract_media = True
+    wacz_enricher.extract_screenshot = False
+    mock_info = mocker.patch("auto_archiver.utils.custom_logger.logger.info")
+    images = {
+        "https://cdn.example.com/lead.jpg": _jpeg(1200, 630, 1),
+        "https://news.example.com/img/body.jpg": _jpeg(800, 450, 2),
+        "https://cdn.example.com/related.jpg": _jpeg(300, 200, 3),
+        "https://ads.example.net/banner.jpg": _jpeg(728, 90, 4),
+    }
+    wacz_file = tmp_path / "page.wacz"
+    _write_article_wacz(wacz_file, html, images)
+    metadata = Metadata().set_url(ARTICLE_URL)
+
+    wacz_enricher.extract_media_from_wacz(metadata, str(wacz_file))
+
+    assert len(metadata.media) == 4
+    lines = [c[0][0] for c in mock_info.call_args_list if c[0][0].startswith("WACZ image #")]
+    assert [line.split()[3] for line in lines] == [f"where={w}" for w in where]
+    assert "1200x630 host=cdn.example.com" in lines[0]
+    if html:
+        assert "alt=\"The article's photo\"" in lines[1]
+        summary = next(c[0][0] for c in mock_info.call_args_list if c[0][0].startswith("WACZ images of"))
+        assert summary == f"WACZ images of {ARTICLE_URL}: 4 kept - og=1, article=1, html=1, none=1"

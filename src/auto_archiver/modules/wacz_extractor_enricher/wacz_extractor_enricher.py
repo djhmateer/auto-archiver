@@ -10,8 +10,9 @@ import re
 import shutil
 import subprocess
 from zipfile import ZipFile
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urljoin, urlparse
 from bs4 import BeautifulSoup
+from PIL import Image
 from auto_archiver.utils.custom_logger import logger
 from warcio.archiveiterator import ArchiveIterator
 
@@ -60,6 +61,9 @@ YOUTUBE_EMBED_IFRAME = re.compile(
 )
 # most YouTube videos embedded in a page to download, as each is a full yt-dlp download
 MAX_EMBEDDED_YOUTUBE_VIDEOS = 5
+# DM 26th Oct 26 - a news article kept 1073 images (thumbnails of related articles), each a Drive upload plus its .ots,
+# so the row took ~6h. p99 over 30 days was 115, median 2. Not applied to Facebook, which has its own extraction
+WACZ_MAX_MEDIA = 100
 # DM 15th Oct 26 - the logged in user id facebook's page sends with its requests, 0 when logged out
 FB_SESSION_USER = re.compile(rb"__user=(\d+)")
 FB_RECOMMENDED_POST_ID = re.compile(rb'top_level_post_id\\":\\"(\d+)\\"[^}]*?originated_from_recommendation\\":\\"1\\"')
@@ -899,6 +903,69 @@ class WaczExtractorEnricher(Enricher, Extractor):
         return None
 
     @staticmethod
+    def _page_image_context(warc_filename: str, url: str) -> dict | None:
+        """url paths of the images the page's own html points at - its og:image/twitter:image, the <img>s inside an
+        <article>, and every <img> - plus their alt text, to log against each image kept from the WACZ.
+        Matched on path as the page may have redirected. None if the page's html isn't in the warc"""
+        path = urlparse(url).path.rstrip("/")
+        with open(warc_filename, "rb") as warc_stream:
+            for record in ArchiveIterator(warc_stream):
+                if record.rec_type != "response":
+                    continue
+                record_url = record.rec_headers.get_header("WARC-Target-URI") or ""
+                if urlparse(record_url).path.rstrip("/") != path:
+                    continue
+                if "text/html" not in (record.http_headers.get_header("Content-Type") or ""):
+                    continue
+                soup = BeautifulSoup(record.content_stream().read(), "html.parser")
+                ctx = {"og": set(), "article": set(), "html": set(), "alt": {}}
+
+                def image_path(src):
+                    return urlparse(urljoin(record_url, src.strip())).path
+
+                for meta in soup.find_all("meta"):
+                    if (meta.get("property") or meta.get("name")) in ("og:image", "twitter:image") and meta.get("content"):
+                        ctx["og"].add(image_path(meta["content"]))
+                for img in soup.find_all(["img", "source"]):
+                    srcs = [img.get(a) for a in ("src", "data-src", "data-lazy-src") if img.get(a)]
+                    for a in ("srcset", "data-srcset"):
+                        srcs += [s.split()[0] for s in (img.get(a) or "").split(",") if s.strip()]
+                    in_article = img.find_parent("article") is not None
+                    for src in srcs:
+                        p = image_path(src)
+                        ctx["html"].add(p)
+                        if in_article:
+                            ctx["article"].add(p)
+                        if img.get("alt"):
+                            ctx["alt"].setdefault(p, img["alt"].strip())
+                return ctx
+        return None
+
+    @staticmethod
+    def _image_dimensions(filename: str) -> str:
+        try:
+            with Image.open(filename) as im:
+                return f"{im.width}x{im.height}"
+        except Exception:
+            return "?"
+
+    def _log_wacz_image(self, n: int, m: Media, record_url: str, page_ctx: dict | None, image_where: Counter) -> None:
+        """One line per image kept from the WACZ, to query in aa_logs with LIKE '%WACZ image #%'. where is og (the
+        page's og:image), article (an <img> in an <article>), html (an <img> elsewhere), none (not in the page's html,
+        eg loaded by a script) or ? (page html not in the WACZ)"""
+        p = urlparse(record_url).path
+        if page_ctx is None:
+            where = "?"
+        else:
+            where = next((w for w in ("og", "article", "html") if p in page_ctx[w]), "none")
+        image_where[where] += 1
+        alt = (page_ctx or {}).get("alt", {}).get(p, "")[:60]
+        logger.info(
+            f"WACZ image #{n}: where={where} {os.path.getsize(m.filename) // 1024}KB "
+            f"{self._image_dimensions(m.filename)} host={urlparse(record_url).hostname} alt={alt!r} src={record_url}"
+        )
+
+    @staticmethod
     def _fb_own_post_id(warc_filename: str, url: str) -> str | None:
         """post_id of the post the url is for - the first story in the page's html which isn't a recommended post.
         None if the page's html isn't in the warc or has no stories"""
@@ -1324,6 +1391,12 @@ class WaczExtractorEnricher(Enricher, Extractor):
         # so only keep the thumbnails of the video being archived
         youtube_video_id = self._youtube_video_id(url) if url else None
         youtube_skipped = 0
+        capped = 0
+
+        # DM 26th Oct 26 - to find what the article's own images have in common (vs related article thumbnails, ads,
+        # logos), log for each kept image where the page's html puts it. Logging only, nothing is filtered on it yet
+        page_ctx = self._page_image_context(warc_filename, url) if url and self.extract_media else None
+        image_where = Counter()
 
         # DM 10th Nov 25 - turn off vpn if active to see if fixes issue with download_from_url
         # that gets best images from twitter
@@ -1436,6 +1509,11 @@ class WaczExtractorEnricher(Enricher, Extractor):
                         seen_urls.add(record_url)
                         continue
 
+                if counter_warc_files >= WACZ_MAX_MEDIA:
+                    capped += 1
+                    seen_urls.add(record_url)
+                    continue
+
                 logger.debug(f"Adding media from WACZ: {fn} which is {fs} bytes and extension {ext}")
 
                 m = Media(filename=fn)
@@ -1468,6 +1546,8 @@ class WaczExtractorEnricher(Enricher, Extractor):
                     to_enrich.add_media(m, warc_fn)
                     if image_key:
                         page_media[image_key] = m
+                    if "image" in content_type:
+                        self._log_wacz_image(counter_warc_files, m, record_url, page_ctx, image_where)
                 except Exception as e:
                     logger.warning(f"Unable to add media got error {e}")
                 counter_warc_files += 1
@@ -1479,6 +1559,14 @@ class WaczExtractorEnricher(Enricher, Extractor):
             )
         if youtube_skipped:
             logger.info(f"YouTube video {youtube_video_id}: skipped {youtube_skipped} thumbnail(s) of other videos")
+        if image_where:
+            logger.info(
+                f"WACZ images of {url}: {sum(image_where.values())} kept - "
+                + ", ".join(f"{where}={n}" for where, n in image_where.most_common())
+                + ("" if page_ctx else " (page html not in the WACZ)")
+            )
+        if capped:
+            logger.warning(f"WACZ of {url} kept the first {WACZ_MAX_MEDIA} media, skipped {capped} more")
         logger.info(
             f"WACZ extract_media/extract_screenshot finished, found {counter_warc_files + counter_screenshots} relevant media file(s)"
         )

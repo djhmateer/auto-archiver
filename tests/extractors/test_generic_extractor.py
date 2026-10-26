@@ -589,14 +589,8 @@ class TestThumbnailFilename:
         extractor.download_from_url.assert_called_once_with(thumbnail, filename)
 
 
-class TestLogEndlessDownload:
-    """yt-dlp progress hook that logs (doesn't yet stop) downloads with no known size running too long, eg live radio"""
-
-    @pytest.fixture(autouse=True)
-    def clear_logged(self):
-        from auto_archiver.modules.generic_extractor import generic_extractor
-
-        generic_extractor._logged_endless_downloads.clear()
+class TestStopEndlessDownload:
+    """yt-dlp progress hook that cancels downloads with no known size running too long, eg live radio"""
 
     def _progress(self, **kwargs):
         d = {
@@ -609,12 +603,14 @@ class TestLogEndlessDownload:
         d.update(kwargs)
         return d
 
-    def test_logs_once_when_unknown_size_runs_too_long(self, mocker):
-        from auto_archiver.modules.generic_extractor.generic_extractor import _log_endless_download
+    def test_cancels_when_unknown_size_runs_too_long(self, mocker):
+        import yt_dlp
+
+        from auto_archiver.modules.generic_extractor.generic_extractor import _stop_endless_download
 
         warning = mocker.patch("auto_archiver.utils.custom_logger.logger.warning")
-        _log_endless_download(self._progress())
-        _log_endless_download(self._progress(elapsed=22 * 60))
+        with pytest.raises(yt_dlp.utils.DownloadCancelled):
+            _stop_endless_download(self._progress())
         warning.assert_called_once()
         assert "https://example.com/stream" in warning.call_args[0][0]
 
@@ -627,9 +623,9 @@ class TestLogEndlessDownload:
             {"status": "finished"},
         ],
     )
-    def test_not_logged(self, mocker, kwargs):
-        from auto_archiver.modules.generic_extractor.generic_extractor import _log_endless_download
+    def test_not_cancelled(self, mocker, kwargs):
+        from auto_archiver.modules.generic_extractor.generic_extractor import _stop_endless_download
 
         warning = mocker.patch("auto_archiver.utils.custom_logger.logger.warning")
-        _log_endless_download(self._progress(**kwargs))
+        _stop_endless_download(self._progress(**kwargs))
         warning.assert_not_called()

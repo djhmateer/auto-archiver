@@ -33,25 +33,24 @@ from .dropin import GenericDropin
 YTDLP_SOCKET_TIMEOUT = 60
 
 # DM 25th Oct 26 - a page embedding a live radio stream (generic html5 embed, not flagged is_live) downloaded for 10h
-# until the forced reboot. --max-filesize can't catch it (no Content-Length). Only logging for now, to check for false
-# positives before cancelling such downloads (raise yt_dlp.utils.DownloadCancelled in the hook)
+# until the forced reboot. --max-filesize can't catch it (no Content-Length)
+# DM 26th Oct 26 - logged only for a day to check for false positives (none), now cancels the download. The row
+# carries on without that media
 YTDLP_MAX_UNKNOWN_SIZE_SECONDS = 20 * 60
-_logged_endless_downloads = set()
 
 
-def _log_endless_download(d: dict) -> None:
+def _stop_endless_download(d: dict) -> None:
     """yt-dlp progress hook: live radio/streams have no known size and never finish"""
     if d["status"] != "downloading" or d.get("total_bytes") or d.get("total_bytes_estimate"):
         return
-    filename = d.get("filename")
-    if d.get("elapsed", 0) > YTDLP_MAX_UNKNOWN_SIZE_SECONDS and filename not in _logged_endless_downloads:
-        _logged_endless_downloads.add(filename)
+    if d.get("elapsed", 0) > YTDLP_MAX_UNKNOWN_SIZE_SECONDS:
         url = d.get("info_dict", {}).get("url")
         mb = d.get("downloaded_bytes", 0) / 1024 / 1024
         logger.warning(
-            f"Would stop yt-dlp download: over {YTDLP_MAX_UNKNOWN_SIZE_SECONDS // 60} min with unknown size, "
+            f"Stopped yt-dlp download: over {YTDLP_MAX_UNKNOWN_SIZE_SECONDS // 60} min with unknown size, "
             f"probably a live stream ({mb:.1f} MB so far): {url}"
         )
+        raise yt_dlp.utils.DownloadCancelled(f"unknown size download ran over {YTDLP_MAX_UNKNOWN_SIZE_SECONDS // 60} min")
 
 
 class _YtdlpLogger:
@@ -816,7 +815,7 @@ class GenericExtractor(Extractor):
 
         # allsubtitles and subtitleslangs not working as expected, so default lang is always "en"
         ydl = yt_dlp.YoutubeDL(_parse_ytdlp_options(ydl_options))
-        ydl.add_progress_hook(_log_endless_download)
+        ydl.add_progress_hook(_stop_endless_download)
 
         result: Metadata = None
         for info_extractor in self.suitable_extractors(url):
