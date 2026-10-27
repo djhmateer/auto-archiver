@@ -10,7 +10,6 @@ The filtered rows are processed into `Metadata` objects.
 """
 
 from datetime import datetime, timezone
-import time
 import os
 import traceback
 from typing import Tuple, Union, Iterator
@@ -87,6 +86,15 @@ class GsheetsFeederDB(Feeder, Database):
                 continue
             original_status = gw.get_cell(row, "status")
             status = gw.get_cell(row, "status", fresh=original_status in ["", None])
+            # DM 27th Oct 26 - only one run per server and this run hasn't started this row, so it was left by a
+            # run killed mid-row (eg the forced daily reboot). Assumes each worksheet is only archived by one server.
+            if status == "Archive in progress":
+                logger.warning(
+                    f"Row {row} was left 'Archive in progress' by a killed run, "
+                    f"setting status to 'Problem in archive - run again': {url}"
+                )
+                gw.set_cell(row, "status", "Problem in archive - run again")
+                continue
             # TODO: custom status parser(?) aka should_retry_from_status
             if status not in ["", None]:
                 continue
@@ -267,7 +275,7 @@ class GsheetsFeederDB(Feeder, Database):
             gw, row = self._retrieve_gsheet(item)
             gw.set_cell(row, "status", new_status)
         except Exception as e:
-            # the row keeps its previous status (eg 'Archive in progress') and won't be picked up again
+            # the row keeps its previous status - if that's 'Archive in progress' the next run relabels it
             logger.error(f"Unable to set status {new_status!r}, row may be stuck: {e}: {traceback.format_exc()}")
 
     def _safe_archive_date_update(self, item: Metadata) -> None:

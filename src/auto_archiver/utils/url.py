@@ -17,6 +17,12 @@ def check_url_or_raise(url: str) -> str | ValueError:
     Returns the URL, with "https://" prepended if it was missing a scheme entirely.
     """
 
+    # drop stray punctuation pasted before the URL e.g. ": https://example.com"
+    m = re.match(r"^\W+(https?://)", url)
+    if m:
+        logger.warning(f"Removed {url[: m.start(1)]!r} from the start of the URL, fix the input: {url}")
+        url = url[m.start(1) :]
+
     if not (url.startswith("http://") or url.startswith("https://")):
         # only a scheme at the start counts - a wayback URL has "https://" inside its path
         if re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*://", url):

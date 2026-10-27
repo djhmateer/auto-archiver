@@ -164,3 +164,15 @@ def test_enrich_get_json_decode_error(
     # check it still enriches the job_id information
     assert wayback_extractor_enricher.enrich(metadata) is True
     assert metadata.get("wayback").get("job_id") == "job123"
+
+
+def test_enrich_sends_non_ascii_hostname_as_punycode(
+    wayback_extractor_enricher, mock_is_auth_wall, mock_post_success, mock_get_success
+):
+    mock_is_auth_wall(False)
+    post = mock_post_success()
+    mock_get_success()
+    # IANA's reserved IDN test domain, uppercase to check it's lowercased; the path is left as is
+    metadata = Metadata().set_url("https://ПРИМЕР.испытание:8080/%D0%B3%D1%83-path")
+    wayback_extractor_enricher.enrich(metadata)
+    assert post.call_args.kwargs["data"]["url"] == "https://xn--e1afmkfd.xn--80akhbyknj4f:8080/%D0%B3%D1%83-path"

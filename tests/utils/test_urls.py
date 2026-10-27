@@ -48,6 +48,22 @@ def test_check_url_or_raise(url, raises):
 
 
 @pytest.mark.parametrize(
+    "url, expected",
+    [
+        (": https://example.com/page", "https://example.com/page"),
+        ("- http://example.com", "http://example.com"),
+        # no scheme, so https:// is prepended - the https:// inside the path is not stripped
+        (
+            "web.archive.org/web/20210101120000/https://example.com/page",
+            "https://web.archive.org/web/20210101120000/https://example.com/page",
+        ),
+    ],
+)
+def test_check_url_or_raise_strips_junk_before_scheme(url, expected):
+    assert check_url_or_raise(url) == expected
+
+
+@pytest.mark.parametrize(
     "url, domain",
     [
         ("https://example.com", "example.com"),

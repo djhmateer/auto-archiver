@@ -2,7 +2,7 @@ import json
 from auto_archiver.utils.custom_logger import logger
 import time
 import requests
-from urllib3.exceptions import MaxRetryError
+from urllib.parse import urlparse
 from auto_archiver.core import Extractor, Enricher
 from auto_archiver.utils import url as UrlUtil
 from auto_archiver.core import Metadata
@@ -48,6 +48,12 @@ class WaybackExtractorEnricher(Enricher, Extractor):
         logger.debug("Calling Wayback")
 
         ia_headers = {"Accept": "application/json", "Authorization": f"LOW {self.key}:{self.secret}"}
+        # IA can't resolve a non-ASCII hostname (e.g. a .рф domain) - send it as punycode (xn--...)
+        parsed = urlparse(url)
+        if not parsed.netloc.isascii():
+            netloc = parsed.hostname.encode("idna").decode() + (f":{parsed.port}" if parsed.port else "")
+            url = parsed._replace(netloc=netloc).geturl()
+            logger.debug(f"Sending non-ASCII hostname {parsed.hostname} to Wayback as {netloc}")
         post_data = {"url": url}
         if self.if_not_archived_within:
             post_data["if_not_archived_within"] = self.if_not_archived_within

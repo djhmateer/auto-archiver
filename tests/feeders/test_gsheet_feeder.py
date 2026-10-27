@@ -265,3 +265,15 @@ class TestGSheetsFeederReal:
 def test_must_have_folder_name_defaults_to_false(gsheet_feeder: GsheetsFeederDB):
     # declared in the manifest, so configs that don't mention it must not raise an AttributeError
     assert gsheet_feeder.must_have_folder_name_for_archive_to_run is False
+
+
+def test__process_rows_marks_row_left_in_progress(gsheet_feeder: GsheetsFeederDB, mocker):
+    testworksheet = MockWorksheet()
+    testworksheet.rows = [
+        {"row": 2, "url": "http://example.com", "status": "Archive in progress", "folder": ""},
+        {"row": 3, "url": "http://example.com", "status": "", "folder": ""},
+    ]
+    testworksheet.set_cell = mocker.MagicMock()
+    metadata_items = list(gsheet_feeder._process_rows(testworksheet))
+    assert len(metadata_items) == 1
+    testworksheet.set_cell.assert_called_once_with(2, "status", "Problem in archive - run again")
