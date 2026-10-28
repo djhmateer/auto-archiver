@@ -61,16 +61,6 @@ If you are having issues with the extractor, you can review the version of `yt-d
             "help": "download all comments if available, may lead to large metadata",
             "type": "bool",
         },
-        "livestreams": {
-            "default": False,
-            "help": "if set, will download live streams, otherwise will skip them; see --max-filesize for more control",
-            "type": "bool",
-        },
-        "live_from_start": {
-            "default": False,
-            "help": "if set, will download live streams from their earliest available moment, otherwise starts now.",
-            "type": "bool",
-        },
         "proxy": {
             "default": "",
             "help": "http/https/socks proxy to use for the webdriver, eg https://proxy-user:password@proxy-ip:port",

@@ -37,7 +37,11 @@ class ThumbnailEnricher(Enricher):
 
                 try:
                     probe = ffmpeg.probe(m.filename)
-                    video_stream = next(stream for stream in probe["streams"] if stream["codec_type"] == "video")
+                    video_stream = next((s for s in probe["streams"] if s["codec_type"] == "video"), None)
+                    if not video_stream:
+                        # DM 28th Oct 26 - eg an audio-only mp4, ffmpeg then failed on every thumbnail
+                        logger.info(f"No video stream in {m.filename}, not generating thumbnails")
+                        continue
                     # some containers (e.g. webm) don't set duration on the video stream, only on the overall format
                     duration = float(video_stream.get("duration") or probe["format"]["duration"])
                     to_enrich.media[m_id].set("duration", duration)

@@ -35,8 +35,10 @@ class InstagramAPIExtractor(Extractor):
 
     # DM 28th Sep 26 - the / after the stories|p|reel prefix is now required - previously it was optional, so profile
     # usernames starting with p/reel/stories were misparsed as posts eg /paltimesnews -> post code 'altimesnews'
+    # DM 28th Oct 26 - anchored to the start of the url, as it matched instagram.com anywhere in it, eg a
+    # web.archive.org copy of a cdninstagram.com/o1/... video was looked up as the profile 'o1' (HikerAPI 404)
     valid_url = re.compile(
-        r"(?:(?:http|https):\/\/)?(?:www.)?(?:instagram.com)\/(?:(stories(?:\/highlights)?|p|reel)\/)?([^\/\?]*)\/?(\d+)?"
+        r"^(?:https?:\/\/)?(?:[\w-]+\.)?instagram\.com\/(?:(stories(?:\/highlights)?|p|reel)\/)?([^\/\?]*)\/?(\d+)?"
     )
 
     _skipped_items = 0  # per download(), see there

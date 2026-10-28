@@ -177,3 +177,14 @@ def test_enrich_stops_after_first_ffmpeg_error(
     assert mock_output.run.call_count == 1
     assert mock_log.call_count == 1
     assert metadata_with_video.media[0].get("thumbnails") == []
+
+
+def test_enrich_skips_media_without_video_stream(thumbnail_enricher, metadata_with_video, mock_ffmpeg_environment):
+    # eg an audio-only mp4 - ffmpeg failed on every thumbnail
+    mock_ffmpeg_environment["mock_probe"].return_value = {"streams": [{"codec_type": "audio", "duration": "120"}]}
+    metadata_with_video.media[0].set("duration", 120.0)
+
+    thumbnail_enricher.enrich(metadata_with_video)
+
+    mock_ffmpeg_environment["mock_ffmpeg_input"].assert_not_called()
+    assert metadata_with_video.media[0].get("thumbnails") is None

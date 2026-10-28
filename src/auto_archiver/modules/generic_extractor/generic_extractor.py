@@ -39,6 +39,10 @@ YTDLP_SOCKET_TIMEOUT = 60
 YTDLP_MAX_UNKNOWN_SIZE_SECONDS = 20 * 60
 
 
+class EndlessDownloadCancelled(yt_dlp.utils.DownloadCancelled):
+    """raised by _stop_endless_download, so the other ies aren't tried on the same endless stream"""
+
+
 def _stop_endless_download(d: dict) -> None:
     """yt-dlp progress hook: live radio/streams have no known size and never finish"""
     if d["status"] != "downloading" or d.get("total_bytes") or d.get("total_bytes_estimate"):
@@ -50,7 +54,7 @@ def _stop_endless_download(d: dict) -> None:
             f"Stopped yt-dlp download: over {YTDLP_MAX_UNKNOWN_SIZE_SECONDS // 60} min with unknown size, "
             f"probably a live stream ({mb:.1f} MB so far): {url}"
         )
-        raise yt_dlp.utils.DownloadCancelled(f"unknown size download ran over {YTDLP_MAX_UNKNOWN_SIZE_SECONDS // 60} min")
+        raise EndlessDownloadCancelled(f"unknown size download ran over {YTDLP_MAX_UNKNOWN_SIZE_SECONDS // 60} min")
 
 
 class _YtdlpLogger:
@@ -654,8 +658,11 @@ class GenericExtractor(Extractor):
         dropin_submodule = self.dropin_for_name(info_extractor.ie_key())
 
         def _helper_for_successful_extract_info(data, info_extractor, url, ydl):
-            if data.get("is_live", False) and not self.livestreams:
-                logger.warning("Livestream detected, skipping due to 'livestreams' configuration setting")
+            # DM 28th Oct 26 - live streams are always skipped (the livestreams and live_from_start settings are gone):
+            # they never finish, so _stop_endless_download cancelled them after 20 min and nothing was kept.
+            # A YouTube stream that has just ended (post_live) isn't is_live, but can still download as one
+            if data.get("is_live", False) or data.get("live_status") == "post_live":
+                logger.warning(f"Live stream, skipping: {url}")
                 return False
             # it's a valid video, that the youtubdedl can download out of the box
             return self.get_metadata_for_video(data, info_extractor, url, ydl)
@@ -684,6 +691,9 @@ class GenericExtractor(Extractor):
         except MaxDownloadsReached:
             # yt-dlp raises an error when the max downloads limit is reached, and it shouldn't for our purposes, so we consider that a success
             result = _helper_for_successful_extract_info(data, info_extractor, url, ydl)
+
+        except EndlessDownloadCancelled:
+            raise
 
         except Exception as e:
             if info_extractor.IE_NAME == "generic":
@@ -765,7 +775,6 @@ class GenericExtractor(Extractor):
             # Subtitles will be downloaded separately in get_metadata_for_video() if enabled
             "--no-write-subs",
             "--no-write-auto-subs",
-            "--live-from-start" if self.live_from_start else "--no-live-from-start",
             "--postprocessor-args",
             "ffmpeg:-bitexact",  # ensure bitexact output to avoid mismatching hashes for same video
             "--socket-timeout",
@@ -823,7 +832,12 @@ class GenericExtractor(Extractor):
                 # a more specific extractor already succeeded; skip the generic fallback to avoid
                 # redundant re-downloads (e.g. a second subtitle fetch racing/overwriting the first)
                 continue
-            local_result: Metadata = self.download_for_extractor(info_extractor, url, ydl)
+            try:
+                local_result: Metadata = self.download_for_extractor(info_extractor, url, ydl)
+            except EndlessDownloadCancelled:
+                # DM 28th Oct 26 - the generic ie found the same YouTube embed again and spent another 20 min on it
+                logger.info(f"Cancelled an endless download, not trying the remaining yt-dlp extractors for {url}")
+                break
             if local_result:
                 result = result.merge(local_result) if result else local_result
         return result if result else False

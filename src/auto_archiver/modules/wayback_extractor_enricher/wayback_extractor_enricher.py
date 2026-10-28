@@ -99,8 +99,13 @@ class WaybackExtractorEnricher(Enricher, Extractor):
                 if UrlUtil.domain_for_url(url).removeprefix('www.') in ('twitter.com', 'x.com'):
                     logger.info(f"Wayback failed and we know about this with Twitter/X with {r.json()} - if it starts working from wayback side, this will be fine")
                     return False
-                elif r.json().get("status_ext") == "error:blocked-url":
-                    # URL is on the IA Save Page Now block list - permanent and not a problem with this code
+                elif r.json().get("status_ext") in (
+                    "error:blocked-url",
+                    "error:invalid-host-resolution",
+                    "error:host-crawling-paused",
+                ):
+                    # URL is on the IA Save Page Now block list, IA can't resolve the host (eg archive.is), or IA has
+                    # paused crawling the host - not a problem with this code
                     logger.warning(f"Wayback failed with {r.json()}")
                     return False
                 else:

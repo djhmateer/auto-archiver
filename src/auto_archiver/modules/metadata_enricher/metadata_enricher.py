@@ -24,7 +24,8 @@ class MetadataEnricher(Enricher):
         try:
             # Run ExifTool command to extract metadata from the file
             cmd = ["exiftool", filename]
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+            # DM 28th Oct 26 - exiftool prints tag values as found, which aren't always utf-8 (eg byte 0xb9 in an mp3)
+            result = subprocess.run(cmd, capture_output=True, text=True, errors="replace", timeout=60)
             if result.returncode != 0:
                 logger.debug(f"exiftool exited with {result.returncode} for {filename}: {result.stderr.strip()[:200]}")
             # Process the output to extract individual metadata fields

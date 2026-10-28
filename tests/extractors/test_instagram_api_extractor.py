@@ -96,6 +96,10 @@ class TestInstagramAPIExtractor(TestExtractorBase):
             ("https://www.instagram.com/reel/reel_id", [("reel", "reel_id", "")]),
             ("https://instagram.com/stories/highlights/123", [("stories/highlights", "123", "")]),
             ("https://instagram.com/stories/user/123", [("stories", "user", "123")]),
+            ("https://m.instagram.com/p/C9QmUGDNOd0/", [("p", "C9QmUGDNOd0", "")]),
+            # instagram.com elsewhere in the url isn't an instagram url
+            ("https://scontent.cdninstagram.com/o1/v/t2/f2/m78/abc.mp4", []),
+            ("https://web.archive.org/web/20251216134440/https://scontent.cdninstagram.com/o1/v/abc.mp4", []),
         ],
     )
     def test_url_parsing(self, url, expected):

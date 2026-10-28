@@ -63,8 +63,6 @@ thumbnail_enricher:
 generic_extractor:
   subtitles: true
   comments: false
-  livestreams: false
-  live_from_start: false
   proxy: ''
   end_means_success: true
   allow_playlist: false

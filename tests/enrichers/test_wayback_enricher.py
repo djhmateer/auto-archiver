@@ -176,3 +176,19 @@ def test_enrich_sends_non_ascii_hostname_as_punycode(
     metadata = Metadata().set_url("https://ПРИМЕР.испытание:8080/%D0%B3%D1%83-path")
     wayback_extractor_enricher.enrich(metadata)
     assert post.call_args.kwargs["data"]["url"] == "https://xn--e1afmkfd.xn--80akhbyknj4f:8080/%D0%B3%D1%83-path"
+
+
+@pytest.mark.parametrize(
+    "status_ext", ["error:blocked-url", "error:invalid-host-resolution", "error:host-crawling-paused"]
+)
+def test_enrich_no_job_id_ia_refusal_is_warning(
+    wayback_extractor_enricher, metadata, mock_is_auth_wall, mock_post_success, mocker, status_ext
+):
+    mock_is_auth_wall(False)
+    mock_post_success(json_data={"status": "error", "status_ext": status_ext, "message": "IA refused"})
+    error = mocker.patch("auto_archiver.utils.custom_logger.logger.error")
+    warning = mocker.patch("auto_archiver.utils.custom_logger.logger.warning")
+
+    assert wayback_extractor_enricher.enrich(metadata) is False
+    error.assert_not_called()
+    warning.assert_called_once()

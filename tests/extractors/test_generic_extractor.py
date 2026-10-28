@@ -22,8 +22,6 @@ class TestGenericExtractor(TestExtractorBase):
     config = {
         "subtitles": False,
         "comments": False,
-        "livestreams": False,
-        "live_from_start": False,
         "end_means_success": True,
         "allow_playlist": False,
         "max_downloads": "inf",
@@ -629,3 +627,54 @@ class TestStopEndlessDownload:
         warning = mocker.patch("auto_archiver.utils.custom_logger.logger.warning")
         _stop_endless_download(self._progress(**kwargs))
         warning.assert_not_called()
+
+
+class TestEndlessDownloadStopsExtractors:
+    """after _stop_endless_download cancels a download, the other ies aren't tried on the same url"""
+
+    @pytest.fixture
+    def extractor(self, setup_module, mocker):
+        import yt_dlp
+
+        extractor = setup_module("generic_extractor", TestGenericExtractor.config)
+        youtube_ie, generic_ie = mocker.MagicMock(IE_NAME="youtube"), mocker.MagicMock(IE_NAME="generic")
+        mocker.patch.object(extractor, "suitable_extractors", return_value=[youtube_ie, generic_ie])
+        validate_outtmpl = yt_dlp.YoutubeDL.validate_outtmpl  # parse_options calls this static method
+        mock = mocker.patch("auto_archiver.modules.generic_extractor.generic_extractor.yt_dlp.YoutubeDL")
+        mock.validate_outtmpl = validate_outtmpl
+        return extractor
+
+    def test_remaining_extractors_skipped(self, extractor, make_item, mocker):
+        from auto_archiver.modules.generic_extractor.generic_extractor import EndlessDownloadCancelled
+
+        download_for_extractor = mocker.patch.object(
+            extractor, "download_for_extractor", side_effect=EndlessDownloadCancelled("ran over 20 min")
+        )
+
+        assert extractor.download(make_item("https://example.com/page")) is False
+        download_for_extractor.assert_called_once()
+
+    def test_cancel_not_sent_to_dropin(self, extractor, mocker):
+        from auto_archiver.modules.generic_extractor.generic_extractor import EndlessDownloadCancelled
+
+        mocker.patch.object(extractor, "dropin_for_name", return_value=None)
+        cancelled = EndlessDownloadCancelled("ran over 20 min")
+        mocker.patch.object(extractor, "get_metadata_for_video", side_effect=cancelled)
+        get_metadata_for_post = mocker.patch.object(extractor, "get_metadata_for_post")
+        ydl = mocker.MagicMock()
+        ydl.extract_info.return_value = {"id": "abc", "live_status": "not_live"}
+
+        with pytest.raises(EndlessDownloadCancelled):
+            extractor.download_for_extractor(mocker.MagicMock(IE_NAME="youtube"), "https://example.com/page", ydl)
+        get_metadata_for_post.assert_not_called()
+
+    @pytest.mark.parametrize("data", [{"is_live": True}, {"is_live": False, "live_status": "post_live"}])
+    def test_live_and_post_live_skipped(self, extractor, mocker, data):
+        mocker.patch.object(extractor, "dropin_for_name", return_value=None)
+        get_metadata_for_video = mocker.patch.object(extractor, "get_metadata_for_video")
+        ydl = mocker.MagicMock()
+        ydl.extract_info.return_value = {"id": "abc", **data}
+
+        result = extractor.download_for_extractor(mocker.MagicMock(IE_NAME="youtube"), "https://example.com/v", ydl)
+        assert result is False
+        get_metadata_for_video.assert_not_called()
