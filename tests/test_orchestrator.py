@@ -323,6 +323,14 @@ def test_quick_row_dumps_nothing(mocker, tmp_path):
     assert hangs == ""
 
 
+@pytest.fixture
+def vk_blocked(mocker):
+    # the live list can be empty, so these tests put sites on it themselves
+    from auto_archiver.core import orchestrator as orch
+
+    mocker.patch.object(orch, "IP_BLOCKED_SITES", ["vk.com", "vk.ru", "vkvideo.ru"])
+
+
 @pytest.mark.parametrize(
     "url",
     [
@@ -334,14 +342,14 @@ def test_quick_row_dumps_nothing(mocker, tmp_path):
         "https://vk.ru:443/id123",
     ],
 )
-def test_ip_blocked_site_that_still_times_out(mocker, url):
+def test_ip_blocked_site_that_still_times_out(mocker, url, vk_blocked):
     connect = mocker.patch("socket.create_connection", side_effect=TimeoutError)
     assert ArchivingOrchestrator._is_ip_blocked(url) is True
     host = connect.call_args[0][0][0]
     assert host in ("vk.ru", "m.vk.com", "vkvideo.ru", "vk.com")
 
 
-def test_ip_blocked_site_reachable_again(mocker):
+def test_ip_blocked_site_reachable_again(mocker, vk_blocked):
     mocker.patch("socket.create_connection")
     warning = mocker.patch("auto_archiver.utils.custom_logger.logger.warning")
     assert ArchivingOrchestrator._is_ip_blocked("https://vk.ru/id123") is False
@@ -349,7 +357,7 @@ def test_ip_blocked_site_reachable_again(mocker):
 
 
 @pytest.mark.parametrize("url", ["https://example.com/page", "https://notvk.ru/page"])
-def test_other_sites_never_checked(mocker, url):
+def test_other_sites_never_checked(mocker, url, vk_blocked):
     connect = mocker.patch("socket.create_connection")
     assert ArchivingOrchestrator._is_ip_blocked(url) is False
     connect.assert_not_called()
@@ -435,7 +443,7 @@ def _archive_with_named_modules(mocker, url):
     return o.archive(Metadata().set_url(url)), ran
 
 
-def test_ip_blocked_site_only_runs_modules_that_dont_fetch_it(mocker):
+def test_ip_blocked_site_only_runs_modules_that_dont_fetch_it(mocker, vk_blocked):
     mocker.patch("socket.create_connection", side_effect=TimeoutError)
     result, ran = _archive_with_named_modules(mocker, "https://vk.ru/id123")
     assert ran == ["wayback_extractor_enricher", "hash_enricher"]

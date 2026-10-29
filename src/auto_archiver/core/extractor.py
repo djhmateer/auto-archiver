@@ -75,6 +75,7 @@ class Extractor(BaseModule):
 
     MAX_429_ATTEMPTS = 3
     MAX_429_WAIT_SECONDS = 60
+    MAX_DROPPED_ATTEMPTS = 3
 
     def _retry_after_seconds(self, retry_after: str | None, default: int) -> int:
         """Seconds to wait from a Retry-After header (delta-seconds only, not the HTTP-date form), capped"""
@@ -115,34 +116,25 @@ class Extractor(BaseModule):
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36"
         }
         try:
-            # DM 8th Oct 26 - a CDN 429 (eg cdninstagram) used to fail straight away as the @retry above never sees
-            # the exception (caught below), so back off and retry here, honouring Retry-After (capped)
-            for attempt in range(1, self.MAX_429_ATTEMPTS + 1):
-                d = requests.get(url, stream=True, headers=headers, timeout=30)
-                if d.status_code != 429 or attempt == self.MAX_429_ATTEMPTS:
+            # DM 29th Oct 26 - a connection dropped mid-download (eg IncompleteRead from cdninstagram) used to lose the
+            # file as the @retry above never sees the exception (caught below), so download it again from scratch.
+            # Only mid-download drops - DNS, SSL or refused connections won't fix themselves in a few seconds
+            for attempt in range(1, self.MAX_DROPPED_ATTEMPTS + 1):
+                try:
+                    filename = self._fetch_to_file(url, to_filename, headers)
                     break
-                wait = self._retry_after_seconds(d.headers.get("Retry-After"), default=10 * attempt)
-                logger.warning(
-                    f"HTTP 429 Too Many Requests from {urlparse(url).netloc}, retrying in {wait}s "
-                    f"(attempt {attempt} of {self.MAX_429_ATTEMPTS})"
-                )
-                d.close()
-                time.sleep(wait)
-            d.raise_for_status()
-
-            # get mimetype from the response headers
-            if not mimetypes.guess_type(to_filename)[0]:
-                content_type = d.headers.get("Content-Type") or self._guess_file_type(url)
-                extension = mimetypes.guess_extension(content_type)
-                if extension:
-                    to_filename += extension
-
-            with open(to_filename, "wb") as f:
-                for chunk in d.iter_content(chunk_size=8192):
-                    f.write(chunk)
+                except requests.exceptions.ChunkedEncodingError as e:
+                    if attempt == self.MAX_DROPPED_ATTEMPTS:
+                        raise
+                    # quiet callers fall back to the WARC copy, so a retry isn't worth a warning there
+                    (logger.debug if quiet_on_failure else logger.warning)(
+                        f"Connection to {urlparse(url).netloc} dropped ({e}), downloading again in {5 * attempt}s "
+                        f"(attempt {attempt} of {self.MAX_DROPPED_ATTEMPTS})"
+                    )
+                    time.sleep(5 * attempt)
             if try_best_quality:
-                return to_filename, url
-            return to_filename
+                return filename, url
+            return filename
 
         except requests.RequestException as e:
             if quiet_on_failure:
@@ -151,6 +143,35 @@ class Extractor(BaseModule):
                 logger.warning(f"Failed to fetch the Media URL: {e}")
         if try_best_quality:
             return None, url
+
+    def _fetch_to_file(self, url: str, to_filename: str, headers: dict) -> str:
+        """GETs url into to_filename (adding an extension from the Content-Type if needed), returns the filename"""
+        # DM 8th Oct 26 - a CDN 429 (eg cdninstagram) used to fail straight away as the @retry above never sees
+        # the exception (caught below), so back off and retry here, honouring Retry-After (capped)
+        for attempt in range(1, self.MAX_429_ATTEMPTS + 1):
+            d = requests.get(url, stream=True, headers=headers, timeout=30)
+            if d.status_code != 429 or attempt == self.MAX_429_ATTEMPTS:
+                break
+            wait = self._retry_after_seconds(d.headers.get("Retry-After"), default=10 * attempt)
+            logger.warning(
+                f"HTTP 429 Too Many Requests from {urlparse(url).netloc}, retrying in {wait}s "
+                f"(attempt {attempt} of {self.MAX_429_ATTEMPTS})"
+            )
+            d.close()
+            time.sleep(wait)
+        d.raise_for_status()
+
+        # get mimetype from the response headers
+        if not mimetypes.guess_type(to_filename)[0]:
+            content_type = d.headers.get("Content-Type") or self._guess_file_type(url)
+            extension = mimetypes.guess_extension(content_type)
+            if extension:
+                to_filename += extension
+
+        with open(to_filename, "wb") as f:
+            for chunk in d.iter_content(chunk_size=8192):
+                f.write(chunk)
+        return to_filename
 
     @abstractmethod
     def download(self, item: Metadata) -> Metadata | False:

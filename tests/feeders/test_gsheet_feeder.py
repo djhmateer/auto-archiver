@@ -277,3 +277,18 @@ def test__process_rows_marks_row_left_in_progress(gsheet_feeder: GsheetsFeederDB
     metadata_items = list(gsheet_feeder._process_rows(testworksheet))
     assert len(metadata_items) == 1
     testworksheet.set_cell.assert_called_once_with(2, "status", "Problem in archive - run again")
+
+
+def test__process_rows_skips_invalid_url(gsheet_feeder: GsheetsFeederDB, mocker):
+    testworksheet = MockWorksheet()
+    testworksheet.rows = [
+        {"row": 2, "url": "N/A", "status": "", "folder": ""},
+        {"row": 3, "url": "example.com/page", "status": "", "folder": ""},
+        {"row": 4, "url": ": https://example.com/page", "status": "", "folder": ""},
+        {"row": 5, "url": "-", "status": "", "folder": ""},
+    ]
+    testworksheet.set_cell = mocker.MagicMock()
+    metadata_items = list(gsheet_feeder._process_rows(testworksheet))
+    assert [m.get_url() for m in metadata_items] == ["example.com/page", ": https://example.com/page"]
+    testworksheet.set_cell.assert_any_call(2, "status", "WARNING: not a valid URL")
+    testworksheet.set_cell.assert_any_call(5, "status", "WARNING: not a valid URL")

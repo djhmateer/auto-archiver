@@ -11,9 +11,10 @@ The filtered rows are processed into `Metadata` objects.
 
 from datetime import datetime, timezone
 import os
+import re
 import traceback
 from typing import Tuple, Union, Iterator
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 import gspread
 from auto_archiver.utils.custom_logger import logger
@@ -97,6 +98,16 @@ class GsheetsFeederDB(Feeder, Database):
                 continue
             # TODO: custom status parser(?) aka should_retry_from_status
             if status not in ["", None]:
+                continue
+
+            # DM 29th Oct 26 - a cell like "N/A" became https://N/A and went through every extractor
+            # strip any stray leading punctuation (eg ": https://...") and scheme as the orchestrator does, then
+            # a real hostname has a dot
+            bare = re.sub(r"^\W*(https?://)?", "", url)
+            hostname = urlparse(f"https://{bare}").hostname or ""
+            if "." not in hostname:
+                logger.warning(f"Row {row} is not a valid URL - skipping: {url}")
+                gw.set_cell(row, "status", "WARNING: not a valid URL")
                 continue
 
             # Set in orchestration.yaml. Default is False

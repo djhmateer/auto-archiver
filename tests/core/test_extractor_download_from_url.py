@@ -1,5 +1,6 @@
 """
-Extractor.download_from_url retries an HTTP 429 (eg from cdninstagram) instead of failing straight away.
+Extractor.download_from_url retries an HTTP 429 (eg from cdninstagram) or a connection dropped mid-download
+instead of failing straight away.
 Uses instagram_api_extractor only as a concrete Extractor - the code under test is in core/extractor.py.
 """
 
@@ -74,3 +75,47 @@ def test_other_errors_are_not_retried(extractor, mocker, mock_sleep):
 @pytest.mark.parametrize("header,expected", [(None, 20), ("abc", 20), ("Wed, 21 Oct 2026 07:28:00 GMT", 20), ("0", 1)])
 def test_retry_after_seconds_fallbacks(extractor, header, expected):
     assert extractor._retry_after_seconds(header, default=20) == expected
+
+
+def _dropped_response():
+    r = _response(200)
+    r.iter_content.side_effect = requests.exceptions.ChunkedEncodingError(
+        "IncompleteRead(100 bytes read, 900 more expected)"
+    )
+    return r
+
+
+def test_dropped_connection_then_success_downloads_again(extractor, mocker, mock_sleep):
+    mock_get = mocker.patch(
+        "auto_archiver.core.extractor.requests.get", side_effect=[_dropped_response(), _response(200)]
+    )
+
+    filename = extractor.download_from_url("https://cdn.example.com/video", verbose=False)
+
+    # extension added once, not once per attempt
+    assert filename.endswith("video.mp4")
+    with open(filename, "rb") as f:
+        assert f.read() == b"data"
+    assert mock_get.call_count == 2
+    mock_sleep.assert_called_once_with(5)
+
+
+def test_dropped_connection_every_attempt_gives_up_and_returns_none(extractor, mocker, mock_sleep):
+    mock_get = mocker.patch(
+        "auto_archiver.core.extractor.requests.get", side_effect=lambda *a, **k: _dropped_response()
+    )
+
+    assert extractor.download_from_url("https://cdn.example.com/video.mp4", verbose=False) is None
+    assert mock_get.call_count == extractor.MAX_DROPPED_ATTEMPTS
+    assert [c.args[0] for c in mock_sleep.call_args_list] == [5, 10]
+
+
+def test_failed_connection_is_not_retried(extractor, mocker, mock_sleep):
+    # eg DNS or connection refused - unlike a drop mid-download, retrying in a few seconds won't help
+    mock_get = mocker.patch(
+        "auto_archiver.core.extractor.requests.get", side_effect=requests.exceptions.ConnectionError("refused")
+    )
+
+    assert extractor.download_from_url("https://cdn.example.com/video.mp4", verbose=False) is None
+    assert mock_get.call_count == 1
+    mock_sleep.assert_not_called()

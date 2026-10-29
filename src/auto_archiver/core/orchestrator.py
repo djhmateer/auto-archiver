@@ -63,7 +63,8 @@ ROW_KILL_SECONDS = 3 * 60 * 60
 KILL_REPORT_SECONDS = 60
 
 # DM 25th Oct 26 - these sites time out connecting from our servers' IPs, so a row took ~18 min and only Wayback worked
-IP_BLOCKED_SITES = ["vk.com", "vk.ru", "vkvideo.ru"]
+# DM 29th Oct 26 - all reachable again, list kept empty in case a site gets blocked again
+IP_BLOCKED_SITES = []
 # modules that fetch the site themselves - skipped while it's blocked; Wayback etc. go via a third party so still run
 SKIP_WHEN_IP_BLOCKED = [
     "generic_extractor",
