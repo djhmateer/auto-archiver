@@ -949,6 +949,17 @@ class WaczExtractorEnricher(Enricher, Extractor):
         except Exception:
             return "?"
 
+    @staticmethod
+    def _same_proportions(dimensions_a: str, dimensions_b: str) -> bool:
+        """True if two WIDTHxHEIGHT sizes have the same shape, within 1% to allow for rounding at small sizes"""
+        try:
+            width_a, height_a = map(int, dimensions_a.split("x"))
+            width_b, height_b = map(int, dimensions_b.split("x"))
+        except ValueError:
+            return False
+        ratio_a = width_a / height_a
+        return abs(ratio_a - width_b / height_b) <= 0.01 * ratio_a
+
     def _log_wacz_image(self, n: int, m: Media, record_url: str, page_ctx: dict | None, image_where: Counter) -> None:
         """One line per image kept from the WACZ, to query in aa_logs with LIKE '%WACZ image #%'. where is og (the
         page's og:image), article (an <img> in an <article>), html (an <img> elsewhere), none (not in the page's html,
@@ -1393,6 +1404,10 @@ class WaczExtractorEnricher(Enricher, Extractor):
         youtube_skipped = 0
         capped = 0
 
+        # DM 30th Oct 26 - an Instagram page loads each picture at up to 7 widths, which use up WACZ_MAX_MEDIA
+        instagram_images = {}
+        instagram_other_sizes = 0
+
         # DM 26th Oct 26 - to find what the article's own images have in common (vs related article thumbnails, ads,
         # logos), log for each kept image where the page's html puts it. Logging only, nothing is filtered on it yet
         page_ctx = self._page_image_context(warc_filename, url) if url and self.extract_media else None
@@ -1509,6 +1524,43 @@ class WaczExtractorEnricher(Enricher, Extractor):
                         seen_urls.add(record_url)
                         continue
 
+                instagram_name = None
+                if "instagram" in record_url and "image" in content_type:
+                    instagram_name = urlparse(record_url).path.rsplit("/", 1)[-1]
+                    kept_images = [
+                        k for k in instagram_images.get(instagram_name, []) if os.path.splitext(k.filename)[1] == ext
+                    ]
+                    if kept_images:
+                        dimensions = self._image_dimensions(fn)
+                        # compare with the kept image of the same shape, so crops are compared with each other
+                        kept = next(
+                            (k for k in kept_images if self._same_proportions(dimensions, self._image_dimensions(k.filename))),
+                            kept_images[0],
+                        )
+                        kept_dimensions = self._image_dimensions(kept.filename)
+                        kept_size = os.path.getsize(kept.filename)
+                        same_proportions = self._same_proportions(dimensions, kept_dimensions)
+                        if not same_proportions:
+                            action = "different proportions, keeping both"
+                        elif not self.dedupe_instagram_image_sizes:
+                            action = "flag off, keeping both"
+                        elif fs > kept_size:
+                            action = "keeping this one, discarding the other"
+                        else:
+                            action = "discarding this one"
+                        logger.info(
+                            f"WACZ Instagram image {instagram_name}: {dimensions} {fs // 1024}KB, already have "
+                            f"{kept_dimensions} {kept_size // 1024}KB - {action}"
+                        )
+                        if same_proportions:
+                            instagram_other_sizes += 1
+                            if self.dedupe_instagram_image_sizes:
+                                if fs > kept_size:
+                                    os.replace(fn, kept.filename)
+                                    kept.set("src", record_url)
+                                seen_urls.add(record_url)
+                                continue
+
                 if counter_warc_files >= WACZ_MAX_MEDIA:
                     capped += 1
                     seen_urls.add(record_url)
@@ -1546,6 +1598,8 @@ class WaczExtractorEnricher(Enricher, Extractor):
                     to_enrich.add_media(m, warc_fn)
                     if image_key:
                         page_media[image_key] = m
+                    if instagram_name:
+                        instagram_images.setdefault(instagram_name, []).append(m)
                     if "image" in content_type:
                         self._log_wacz_image(counter_warc_files, m, record_url, page_ctx, image_where)
                 except Exception as e:
@@ -1559,6 +1613,9 @@ class WaczExtractorEnricher(Enricher, Extractor):
             )
         if youtube_skipped:
             logger.info(f"YouTube video {youtube_video_id}: skipped {youtube_skipped} thumbnail(s) of other videos")
+        if instagram_other_sizes:
+            outcome = "discarded" if self.dedupe_instagram_image_sizes else "kept as the flag is off"
+            logger.info(f"WACZ of {url}: {instagram_other_sizes} other size(s) of Instagram images, {outcome}")
         if image_where:
             logger.info(
                 f"WACZ images of {url}: {sum(image_where.values())} kept - "

@@ -2,6 +2,7 @@ from datetime import datetime
 import math
 
 import pytest
+import requests
 
 from auto_archiver.core import Metadata
 from auto_archiver.modules.instagram_api_extractor.instagram_api_extractor import InstagramAPIExtractor
@@ -280,6 +281,82 @@ class TestInstagramAPIExtractor(TestExtractorBase):
         assert "Error downloading carousel item c2" in result.get("errors")
         assert result.get_status_notes() == ["1 Instagram item(s) failed to download - see logs"]
 
+    def test_download_all_posts_follows_next_page_id(self, mocker):
+        mock_call = mocker.patch.object(
+            self.extractor,
+            "call_api",
+            side_effect=[
+                {"response": {"items": [{"id": "p1"}]}, "next_page_id": "page2"},
+                {"response": {"items": [{"id": "p2"}]}, "next_page_id": None},
+            ],
+        )
+        mock_scrape = mocker.patch.object(self.extractor, "scrape_item")
+
+        assert self.extractor.download_all_posts(Metadata(), "123", max_to_download=10) == 2
+
+        assert mock_scrape.call_count == 2
+        mock_call.assert_has_calls(
+            [
+                mocker.call("g2/user/medias", {"user_id": "123", "flat": "true", "next_page_id": None}),
+                mocker.call("g2/user/medias", {"user_id": "123", "flat": "true", "next_page_id": "page2"}),
+            ]
+        )
+
+    def test_scrape_media_reads_g2_date_and_caption(self, mocker):
+        mocker.patch.object(self.extractor, "download_from_url", return_value="image.jpg")
+        item = {
+            "id": "p1",
+            "1ltaken_at": 1700000000,
+            "caption": {"text": "a caption"},
+            "image_versions2": {"candidates": [{"url": "http://example.com/1.jpg"}]},
+        }
+
+        _, media, _ = self.extractor.scrape_media(item, "post")
+
+        assert media.get("date") == "2023-11-14T22:13:20Z"
+        assert media.get("text") == "a caption"
+
+    def test_scrape_item_handles_g2_null_fields(self, mocker):
+        mocker.patch.object(self.extractor, "download_from_url", return_value="image.jpg")
+        item = {
+            "id": "p1",
+            "clips_metadata": None,
+            "carousel_media": None,
+            "resources": None,
+            "video_versions": None,
+            "image_versions2": {"candidates": [{"url": "http://example.com/1.jpg"}]},
+        }
+        result = Metadata()
+
+        self.extractor.scrape_item(result, item, "post")
+
+        assert len(result.media) == 1
+
+    def test_own_posts_failure_is_noted_on_the_row(self, mocker):
+        self.extractor.full_profile = True
+        mocker.patch.object(self.extractor, "call_api", return_value={"user": {"pk": "123"}})
+        mocker.patch.object(self.extractor, "_download_stories_reusable", return_value=[])
+        mocker.patch.object(self.extractor, "download_all_posts", side_effect=Exception("Posts API failed"))
+        mocker.patch.object(self.extractor, "download_all_tagged", return_value=0)
+        mocker.patch.object(self.extractor, "download_all_highlights", return_value=0)
+
+        result = self.extractor.download_profile(Metadata().set_url("https://www.instagram.com/test_user/"), "test_user")
+
+        assert result.is_success()
+        assert result.get_status_notes() == ["own posts failed - see logs"]
+
+    def test_call_api_does_not_retry_404(self, mocker):
+        response = requests.Response()
+        response.status_code = 404
+        mock_get = mocker.patch(
+            "auto_archiver.modules.instagram_api_extractor.instagram_api_extractor.requests.get", return_value=response
+        )
+
+        with pytest.raises(requests.HTTPError):
+            self.extractor.call_api("g2/user/medias", {"user_id": "123"})
+
+        mock_get.assert_called_once()
+
     def test_skipped_profile_posts_are_noted_and_counter_resets(self, mocker):
         """Posts skipped during a full profile download are counted in the status note, per download() call"""
         self.extractor.full_profile = True
@@ -293,7 +370,7 @@ class TestInstagramAPIExtractor(TestExtractorBase):
             "call_api",
             side_effect=lambda path, params: {"user": {"pk": "123", "username": "u"}}
             if path == "v2/user/by/username"
-            else [posts, ""],
+            else {"response": {"items": posts}},
         )
 
         result = self.extractor.download(Metadata().set_url("https://www.instagram.com/test_user/"))

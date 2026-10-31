@@ -69,7 +69,8 @@ def clean(url: str) -> str:
     TRACKERS = {"utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "fbclid", "gclid"}
 
     parsed = urlparse(url)
-    clean_qs = [(k, v) for k, v in parse_qsl(parsed.query) if k not in TRACKERS]
+    # __cf_chl_* is Cloudflare's challenge token, left in the URL when it is copied from the challenge page
+    clean_qs = [(k, v) for k, v in parse_qsl(parsed.query) if k not in TRACKERS and not k.startswith("__cf_chl_")]
     return parsed._replace(query=urlencode(clean_qs)).geturl()
 
 

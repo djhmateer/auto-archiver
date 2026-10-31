@@ -212,6 +212,9 @@ def test_get_media_url_best_quality(input_url, expected_url):
         ("https://example.com/page?utm_source=google%20ads&foo=bar", "https://example.com/page?foo=bar"),
         # Unrelated param with similar name
         ("https://example.com/page?utm_sourc=keepme&foo=bar", "https://example.com/page?utm_sourc=keepme&foo=bar"),
+        # Cloudflare challenge token
+        ("https://example.com/page/?__cf_chl_tk=abc-123", "https://example.com/page/"),
+        ("https://example.com/page?__cf_chl_rt_tk=abc&foo=bar", "https://example.com/page?foo=bar"),
     ],
 )
 def test_clean_removes_trackers(input_url, expected_url):

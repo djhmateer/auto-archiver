@@ -13,7 +13,7 @@ import binascii
 import math
 import random
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 import traceback
 
 import requests
@@ -129,7 +129,13 @@ class InstagramAPIExtractor(Extractor):
     # hikerapi's Cloudflare edge occasionally returns a 502/503 during origin overload and its error
     # body explicitly asks callers to back off at least 60s before retrying
     #  8s → 16s → 32s → 60s → 60s
-    @retry(wait_exponential_multiplier=8000, wait_exponential_max=60000, stop_max_attempt_number=5)
+    # DM 30th Oct 26 - a 404 didn't recover on retry and cost about 3 minutes each time
+    @retry(
+        retry_on_exception=lambda e: not (isinstance(e, requests.HTTPError) and e.response.status_code == 404),
+        wait_exponential_multiplier=8000,
+        wait_exponential_max=60000,
+        stop_max_attempt_number=5,
+    )
     def call_api(self, path: str, params: dict) -> dict:
         headers = {"accept": "application/json", "x-access-key": self.access_token}
         logger.debug(f"Calling {self.api_endpoint}/{path} with {params=}")
@@ -189,6 +195,8 @@ class InstagramAPIExtractor(Extractor):
                     )
             except Exception as e:
                 result.append("errors", f"Error downloading posts for {username}")
+                # otherwise the row reads as a plain success with the profile's own posts missing
+                result.add_status_note("own posts failed - see logs")
                 logger.error(f"Error downloading posts for {username}: {e} {traceback.format_exc()}")
 
             # download all tagged
@@ -311,17 +319,20 @@ class InstagramAPIExtractor(Extractor):
         return stories
 
     def download_all_posts(self, result: Metadata, user_id: str, max_to_download: int) -> int:
-        end_cursor = None
+        next_page_id = None
         pbar = tqdm(desc="downloading posts")
 
         post_count = 0
-        while end_cursor != "":
-            posts = self.call_api("v1/user/medias/chunk", {"user_id": user_id, "end_cursor": end_cursor})
-            if not posts or not isinstance(posts, list) or len(posts) != 2:
+        while True:
+            # DM 30th Oct 26 - v1/user/medias/chunk is deprecated and has returned 404 for every profile since 16th Oct
+            # requests leaves out next_page_id when it is None
+            resp = self.call_api("g2/user/medias", {"user_id": user_id, "flat": "true", "next_page_id": next_page_id})
+            posts = resp.get("response", {}).get("items", [])
+            if not posts:
                 break
-            posts, end_cursor = posts[0], posts[1]
+            next_page_id = resp.get("next_page_id")
             posts = posts[: min(max_to_download, len(posts))]
-            logger.info(f"Parsing {len(posts)} posts, next {end_cursor=} {post_count=} {max_to_download=}")
+            logger.info(f"Parsing {len(posts)} posts, next {next_page_id=} {post_count=} {max_to_download=}")
             for p in posts:
                 try:
                     self.scrape_item(result, p, "post")
@@ -333,6 +344,8 @@ class InstagramAPIExtractor(Extractor):
                 post_count += 1
             if post_count >= max_to_download:
                 logger.info(f"POSTS reached max_to_download={self.full_profile_max_posts}")
+                break
+            if not next_page_id:
                 break
         result.set("#posts", post_count)
         return post_count
@@ -376,7 +389,8 @@ class InstagramAPIExtractor(Extractor):
         context can be used to give specific id prefixes to media
         """
         if "clips_metadata" in item:
-            if reusable_text := item.get("clips_metadata", {}).get("reusable_text_attribute_string"):
+            # g2/user/medias items have these keys set to null, so .get(key, default) returns None
+            if reusable_text := (item.get("clips_metadata") or {}).get("reusable_text_attribute_string"):
                 item["clips_metadata_text"] = reusable_text
             if self.minimize_json_output:
                 del item["clips_metadata"]
@@ -384,7 +398,7 @@ class InstagramAPIExtractor(Extractor):
         if code := item.get("code") and not result.get("url"):
             result.set_url(f"https://www.instagram.com/p/{code}/")
 
-        resources = item.get("resources", item.get("carousel_media", []))
+        resources = item.get("resources") or item.get("carousel_media") or []
         item, media, media_id = self.scrape_media(item, context)
         # if resources are present take the main media from the first resource
         if not media and len(resources):
@@ -419,7 +433,7 @@ class InstagramAPIExtractor(Extractor):
         # image_versions2.candidates and video_versions lists - extract before minimize_json_output strips them
         image_url = item.get("thumbnail_url")
         if not image_url:
-            candidates = item.get("image_versions2", {}).get("candidates", [])
+            candidates = (item.get("image_versions2") or {}).get("candidates", [])
             if candidates:
                 image_url = candidates[0].get("url")
 
@@ -460,9 +474,13 @@ class InstagramAPIExtractor(Extractor):
 
         # retrieve video info
         best_id = item.get("id", item.get("pk"))
-        taken_at = item.get("taken_at", item.get("taken_at_ts"))
+        # g2/user/medias items have 1ltaken_at and a caption dict instead
+        taken_at = item.get("taken_at", item.get("taken_at_ts", item.get("1ltaken_at")))
+        # 1ltaken_at is a unix timestamp - same format as the dates on stories
+        if isinstance(taken_at, int):
+            taken_at = datetime.fromtimestamp(taken_at, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         code = item.get("code")
-        caption_text = item.get("caption_text")
+        caption_text = item.get("caption_text") or (item.get("caption") or {}).get("text")
         if "carousel_media" in item:
             del item["carousel_media"]
 

@@ -25,6 +25,12 @@
             "type": "bool",
             "help": "If enabled the screenshot captured by browsertrix will be extracted into separate Media and appear in the html report. The .wacz file will be kept untouched.",
         },
+        # DM 30th Oct 26 - off until we have checked the logged matches across more profiles
+        "dedupe_instagram_image_sizes": {
+            "default": False,
+            "type": "bool",
+            "help": "If enabled, Instagram images in the WACZ with the same filename and proportions are treated as sizes of one picture, and only the largest is extracted. When off, both are extracted and the match is only logged. The .wacz file will be kept untouched.",
+        },
         "socks_proxy_host": {
             "default": None,
             "help": "SOCKS proxy host for browsertrix-crawler, use in combination with socks_proxy_port. eg: user:password@host",

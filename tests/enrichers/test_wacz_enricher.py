@@ -272,6 +272,79 @@ FB_PHOTO_HTML = (
 )
 
 
+INSTAGRAM_IMAGE_URL = "https://instagram.example.net/v/111_222_n.jpg"
+
+
+def _noise_jpeg(width: int, height: int) -> bytes:
+    """Random pixels compress badly, so these pass the WACZ size filter"""
+    from io import BytesIO
+
+    from PIL import Image
+
+    out = BytesIO()
+    Image.frombytes("RGB", (width, height), os.urandom(width * height * 3)).save(out, format="JPEG")
+    return out.getvalue()
+
+
+def _write_instagram_wacz(wacz_path, sizes: list) -> None:
+    """A wacz with one Instagram picture at each of the sizes, in that order"""
+    from io import BytesIO
+
+    from warcio.statusandheaders import StatusAndHeaders
+    from warcio.warcwriter import WARCWriter
+
+    warc = BytesIO()
+    writer = WARCWriter(warc, gzip=True)
+    for i, (width, height) in enumerate(sizes):
+        writer.write_record(
+            writer.create_warc_record(
+                f"{INSTAGRAM_IMAGE_URL}?stp=p{i}",
+                "response",
+                payload=BytesIO(_noise_jpeg(width, height)),
+                http_headers=StatusAndHeaders("200 OK", [("Content-Type", "image/jpeg")], protocol="HTTP/1.1"),
+            )
+        )
+    with ZipFile(wacz_path, "w") as zf:
+        zf.writestr("archive/data.warc.gz", warc.getvalue())
+
+
+@pytest.mark.parametrize(
+    "dedupe, sizes, kept_sizes, action",
+    [
+        # off is the default - nothing changes, the match is only logged
+        (False, [(400, 500), (800, 1000)], [(400, 500), (800, 1000)], "flag off, keeping both"),
+        (True, [(400, 500), (800, 1000)], [(800, 1000)], "keeping this one, discarding the other"),
+        (True, [(800, 1000), (400, 500)], [(800, 1000)], "discarding this one"),
+        # eg a crop, so not just another size of the picture
+        (True, [(800, 1000), (500, 500)], [(800, 1000), (500, 500)], "different proportions, keeping both"),
+        # later sizes are compared with the kept image of the same shape, not just the first image
+        (True, [(800, 1000), (640, 640), (480, 480)], [(800, 1000), (640, 640)], "discarding this one"),
+        (False, [(800, 1000), (640, 640), (480, 480)], [(800, 1000), (640, 640), (480, 480)], "flag off, keeping both"),
+    ],
+)
+def test_instagram_image_sizes(wacz_enricher, tmp_path, mocker, dedupe, sizes, kept_sizes, action) -> None:
+    from PIL import Image
+
+    mock_logger = mocker.patch("auto_archiver.modules.wacz_extractor_enricher.wacz_extractor_enricher.logger")
+    wacz_enricher.tmp_dir = str(tmp_path)
+    wacz_enricher.extract_media = True
+    wacz_enricher.dedupe_instagram_image_sizes = dedupe
+    wacz_path = tmp_path / "test.wacz"
+    _write_instagram_wacz(wacz_path, sizes)
+    item = Metadata().set_url("https://www.instagram.com/profile1/")
+
+    wacz_enricher.extract_media_from_wacz(item, str(wacz_path))
+
+    assert [Image.open(m.filename).size for m in item.media] == kept_sizes
+    assert any(action in call.args[0] for call in mock_logger.info.call_args_list)
+
+
+def test_same_proportions_handles_unknown_dimensions(wacz_enricher) -> None:
+    assert wacz_enricher._same_proportions("240x301", "2811x3531")
+    assert not wacz_enricher._same_proportions("800x1000", "500x500")
+    assert not wacz_enricher._same_proportions("?", "500x500")
+
+
 def _write_fb_photo_wacz(wacz_path, photo_url: str, route: bool = True, page_html: bytes = None) -> None:
     """A wacz like a crawl of a Facebook /photo page: a bulk-route-definitions request for a photo in the author's
     album (an a. set, so no carousel set_id), the full resolution image response and the browsertrix screenshot.

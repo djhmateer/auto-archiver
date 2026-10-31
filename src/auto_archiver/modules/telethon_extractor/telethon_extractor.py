@@ -237,7 +237,8 @@ class TelethonExtractor(Extractor):
                             )
                         for i, om_url in enumerate(other_media_urls):
                             filename = self.download_from_url(om_url, f"{chat}_{group_id}_{i}")
-                            result.add_media(Media(filename=filename), id=f"{group_id}_{i}")
+                            if filename:
+                                result.add_media(Media(filename=filename), id=f"{group_id}_{i}")
 
                     filename_dest = os.path.join(self.tmp_dir, f"{chat}_{group_id}", str(mp.id))
                     filename = self.client.download_media(mp.media, filename_dest)

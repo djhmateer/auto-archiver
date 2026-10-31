@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timezone
 
 import pytest
 
@@ -169,6 +169,28 @@ def test_public_channel_not_found_adds_no_status_note(telethon_with_mock_client)
 def test_private_channel_already_cached_skips_dialogs(telethon_with_mock_client):
     telethon_with_mock_client.download(mocker_item("https://t.me/c/1274414965/107212"))
     telethon_with_mock_client.client.get_dialogs.assert_not_called()
+
+
+def test_failed_entity_media_download_adds_no_media(telethon_with_mock_client, mocker, tmp_path):
+    extractor = telethon_with_mock_client
+    extractor.tmp_dir = str(tmp_path)
+    post = mocker.MagicMock(
+        id=1,
+        grouped_id=None,
+        message="text",
+        date=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        entities=[mocker.MagicMock(url="https://example.com/image.jpg")],
+    )
+    post.to_dict.return_value = {}
+    extractor.client.get_messages.return_value = post
+    extractor.client.download_media.return_value = None
+    mocker.patch.object(extractor, "_get_media_posts_in_group", return_value=[post])
+    mocker.patch.object(extractor, "download_from_url", return_value=None)
+
+    result = extractor.download(mocker_item("https://t.me/channel1/1"))
+
+    extractor.download_from_url.assert_called_once()
+    assert result.media == []
 
 
 def mocker_item(url):
