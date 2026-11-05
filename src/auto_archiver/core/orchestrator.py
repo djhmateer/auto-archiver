@@ -918,8 +918,7 @@ Here's how that would look: \n\nsteps:\n  extractors:\n  - [your_extractor_name_
                 logger.error(f"Extractor {a.name}: {e}: {traceback.format_exc()}")
 
         if not result.is_success():
-            tried = ", ".join(a.name for a in extractors)
-            logger.warning(f"No extractor succeeded for {url} (tried: {tried}), status={result.status!r}")
+            logger.warning(f"No successful capture for {url}, status={result.status!r}, notes={result.get_status_notes()}")
 
         # 4 - call enrichers to work with archived content
         for e in enrichers:
