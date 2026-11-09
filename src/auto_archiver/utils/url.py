@@ -71,7 +71,11 @@ def clean(url: str) -> str:
     parsed = urlparse(url)
     # __cf_chl_* is Cloudflare's challenge token, left in the URL when it is copied from the challenge page
     clean_qs = [(k, v) for k, v in parse_qsl(parsed.query) if k not in TRACKERS and not k.startswith("__cf_chl_")]
-    return parsed._replace(query=urlencode(clean_qs)).geturl()
+    parsed = parsed._replace(query=urlencode(clean_qs))
+    # DM 9th Nov 26 - bare idf.il doesn't resolve in DNS (from our servers or Wayback's), only www.idf.il does
+    if parsed.netloc.lower() == "idf.il":
+        parsed = parsed._replace(netloc="www.idf.il")
+    return parsed.geturl()
 
 
 def is_auth_wall(url: str) -> bool:

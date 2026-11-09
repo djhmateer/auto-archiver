@@ -464,6 +464,9 @@ class GenericExtractor(Extractor):
             return False
 
         post_data = dropin.extract_post(url, ie_instance)
+        if post_data is None:
+            # the dropin can't handle this kind of URL (eg a profile page), so there's no post to extract
+            return False
         result = dropin.create_metadata(post_data, ie_instance, self, url)
         return self.add_metadata(post_data, info_extractor, url, result)
 

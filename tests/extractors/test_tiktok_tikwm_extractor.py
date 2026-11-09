@@ -84,6 +84,13 @@ class TestTiktokTikwmExtractor(TestExtractorBase):
         assert mock_get.call_args.args == (Tiktok.TIKWM_ENDPOINT,)
         assert mock_get.call_args.kwargs["params"] == {"url": expected}
 
+    @pytest.mark.parametrize("url", ["https://www.tiktok.com/@user1", "https://www.tiktok.com/@user1.name?lang=en"])
+    def test_profile_url_not_sent_to_tikwm(self, mock_get, make_item, url, caplog):
+        with caplog.at_level("WARNING"):
+            assert self.extractor.download(make_item(url)) is False
+        mock_get.assert_not_called()
+        assert "Attempt to extract" not in caplog.text
+
     def test_invalid_json_responses(self, mock_get, make_item, caplog):
         mock_get.return_value.status_code = 200
         mock_get.return_value.json.side_effect = ValueError

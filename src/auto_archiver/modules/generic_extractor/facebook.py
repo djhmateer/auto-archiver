@@ -210,7 +210,12 @@ def delivery_video_info(ie: FacebookIE, video: dict, url: str, title: str | None
 class Facebook(GenericDropin):
     def extract_post(self, url: str, ie_instance: FacebookIE):
         post_id_regex = r"(?P<id>pfbid[A-Za-z0-9]+|\d+|t\.(\d+\/\d+))"
-        post_id = re.search(post_id_regex, url).group("id")
+        match = re.search(post_id_regex, url)
+        if not match:
+            # eg a profile URL with a name instead of a number (facebook.com/<name>): there's no post to extract
+            logger.debug(f"No Facebook post id in URL, skipping post extraction: {url}")
+            return None
+        post_id = match.group("id")
         webpage = ie_instance._download_webpage(url.replace("://m.facebook.com/", "://www.facebook.com/"), post_id)
 
         # TODO: For long posts, this _extract_metadata only seems to return the first 100 or so characters, followed by ...

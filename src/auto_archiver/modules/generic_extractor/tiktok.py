@@ -28,6 +28,11 @@ class Tiktok(GenericDropin):
         )
 
     def extract_post(self, url: str, ie_instance):
+        # tikwm only handles posts: a profile URL (tiktok.com/@user) gives "Url parsing is failed!"
+        if TikTokUserIE.suitable(url):
+            logger.debug(f"Not using Tikwm API for a profile URL: {url}")
+            return None
+
         logger.debug("Using Tikwm API to attempt to download tiktok video")
 
         # tikwm rejects URLs with share/search params like ?_r=1&_t=... or ?q=...&t=... ("Url parsing is failed!"),

@@ -156,6 +156,13 @@ def test_extract_post_without_a_video(ie):
     assert "_delivery_video" not in Facebook().extract_post(VIDEO_URL, ie)
 
 
+def test_extract_post_profile_url_without_an_id(ie):
+    ie._download_webpage = Mock()
+
+    assert Facebook().extract_post("https://www.facebook.com/profile.name", ie) is None
+    ie._download_webpage.assert_not_called()
+
+
 def test_create_metadata_downloads_the_video(tmp_path):
     video_file = tmp_path / f"{VIDEO_ID}.mp4"
     video_file.write_bytes(b"mp4")

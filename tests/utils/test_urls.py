@@ -219,3 +219,16 @@ def test_get_media_url_best_quality(input_url, expected_url):
 )
 def test_clean_removes_trackers(input_url, expected_url):
     assert clean(input_url) == expected_url
+
+
+@pytest.mark.parametrize(
+    "input_url, expected_url",
+    [
+        ("https://idf.il/123456", "https://www.idf.il/123456"),
+        ("https://IDF.il/123456?utm_source=x", "https://www.idf.il/123456"),
+        ("https://www.idf.il/123456", "https://www.idf.il/123456"),
+        ("https://en.idf.il/123456", "https://en.idf.il/123456"),
+    ],
+)
+def test_clean_adds_www_to_bare_idf_il(input_url, expected_url):
+    assert clean(input_url) == expected_url
